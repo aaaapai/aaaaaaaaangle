@@ -1323,6 +1323,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         addIntegerPrerequisite(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, 1024);
     }
 
+    if (traceNameIs("love_and_deepspace"))
+    {
+        addIntegerPrerequisite(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, 6);
+    }
+
     // GL_KHR_debug does not work on Android for GLES1
     if (IsAndroid() && mParams->traceInfo.contextClientMajorVersion == 1)
     {
@@ -1608,19 +1613,6 @@ void TracePerfTest::drawBenchmark()
             buffer = 0;  // gles1: a single frame is rendered to buffer 0
         }
         bindFramebuffer(GL_FRAMEBUFFER, buffer);
-
-        GLsync sync = mOffscreenSyncs[offscreenBufferIndex];
-        if (sync)
-        {
-            constexpr GLuint64 kTimeout = 2'000'000'000;  // 2 seconds
-            GLenum result = glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, kTimeout);
-            if (result != GL_CONDITION_SATISFIED && result != GL_ALREADY_SIGNALED)
-            {
-                failTest(std::string("glClientWaitSync unexpected result: ") +
-                         std::to_string(result));
-            }
-            glDeleteSync(sync);
-        }
     }
 
     char frameName[32];
@@ -1630,7 +1622,9 @@ void TracePerfTest::drawBenchmark()
     startGpuTimer();
     atraceCounter("TraceFrameIndex", mCurrentFrame);
 
+    const double beginReplayFrameTimeSec = mTrialTimer.getElapsedWallClockTime();
     mTraceReplay->replayFrame(mCurrentFrame);
+    mFrameWallTimeSec += mTrialTimer.getElapsedWallClockTime() - beginReplayFrameTimeSec;
 
     if (!gAddSwapIntoGPUTime)
     {
@@ -1638,6 +1632,10 @@ void TracePerfTest::drawBenchmark()
     }
 
     updatePerfCounters();
+
+    // Need to exclude potentially expensive calls above from the Frame Time.
+    const double beginSwapTimeSec =
+        gAddSwapIntoFrameWallTime ? mTrialTimer.getElapsedWallClockTime() : 0.0;
 
     if (mParams->surfaceType == SurfaceType::Offscreen)
     {
@@ -1732,6 +1730,20 @@ void TracePerfTest::drawBenchmark()
                 bindFramebuffer(GL_READ_FRAMEBUFFER, currentReadFBO);
             }
 
+            // Wait for the next frame here to simulate the behaviour of the swap buffers call
+            GLsync sync = mOffscreenSyncs[(offscreenBufferIndex + 1) % mMaxOffscreenBufferCount];
+            if (sync)
+            {
+                constexpr GLuint64 kTimeout = 2'000'000'000;  // 2 seconds
+                GLenum result = glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, kTimeout);
+                if (result != GL_CONDITION_SATISFIED && result != GL_ALREADY_SIGNALED)
+                {
+                    failTest(std::string("glClientWaitSync unexpected result: ") +
+                             std::to_string(result));
+                }
+                glDeleteSync(sync);
+            }
+
             if (currentEglContext != mEglContext)
             {
                 eglMakeCurrent(eglGetCurrentDisplay(), eglGetCurrentSurface(EGL_DRAW),
@@ -1744,6 +1756,12 @@ void TracePerfTest::drawBenchmark()
         bindFramebuffer(GL_FRAMEBUFFER, 0);
         saveScreenshotIfEnabled(ScreenshotType::kFrame);
         getGLWindow()->swap();
+    }
+
+    if (gAddSwapIntoFrameWallTime)
+    {
+        const double endSwapTimeSec = mTrialTimer.getElapsedWallClockTime();
+        mFrameWallTimeSec += endSwapTimeSec - beginSwapTimeSec;
     }
 
     if (gAddSwapIntoGPUTime)
@@ -1764,6 +1782,8 @@ void TracePerfTest::drawBenchmark()
     {
         mTraceReplay->resetReplay();
         mCurrentFrame = mStartFrame;
+        // Flush to avoid gpu_time tracking issues on some platforms (Native GLES Qualcomm).
+        glFlush();
     }
     else
     {

@@ -558,6 +558,172 @@ class GLSLTest_ES3_InitShaderVariables : public GLSLTest
 class GLSLTest_ES31_InitShaderVariables : public GLSLTest
 {};
 
+// Selecting a field of a vector that's the result of dynamic indexing a constant array should work.
+TEST_P(GLSLTest_ES3, ShaderSelectingFieldOfVectorIndexedFromArray)
+{
+    constexpr char kFS[] = R"(#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        uniform int i;
+        void main() {
+            float f = vec2[1](vec2(0.5, 0.1))[i].x;
+            my_FragColor = vec4(f);
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(127, 127, 127, 127), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Passing an array into a function and then passing a value from that array into another function
+// should work. This is a regression test for a bug where the mangled name of a TType was not
+// properly updated when determining the type resulting from array indexing.
+TEST_P(GLSLTest, ArrayValueFromFunctionParameterAsParameter)
+{
+    constexpr char kFS[] = R"(precision mediump float;
+        uniform float u;
+        float foo(float f) { return f * 2.0 + 0.1; }
+        float bar(float[2] f) { return foo(f[0]); }
+        void main() {
+            float arr[2];
+            arr[0] = u;
+            gl_FragColor = vec4(bar(arr));
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(26, 26, 26, 26), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that vector field selection from a value taken from an array constructor is accepted as a
+// constant expression.
+TEST_P(GLSLTest_ES3, FieldSelectionFromVectorArrayConstructorIsConst)
+{
+    constexpr char kFS[] = R"(#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        void main() {
+            const float f = vec2[1](vec2(0.5, 1.0))[0].x;
+            my_FragColor = vec4(f);
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(127, 127, 127, 127), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that structure field selection from a value taken from an array constructor is accepted as a
+// constant expression.
+TEST_P(GLSLTest_ES3, FieldSelectionFromStructArrayConstructorIsConst)
+{
+    constexpr char kFS[] = R"(#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        struct S { float member; };
+        void main() {
+            const float f = S[1](S(0.5))[0].member;
+            my_FragColor = vec4(f);
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(127, 127, 127, 127), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that a reference to a const array is accepted as a constant expression.
+TEST_P(GLSLTest_ES3, ArraySymbolIsConst)
+{
+    constexpr char kFS[] = R"(#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        void main() {
+            const float[2] arr = float[2](0.5, 1.0);
+            const float f = arr[0];
+            my_FragColor = vec4(f);
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(127, 127, 127, 127), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that using an array constructor in a parameter to a built-in function is accepted as a
+// constant expression.
+TEST_P(GLSLTest_ES3, BuiltInFunctionAppliedToArrayConstructorIsConst)
+{
+    constexpr char kFS[] = R"(#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        void main() {
+            const float f = sin(float[2](0.5, 1.0)[0]);
+            my_FragColor = vec4(f);
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(122, 122, 122, 122), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that using an array constructor in a parameter to a built-in function is accepted as a
+// constant expression.
+TEST_P(GLSLTest_ES3, BuiltInFunctionWithMultipleParametersAppliedToArrayConstructorIsConst)
+{
+    constexpr char kFS[] = R"(#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        void main() {
+            const float f = pow(1.0, float[2](0.5, 1.0)[0]);
+            my_FragColor = vec4(f);
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::white);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that using an array constructor in a parameter to a constructor is accepted as a constant
+// expression.
+TEST_P(GLSLTest_ES3, ConstructorWithMultipleParametersAppliedToArrayConstructorIsConst)
+{
+    constexpr char kFS[] = R"(#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        void main() {
+            const vec2 f = vec2(1.0, float[2](0.5, 1.0)[0]);
+            my_FragColor = vec4(f.x);
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::white);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that using an array constructor in an operand of the ternary selection operator is accepted
+// as a constant expression.
+TEST_P(GLSLTest_ES3, TernaryOperatorAppliedToArrayConstructorIsConst)
+{
+    constexpr char kFS[] = R"(#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        void main() {
+            const float f = true ? float[2](0.5, 1.0)[0] : 1.0;
+            my_FragColor = vec4(f);
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(128, 128, 128, 128), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
 // Tests a shader from conformance.olges/GL/build/build_017_to_024
 // This shader uses chained assign-equals ops with swizzle, often reusing the same variable
 // as part of a swizzle.
@@ -19933,6 +20099,10 @@ TEST_P(WebGLGLSLTest, InvalidGlobalsNotInlined)
 // fields having unique names.
 TEST_P(GLSLTest_ES3, LotsOfFieldsInStruct)
 {
+    int maxUniformBlockSize = 0;
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
+    ANGLE_SKIP_TEST_IF(maxUniformBlockSize < 16384 * 4);
+
     std::ostringstream fs;
     fs << R"(#version 300 es
 precision highp float;
@@ -19954,43 +20124,33 @@ void main() {
     ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), fs.str().c_str());
 }
 
-// Make sure the shader in LargeInterfaceBlockArrayPassedToFunction works if the large local is
-// avoided.
-TEST_P(GLSLTest_ES3, LargeInterfaceBlockArray)
+// Make sure an SSBO with a large array links successfully.
+TEST_P(GLSLTest_ES31, LargeInterfaceBlockArray)
 {
-    int maxUniformBlockSize = 0;
-    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
-    ANGLE_SKIP_TEST_IF(maxUniformBlockSize < 16384 * 4);
-
-    constexpr char kFS[] = R"(#version 300 es
+    constexpr char kFS[] = R"(#version 310 es
 precision highp float;
-uniform Large { float a[16384]; };
+layout(std430) buffer Large { float a[65536]; };
 out vec4 color;
 void main() {
     color = vec4(a[0], 0.0, 0.0, 1.0);
 })";
 
-    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    ANGLE_GL_PROGRAM(program, essl31_shaders::vs::Simple(), kFS);
 }
 
-// Make sure the shader in LargeInterfaceBlockNestedArrayPassedToFunction works if the large local
-// is avoided.
-TEST_P(GLSLTest_ES3, LargeInterfaceBlockNestedArray)
+// Make sure an SSBO with a nested large array links successfully.
+TEST_P(GLSLTest_ES31, LargeInterfaceBlockNestedArray)
 {
-    int maxUniformBlockSize = 0;
-    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
-    ANGLE_SKIP_TEST_IF(maxUniformBlockSize < 16384 * 4);
-
-    constexpr char kFS[] = R"(#version 300 es
+    constexpr char kFS[] = R"(#version 310 es
 precision highp float;
-struct S { float a[16384]; };
-uniform Large { S s; };
+struct S { float a[65536]; };
+layout(std430) buffer Large { S s; };
 out vec4 color;
 void main() {
     color = vec4(s.a[0], 0.0, 0.0, 1.0);
 })";
 
-    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    ANGLE_GL_PROGRAM(program, essl31_shaders::vs::Simple(), kFS);
 }
 
 // Regression test for const globals losing const qualifiers during MSL
@@ -21190,6 +21350,200 @@ TEST_P(GLSLTest, NestedInoutVars3)
     {
         ADD_FAILURE() << "Got " << color << ", expected white or grey";
     }
+}
+
+// Test that nesting rgb_2_yuv and yuv_2_rgb works.
+TEST_P(GLSLTest_ES3, rgbYuvBuiltInNesting1)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_YUV_target"));
+
+    const char kFS[] = R"(#version 300 es
+#extension GL_EXT_YUV_target: require
+precision mediump float;
+const yuvCscStandardEXT conv = itu_601;
+
+out vec4 color;
+
+void main()
+{
+    vec3 rgb = yuv_2_rgb(rgb_2_yuv(vec3(0.2, 0.3, 0.4), conv), conv);
+    color = vec4(rgb, 1.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(51, 77, 102, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that nesting rgb_2_yuv and yuv_2_rgb works.
+TEST_P(GLSLTest_ES3, rgbYuvBuiltInNesting2)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_YUV_target"));
+
+    const char kFS[] = R"(#version 300 es
+#extension GL_EXT_YUV_target: require
+precision mediump float;
+const yuvCscStandardEXT conv = itu_601_full_range;
+
+out vec4 color;
+
+void main()
+{
+    vec3 rgb = yuv_2_rgb(vec3(0.1, 0.2, 0.3) + rgb_2_yuv(vec3(0.15, 0.25, 0.35), conv), conv);
+    color = vec4(rgb, 1.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(171, 17, 205, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that nesting rgb_2_yuv and yuv_2_rgb works.
+TEST_P(GLSLTest_ES3, rgbYuvBuiltInNesting3)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_YUV_target"));
+
+    const char kFS[] = R"(#version 300 es
+#extension GL_EXT_YUV_target: require
+precision mediump float;
+const yuvCscStandardEXT conv = itu_709;
+
+out vec4 color;
+
+vec3 f(vec3 v) { return v + vec3(0.1); }
+
+void main()
+{
+    vec3 rgb = yuv_2_rgb(f(rgb_2_yuv(vec3(0.1, 0.2, 0.3), conv)), conv);
+    color = vec4(rgb, 1.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(102, 62, 161, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that nesting rgb_2_yuv and yuv_2_rgb works.
+TEST_P(GLSLTest_ES3, rgbYuvBuiltInNesting4)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_YUV_target"));
+
+    const char kFS[] = R"(#version 300 es
+#extension GL_EXT_YUV_target: require
+precision mediump float;
+const yuvCscStandardEXT conv = itu_601;
+
+out vec4 color;
+
+vec3 f(vec3 v) { return v + vec3(0.1); }
+
+void main()
+{
+    vec3 rgb = f(yuv_2_rgb(f(rgb_2_yuv(vec3(0.1, 0.2, 0.3), conv)), conv));
+    color = vec4(rgb, 1.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(122, 75, 183, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that using rgb_2_yuv and yuv_2_rgb with different precisions work.
+TEST_P(GLSLTest_ES3, rgbYuvBuiltInUsedWithDifferentPrecisions)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_YUV_target"));
+
+    const char kFS[] = R"(#version 300 es
+#extension GL_EXT_YUV_target: require
+precision mediump float;
+const yuvCscStandardEXT conv = itu_601;
+
+out vec4 color;
+
+void main()
+{
+    lowp vec3 rgbLow = vec3(0.1);
+    mediump vec3 rgbMedium = vec3(0.2);
+    highp vec3 rgbHigh = vec3(0.3);
+
+    lowp vec3 yuvLow = vec3(0.4);
+    mediump vec3 yuvMedium = vec3(0.5);
+    highp vec3 yuvHigh = vec3(0.6);
+
+    color = vec4(
+            rgb_2_yuv(rgbLow, conv) - rgb_2_yuv(rgbMedium, conv) + rgb_2_yuv(rgbHigh, conv) -
+            yuv_2_rgb(yuvLow, conv) - yuv_2_rgb(yuvMedium, conv) + yuv_2_rgb(yuvHigh, conv),
+        1.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(72, 0, 161, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that link fails if UBO size is larger than MAX.
+TEST_P(GLSLTest_ES3, UBOExceedsMaxSize)
+{
+    int maxUniformBlockSize = 0;
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
+    // ANGLE limits the UBO size to 64KB, so in practice the test always runs.
+    ANGLE_SKIP_TEST_IF(maxUniformBlockSize > 65536);
+
+    const char kFS[] = R"(#version 300 es
+precision mediump float;
+struct S64
+{
+    vec4 f[64];
+};
+
+layout(std140) uniform Block {
+    S64 arr[256];
+};
+
+out vec4 color;
+
+void main()
+{
+    color = vec4(arr[10].f[15]);
+})";
+
+    GLuint program = CompileProgram(essl3_shaders::vs::Simple(), kFS);
+    EXPECT_EQ(0u, program);
+}
+
+// Test that link fails if SSBO size is larger than MAX.
+TEST_P(GLSLTest_ES31, SSBOExceedsMaxSize)
+{
+    int maxShaderStorageBlockSize = 0;
+    glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxShaderStorageBlockSize);
+    // ANGLE limits the SSBO size to INT_MAX, so in practice the test always runs.
+    ANGLE_SKIP_TEST_IF(maxShaderStorageBlockSize > 0x7FFF'FFFF);
+
+    const char kFS[] = R"(#version 310 es
+precision mediump float;
+struct S
+{
+    vec4 f[8192];
+};
+
+layout(std140) buffer Block {
+    S arr[32768];
+};
+
+out vec4 color;
+
+void main()
+{
+    color = vec4(arr[10].f[15]);
+})";
+
+    GLuint program = CompileProgram(essl31_shaders::vs::Simple(), kFS);
+    EXPECT_EQ(0u, program);
 }
 
 }  // anonymous namespace

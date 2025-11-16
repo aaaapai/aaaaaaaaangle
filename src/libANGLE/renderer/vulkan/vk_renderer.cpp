@@ -479,7 +479,26 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
       "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)",
       "prior_access = VK_PIPELINE_STAGE_2_BLIT_BIT(VK_ACCESS_2_TRANSFER_READ_BIT)",
       "command = vkCmdDraw", "prior_command = vkCmdBlitImage"}},
-};
+    // https://anglebug.com/456785955
+    {"SYNC-HAZARD-WRITE-AFTER-WRITE",
+     false,
+     {"hazard_type = WRITE_AFTER_WRITE",
+      "access = "
+      "VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_"
+      "BIT)",
+      "prior_access = "
+      "VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)",
+      "command = vkCmdBeginRender", "prior_command = vkCmdEndRender",
+      "load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE"}},
+    {"SYNC-HAZARD-READ-AFTER-WRITE",
+     false,
+     {"message_type = RenderPassLoadOpError", "hazard_type = READ_AFTER_WRITE",
+      "access = "
+      "VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT)",
+      "prior_access = "
+      "VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)",
+      "command = vkCmdBeginRenderPass", "prior_command = vkCmdEndRenderPass",
+      "load_op = VK_ATTACHMENT_LOAD_OP_LOAD"}}};
 
 // Messages that should not be generated if the feature to force-enable providing the size pointer
 // to vkCmdBindVertexBuffers2() is disabled.
@@ -651,7 +670,7 @@ bool SyncvalMessageMatchesSkip(const char *messageId,
                                const char *message,
                                const vk::SkippedSyncvalMessage &skip)
 {
-    // TODO(http://angleproject:391284743): Ongoing transition: textual matches -> extraProperties.
+    // TODO(http://anglebug.com/391284743): Ongoing transition: textual matches -> extraProperties.
     // The skip should include at least one extraProperty
     ASSERT(skip.extraProperties[0]);
 
@@ -5498,6 +5517,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsMultiview, mMultiviewFeatures.multiview == VK_TRUE);
 
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsMultiviewMultisampleRenderToTexture,
+                            mFeatures.supportsMultisampledRenderToSingleSampled.enabled &&
+                                mFeatures.supportsMultiview.enabled);
+
     // VK_EXT_device_fault can provide more information when the device is lost.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsDeviceFault,
@@ -5530,14 +5553,15 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             (isNvidia && nativeWindowSystem == angle::NativeWindowSystem::X11));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, padBuffersToMaxVertexAttribStride, isAMD || isSamsung);
-    mMaxVertexAttribStride = std::min(static_cast<uint32_t>(gl::limits::kMaxVertexAttribStride),
-                                      mPhysicalDeviceProperties.limits.maxVertexInputBindingStride);
+    mMaxVertexAttribStride =
+        mFeatures.padBuffersToMaxVertexAttribStride.enabled
+            ? std::min(static_cast<uint32_t>(gl::limits::kMaxVertexAttribStride),
+                       mPhysicalDeviceProperties.limits.maxVertexInputBindingStride)
+            : 0;
 
     // The limits related to buffer size should also take the max memory allocation size and padding
     // (if applicable) into account.
-    mMaxBufferMemorySizeLimit = getFeatures().padBuffersToMaxVertexAttribStride.enabled
-                                    ? getMaxMemoryAllocationSize() - mMaxVertexAttribStride
-                                    : getMaxMemoryAllocationSize();
+    mMaxBufferMemorySizeLimit = getMaxMemoryAllocationSize() - mMaxVertexAttribStride;
 
     ANGLE_FEATURE_CONDITION(&mFeatures, forceD16TexFilter, IsAndroid() && isQualcommProprietary);
 
@@ -5726,12 +5750,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // or extensions. For the purpose of testing coverage, we would still enable ES 3.2 on these
     // platforms. However, once a listed test platform is updated to a version that does support
     // ES 3.2, it should be unlisted.
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, exposeES32ForTesting,
-        mFeatures.exposeNonConformantExtensionsAndVersions.enabled &&
-            (isSoftwareRenderer || isPixel4 ||
-             (IsLinux() && isNvidia && driverVersion < angle::VersionTriple(441, 0, 0)) ||
-             (IsWindows() && isIntel)));
+    ANGLE_FEATURE_CONDITION(&mFeatures, exposeES32ForTesting,
+                            mFeatures.exposeNonConformantExtensionsAndVersions.enabled &&
+                                (isSoftwareRenderer || isPixel4 || (IsWindows() && isIntel)));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsMemoryBudget,
@@ -5741,13 +5762,17 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // tests to fail.
     ANGLE_FEATURE_CONDITION(&mFeatures, forceFragmentShaderPrecisionHighpToMediump, false);
 
-    // Testing shows that on ARM and Qualcomm GPU, doing implicit flush at framebuffer boundary
-    // improves performance. Most app traces shows frame time reduced and manhattan 3.1 offscreen
-    // score improves 7%.
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferSubmitAtFBOBoundary,
-                            ((isTileBasedRenderer || isSwiftShader) && !isARMProprietary));
+    // TODO: Delete these two feature flags (https://issuetracker.google.com/422507974). More
+    // frequent submission may help benchmark score improvement, and in certain cases helps real
+    // performance as well (for things like bufferSubData able to go down faster path), but it
+    // increases power consumption by keeping GPU powered up longer for real world applications that
+    // runs in vsync mode. For now the feature is just disabled so that people can still do
+    // comparison if needed. They should be deleted in future.
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferSubmitAtFBOBoundary, false);
+    // This is relevant only if preferSubmitAtFBOBoundary is enabled
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceSubmitExceptionsAtFBOBoundary,
+                            mFeatures.preferSubmitAtFBOBoundary.enabled && !isQualcommProprietary);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, forceSubmitExceptionsAtFBOBoundary, !isQualcommProprietary);
     mMinCommandCountToSubmit = isQualcommProprietary ? 1024 : 32;
 
     // The number of minimum write commands in the command buffer to trigger one submission of
@@ -6288,6 +6313,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsHostImageCopy,
                             mHostImageCopyFeatures.hostImageCopy == VK_TRUE &&
                                 mHostImageCopyProperties.identicalMemoryTypeRequirements);
+    // Software renderers always benefit from host-image-copy, because that's just memcpy.
+    ANGLE_FEATURE_CONDITION(&mFeatures, allowHostImageCopyAfterInitialUpload, isSoftwareRenderer);
 
     // 1) host vk driver does not natively support ETC format.
     // 2) host vk driver supports BC format.
@@ -6628,6 +6655,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportShaderPixelLocalStorageAngle, !isSamsung);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, debugClDumpCommandStream, false);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportFragmentShadingRateExtExtensions,
+                            mFeatures.supportsFragmentShadingRate.enabled);
 }
 
 void Renderer::appBasedFeatureOverrides(const vk::ExtensionNameList &extensions) {}
@@ -7177,6 +7207,13 @@ uint64_t Renderer::getMaxFenceWaitTimeNs() const
     return kMaxFenceWaitTimeNs;
 }
 
+VkDeviceSize Renderer::padVertexAttribBufferSizeIfNeeded(VkDeviceSize bufferSize)
+{
+    // When the padding feature is disabled, the max attribute stride should remain 0.
+    ASSERT(mFeatures.padBuffersToMaxVertexAttribStride.enabled ^ (mMaxVertexAttribStride == 0));
+    return bufferSize + mMaxVertexAttribStride;
+}
+
 void Renderer::setGlobalDebugAnnotator(bool *installedAnnotatorOut)
 {
     // Install one of two DebugAnnotator classes:
@@ -7272,14 +7309,11 @@ void Renderer::initializeDeviceExtensionEntryPointsFromCore() const
     }
 }
 
-angle::Result Renderer::submitCommands(
-    vk::ErrorContext *context,
-    vk::ProtectionType protectionType,
-    egl::ContextPriority contextPriority,
-    const vk::Semaphore *signalSemaphore,
-    const vk::SharedExternalFence *externalFence,
-    std::vector<VkImageMemoryBarrier> &&imagesToTransitionToForeign,
-    const QueueSerial &submitQueueSerial)
+angle::Result Renderer::submitCommands(vk::ErrorContext *context,
+                                       const vk::Semaphore *signalSemaphore,
+                                       const vk::SharedExternalFence *externalFence,
+                                       const QueueSerial &submitQueueSerial,
+                                       CommandsState &&commandsState)
 {
     ASSERT(signalSemaphore == nullptr || signalSemaphore->valid());
     const VkSemaphore signalVkSemaphore =
@@ -7291,9 +7325,8 @@ angle::Result Renderer::submitCommands(
         externalFenceCopy = *externalFence;
     }
 
-    ANGLE_TRY(mCommandQueue.submitCommands(
-        context, protectionType, contextPriority, signalVkSemaphore, std::move(externalFenceCopy),
-        std::move(imagesToTransitionToForeign), submitQueueSerial));
+    ANGLE_TRY(mCommandQueue.submitCommands(context, signalVkSemaphore, std::move(externalFenceCopy),
+                                           submitQueueSerial, std::move(commandsState)));
 
     ANGLE_TRY(mCommandQueue.postSubmitCheck(context));
 
@@ -7318,6 +7351,7 @@ angle::Result Renderer::submitPriorityDependency(vk::ErrorContext *context,
     {
         vk::ProtectionType protectionType = protectionTypes.first();
         protectionTypes.reset(protectionType);
+        CommandsState commandsState(this, protectionType, srcContextPriority);
 
         QueueSerial queueSerial(index, generateQueueSerial(index));
         // Submit semaphore only if this is the last submission (all into the same VkQueue).
@@ -7328,8 +7362,8 @@ angle::Result Renderer::submitPriorityDependency(vk::ErrorContext *context,
             semaphore.get().setQueueSerial(queueSerial);
             signalSemaphore = &semaphore.get().get();
         }
-        ANGLE_TRY(submitCommands(context, protectionType, srcContextPriority, signalSemaphore,
-                                 nullptr, {}, queueSerial));
+        ANGLE_TRY(submitCommands(context, signalSemaphore, nullptr, queueSerial,
+                                 std::move(commandsState)));
         mSubmittedResourceUse.setQueueSerial(queueSerial);
     }
 
@@ -7365,43 +7399,6 @@ angle::Result Renderer::waitForResourceUseToFinishWithUserTimeout(vk::ErrorConte
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "Renderer::waitForResourceUseToFinishWithUserTimeout");
     return mCommandQueue.waitForResourceUseToFinishWithUserTimeout(context, use, timeout, result);
-}
-
-angle::Result Renderer::flushWaitSemaphores(
-    vk::ProtectionType protectionType,
-    egl::ContextPriority priority,
-    std::vector<VkSemaphore> &&waitSemaphores,
-    std::vector<VkPipelineStageFlags> &&waitSemaphoreStageMasks)
-{
-    ANGLE_TRACE_EVENT0("gpu.angle", "Renderer::flushWaitSemaphores");
-    mCommandQueue.flushWaitSemaphores(protectionType, priority, std::move(waitSemaphores),
-                                      std::move(waitSemaphoreStageMasks));
-
-    return angle::Result::Continue;
-}
-
-angle::Result Renderer::flushRenderPassCommands(
-    vk::Context *context,
-    vk::ProtectionType protectionType,
-    egl::ContextPriority priority,
-    const vk::RenderPass &renderPass,
-    VkFramebuffer framebufferOverride,
-    vk::RenderPassCommandBufferHelper **renderPassCommands)
-{
-    ANGLE_TRACE_EVENT0("gpu.angle", "Renderer::flushRenderPassCommands");
-    return mCommandQueue.flushRenderPassCommands(context, protectionType, priority, renderPass,
-                                                 framebufferOverride, renderPassCommands);
-}
-
-angle::Result Renderer::flushOutsideRPCommands(
-    vk::Context *context,
-    vk::ProtectionType protectionType,
-    egl::ContextPriority priority,
-    vk::OutsideRenderPassCommandBufferHelper **outsideRPCommands)
-{
-    ANGLE_TRACE_EVENT0("gpu.angle", "Renderer::flushOutsideRPCommands");
-    return mCommandQueue.flushOutsideRPCommands(context, protectionType, priority,
-                                                outsideRPCommands);
 }
 
 VkResult Renderer::queuePresent(vk::ErrorContext *context,

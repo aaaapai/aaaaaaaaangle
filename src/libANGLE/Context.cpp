@@ -7,6 +7,7 @@
 // Context.cpp: Implements the gl::Context class, managing all GL state and performing
 // rendering operations. It is the GLES2 specific implementation of EGLContext.
 
+#include "common/entry_points_enum_autogen.h"
 #ifdef UNSAFE_BUFFERS_BUILD
 #    pragma allow_unsafe_buffers
 #endif
@@ -607,9 +608,8 @@ class ScopedPLSFramebufferFetchDrawBuffersDisable
 }  // anonymous namespace
 
 #if defined(ANGLE_PLATFORM_APPLE)
-// TODO(angleproject:6479): Due to a bug in Apple's dyld loader, `thread_local` will cause
-// excessive memory use. Temporarily avoid it by using pthread's thread
-// local storage instead.
+// TODO(http://anglebug.com/42264979): Due to a bug in Apple's dyld loader, `thread_local` will
+// cause excessive memory use. Temporarily avoid it by using pthread's thread local storage instead.
 static angle::TLSIndex GetCurrentValidContextTLSIndex()
 {
     static angle::TLSIndex CurrentValidContextIndex = TLS_INVALID_INDEX;
@@ -702,6 +702,9 @@ Context::Context(egl::Display *display,
       mLabel(nullptr),
       mCompiler(),
       mConfig(config),
+      mFenceNVHandleAllocator(IMPLEMENTATION_MAX_OBJECT_HANDLES),
+      mQueryHandleAllocator(IMPLEMENTATION_MAX_OBJECT_HANDLES),
+      mTransformFeedbackHandleAllocator(IMPLEMENTATION_MAX_OBJECT_HANDLES),
       mHasBeenCurrent(false),
       mSurfacelessSupported(displayExtensions.surfacelessContext),
       mCurrentDrawSurface(static_cast<egl::Surface *>(EGL_NO_SURFACE)),
@@ -786,8 +789,6 @@ void Context::initializeDefaultResources()
     mState.initialize(this);
 
     mDefaultFramebuffer = std::make_unique<Framebuffer>(this, mImplementation.get());
-
-    mFenceNVHandleAllocator.setBaseHandle(0);
 
     // [OpenGL ES 2.0.24] section 3.7 page 83:
     // In the initial state, TEXTURE_2D and TEXTURE_CUBE_MAP have two-dimensional
@@ -1128,52 +1129,71 @@ void Context::contextLostErrorOnBlockingCall(angle::EntryPoint entryPoint) const
     mErrors.validationError(entryPoint, GL_CONTEXT_LOST, err::kContextLost);
 }
 
-BufferID Context::createBuffer()
+void Context::handleExhaustionError(angle::EntryPoint entryPoint)
 {
-    return mState.mBufferManager->createBuffer();
+    mErrors.validationError(entryPoint, GL_OUT_OF_MEMORY, err::kHandleExhaustion);
+}
+
+bool Context::createBuffer(BufferID *outBuffer)
+{
+    return mState.mBufferManager->createBuffer(outBuffer);
 }
 
 GLuint Context::createProgram()
 {
-    return mState.mShaderProgramManager->createProgram(mImplementation.get()).value;
+    ShaderProgramID id;
+    if (!mState.mShaderProgramManager->createProgram(mImplementation.get(), &id))
+    {
+        handleExhaustionError(angle::EntryPoint::GLCreateProgram);
+        return 0;
+    }
+    return id.value;
 }
 
 GLuint Context::createShader(ShaderType type)
 {
-    return mState.mShaderProgramManager
-        ->createShader(mImplementation.get(), mState.getLimitations(), type)
-        .value;
+    ShaderProgramID id;
+    if (!mState.mShaderProgramManager->createShader(mImplementation.get(), mState.getLimitations(),
+                                                    type, &id))
+    {
+        handleExhaustionError(angle::EntryPoint::GLCreateShader);
+        return 0;
+    }
+    return id.value;
 }
 
-TextureID Context::createTexture()
+bool Context::createTexture(TextureID *outTexture)
 {
-    return mState.mTextureManager->createTexture();
+    return mState.mTextureManager->createTexture(outTexture);
 }
 
-RenderbufferID Context::createRenderbuffer()
+bool Context::createRenderbuffer(RenderbufferID *outRenderbuffer)
 {
-    return mState.mRenderbufferManager->createRenderbuffer();
+    return mState.mRenderbufferManager->createRenderbuffer(outRenderbuffer);
 }
 
 // Returns an unused framebuffer name
-FramebufferID Context::createFramebuffer()
+bool Context::createFramebuffer(FramebufferID *outFramebuffer)
 {
-    return mState.mFramebufferManager->createFramebuffer();
+    return mState.mFramebufferManager->createFramebuffer(outFramebuffer);
 }
 
 void Context::genFencesNV(GLsizei n, FenceNVID *fences)
 {
     for (int i = 0; i < n; i++)
     {
-        GLuint handle = mFenceNVHandleAllocator.allocate();
-        mFenceNVMap.assign({handle}, new FenceNV(mImplementation.get()));
-        fences[i] = {handle};
+        if (!mFenceNVHandleAllocator.allocate(&fences[i].value))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenFencesNV);
+            return;
+        }
+        mFenceNVMap.assign(fences[i], new FenceNV(mImplementation.get()));
     }
 }
 
-ProgramPipelineID Context::createProgramPipeline()
+bool Context::createProgramPipeline(ProgramPipelineID *outProgramPipeline)
 {
-    return mState.mProgramPipelineManager->createProgramPipeline();
+    return mState.mProgramPipelineManager->createProgramPipeline(outProgramPipeline);
 }
 
 GLuint Context::createShaderProgramv(ShaderType type, GLsizei count, const GLchar *const *strings)
@@ -1228,14 +1248,14 @@ GLuint Context::createShaderProgramv(ShaderType type, GLsizei count, const GLcha
     return 0u;
 }
 
-MemoryObjectID Context::createMemoryObject()
+bool Context::createMemoryObject(MemoryObjectID *outMemoryObject)
 {
-    return mState.mMemoryObjectManager->createMemoryObject(mImplementation.get());
+    return mState.mMemoryObjectManager->createMemoryObject(mImplementation.get(), outMemoryObject);
 }
 
-SemaphoreID Context::createSemaphore()
+bool Context::createSemaphore(SemaphoreID *outSemaphore)
 {
-    return mState.mSemaphoreManager->createSemaphore(mImplementation.get());
+    return mState.mSemaphoreManager->createSemaphore(mImplementation.get(), outSemaphore);
 }
 
 void Context::deleteBuffer(BufferID bufferName)
@@ -3847,6 +3867,7 @@ Extensions Context::generateSupportedExtensions() const
         supportedExtensions.multiviewOVR                 = false;
         supportedExtensions.multiview2OVR                = false;
         supportedExtensions.multiviewMultisampleANGLE    = false;
+        supportedExtensions.multiviewMultisampledRenderToTextureOVR = false;
         supportedExtensions.copyTexture3dANGLE           = false;
         supportedExtensions.textureMultisampleANGLE      = false;
         supportedExtensions.textureQueryLodEXT           = false;
@@ -5432,6 +5453,35 @@ void Context::framebufferTextureMultiview(GLenum target,
         framebuffer->resetAttachment(this, attachment);
     }
 
+    mState.setObjectDirty(target);
+}
+
+void Context::framebufferTextureMultisampleMultiview(GLenum target,
+                                                     GLenum attachment,
+                                                     TextureID texturePacked,
+                                                     GLint level,
+                                                     GLsizei samples,
+                                                     GLint baseViewIndex,
+                                                     GLsizei numViews)
+{
+    Framebuffer *framebuffer = mState.getTargetFramebuffer(target);
+    ASSERT(framebuffer);
+
+    if (texturePacked.value != 0)
+    {
+        Texture *textureObj = getTexture(texturePacked);
+
+        ImageIndex index;
+        ASSERT(textureObj->getType() == TextureType::_2DArray);
+        index = ImageIndex::Make2DArrayRange(level, baseViewIndex, numViews);
+        framebuffer->setAttachmentMultisampleMultiview(
+            this, GL_TEXTURE, attachment, index, textureObj, samples, numViews, baseViewIndex);
+        textureObj->onBindToMSRTTFramebuffer();
+    }
+    else
+    {
+        framebuffer->resetAttachment(this, attachment);
+    }
     mState.setObjectDirty(target);
 }
 
@@ -7068,7 +7118,11 @@ void Context::genBuffers(GLsizei n, BufferID *buffers)
 {
     for (int i = 0; i < n; i++)
     {
-        buffers[i] = createBuffer();
+        if (!createBuffer(&buffers[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenBuffers);
+            return;
+        }
     }
 }
 
@@ -7076,7 +7130,11 @@ void Context::genFramebuffers(GLsizei n, FramebufferID *framebuffers)
 {
     for (int i = 0; i < n; i++)
     {
-        framebuffers[i] = createFramebuffer();
+        if (!createFramebuffer(&framebuffers[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenFramebuffers);
+            return;
+        }
     }
 }
 
@@ -7084,7 +7142,11 @@ void Context::genRenderbuffers(GLsizei n, RenderbufferID *renderbuffers)
 {
     for (int i = 0; i < n; i++)
     {
-        renderbuffers[i] = createRenderbuffer();
+        if (!createRenderbuffer(&renderbuffers[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenRenderbuffers);
+            return;
+        }
     }
 }
 
@@ -7092,7 +7154,11 @@ void Context::genTextures(GLsizei n, TextureID *textures)
 {
     for (int i = 0; i < n; i++)
     {
-        textures[i] = createTexture();
+        if (!createTexture(&textures[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenTextures);
+            return;
+        }
     }
 }
 
@@ -7661,9 +7727,12 @@ void Context::genQueries(GLsizei n, QueryID *ids)
 {
     for (GLsizei i = 0; i < n; i++)
     {
-        QueryID handle = QueryID{mQueryHandleAllocator.allocate()};
-        mQueryMap.assign(handle, nullptr);
-        ids[i] = handle;
+        if (!mQueryHandleAllocator.allocate(&ids[i].value))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenQueries);
+            return;
+        }
+        mQueryMap.assign(ids[i], nullptr);
     }
 }
 
@@ -7773,9 +7842,25 @@ void Context::genTransformFeedbacks(GLsizei n, TransformFeedbackID *ids)
 {
     for (int i = 0; i < n; i++)
     {
-        TransformFeedbackID transformFeedback = {mTransformFeedbackHandleAllocator.allocate()};
-        mTransformFeedbackMap.assign(transformFeedback, nullptr);
-        ids[i] = transformFeedback;
+        if (!mTransformFeedbackHandleAllocator.allocate(&ids[i].value))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenTransformFeedbacks);
+            return;
+        }
+        mTransformFeedbackMap.assign(ids[i], nullptr);
+    }
+}
+
+void Context::genVertexArrays(GLsizei n, VertexArrayID *ids)
+{
+    PrivateState *privState = getMutablePrivateState();
+    for (int i = 0; i < n; i++)
+    {
+        if (!privState->allocateVertexID(&ids[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenVertexArrays);
+            return;
+        }
     }
 }
 
@@ -7910,7 +7995,13 @@ void Context::uniformBlockBinding(ShaderProgramID program,
 
 GLsync Context::fenceSync(GLenum condition, GLbitfield flags)
 {
-    SyncID syncHandle = mState.mSyncManager->createSync(mImplementation.get());
+    SyncID syncHandle;
+    if (!mState.mSyncManager->createSync(mImplementation.get(), &syncHandle))
+    {
+        handleExhaustionError(angle::EntryPoint::GLFenceSync);
+        return nullptr;
+    }
+
     Sync *syncObject  = getSync(syncHandle);
     if (syncObject->set(this, condition, flags) == angle::Result::Stop)
     {
@@ -7984,7 +8075,11 @@ void Context::genSamplers(GLsizei count, SamplerID *samplers)
 {
     for (int i = 0; i < count; i++)
     {
-        samplers[i] = mState.mSamplerManager->createSampler();
+        if (!mState.mSamplerManager->createSampler(&samplers[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenSamplers);
+            return;
+        }
     }
 }
 
@@ -8362,7 +8457,11 @@ void Context::genProgramPipelines(GLsizei count, ProgramPipelineID *pipelines)
 {
     for (int i = 0; i < count; i++)
     {
-        pipelines[i] = createProgramPipeline();
+        if (!createProgramPipeline(&pipelines[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenProgramPipelines);
+            return;
+        }
     }
 }
 
@@ -8578,7 +8677,11 @@ void Context::createMemoryObjects(GLsizei n, MemoryObjectID *memoryObjects)
 {
     for (int i = 0; i < n; i++)
     {
-        memoryObjects[i] = createMemoryObject();
+        if (!createMemoryObject(&memoryObjects[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLCreateMemoryObjectsEXT);
+            return;
+        }
     }
 }
 
@@ -8741,7 +8844,11 @@ void Context::genSemaphores(GLsizei n, SemaphoreID *semaphores)
 {
     for (int i = 0; i < n; i++)
     {
-        semaphores[i] = createSemaphore();
+        if (!createSemaphore(&semaphores[i]))
+        {
+            handleExhaustionError(angle::EntryPoint::GLGenSemaphoresEXT);
+            return;
+        }
     }
 }
 

@@ -1949,13 +1949,12 @@ bool ValidateDeleteVertexArraysOES(const Context *context,
     return ValidateGenOrDelete(context->getMutableErrorSetForValidation(), entryPoint, n, arrays);
 }
 
-bool ValidateGenVertexArraysOES(const PrivateState &state,
-                                ErrorSet *errors,
+bool ValidateGenVertexArraysOES(const Context *context,
                                 angle::EntryPoint entryPoint,
                                 GLsizei n,
                                 const VertexArrayID *arrays)
 {
-    return ValidateGenOrDelete(errors, entryPoint, n, arrays);
+    return ValidateGenOrDelete(context->getMutableErrorSetForValidation(), entryPoint, n, arrays);
 }
 
 bool ValidateIsVertexArrayOES(const PrivateState &state,
@@ -6017,7 +6016,7 @@ bool ValidateFramebufferTexture2DMultisampleEXT(const Context *context,
 
     // EXT_multisampled_render_to_texture returns INVALID_OPERATION when a sample number higher than
     // the maximum sample number supported by this format is passed.
-    // The TextureCaps::getMaxSamples method is only guarenteed to be valid when the context is ES3.
+    // The TextureCaps::getMaxSamples method is only guaranteed to be valid when the context is ES3.
     if (texture.value != 0 && context->getClientVersion() >= ES_3_0)
     {
         Texture *tex                  = context->getTexture(texture);
