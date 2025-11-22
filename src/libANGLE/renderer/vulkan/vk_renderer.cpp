@@ -2623,10 +2623,15 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
 
 angle::Result Renderer::initializeMemoryAllocator(vk::ErrorContext *context)
 {
-    // This number matches Chromium and was picked by looking at memory usage of
+    // The preferred heap block size was picked by looking at memory usage of
     // Android apps. The allocator will start making blocks at 1/8 the max size
     // and builds up block size as needed before capping at the max set here.
     mPreferredLargeHeapBlockSize = 4 * 1024 * 1024;
+
+    // The first allocated buffer block from an empty buffer pool has a smaller size in order to
+    // reduce the memory footprint.
+    mPreferredInitialBufferBlockSize = 1 * 1024 * 1024;
+    ASSERT(mPreferredInitialBufferBlockSize <= mPreferredLargeHeapBlockSize);
 
     // Create VMA allocator
     ANGLE_VK_TRY(context,
@@ -5501,8 +5506,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, preferMSRTSSFlagByDefault,
         mFeatures.supportsMultisampledRenderToSingleSampled.enabled &&
-            (isARMProprietary ||
-             (isQualcommProprietary && driverVersion >= angle::VersionTriple(512, 777, 0))));
+            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 777, 0)));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImage2dViewOf3d,
                             mImage2dViewOf3dFeatures.image2DViewOf3D == VK_TRUE);
@@ -6215,7 +6219,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // To avoid memory bloating due to using pipeline caches per program, the pipeline cache in the
     // renderer can be used.
     ANGLE_FEATURE_CONDITION(&mFeatures, preferGlobalPipelineCache,
-                            isNvidia || (isAMD && !isRADV) || isSamsung);
+                            isNvidia || (isAMD && !isRADV) || isSamsung || isQualcommProprietary);
 
     // Whether the pipeline caches should merge into the global pipeline cache.  This should only be
     // enabled on platforms if:
@@ -6612,9 +6616,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Disable on driver implementations other than ARM proprietary until the performance impact on
     // them is verified.
     ANGLE_FEATURE_CONDITION(&mFeatures, convertLowpAndMediumpFloatUniformsTo16Bits,
-                            m16BitStorageFeatures.uniformAndStorageBuffer16BitAccess == VK_TRUE &&
-                                mShaderFloat16Int8Features.shaderFloat16 == VK_TRUE &&
-                                isARMProprietary);
+                            mFeatures.supports16BitUniformAndStorageBuffer.enabled &&
+                                mFeatures.supportsShaderFloat16.enabled && isARMProprietary);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsUnifiedImageLayouts,
                             mUnifiedImageLayoutsFeatures.unifiedImageLayouts == VK_TRUE);
@@ -6657,7 +6660,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, debugClDumpCommandStream, false);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportFragmentShadingRateExtExtensions,
-                            mFeatures.supportsFragmentShadingRate.enabled);
+                            mFeatures.supportsFragmentShadingRate.enabled && !isSamsung);
 }
 
 void Renderer::appBasedFeatureOverrides(const vk::ExtensionNameList &extensions) {}
@@ -7543,7 +7546,14 @@ void Renderer::onDeallocateHandle(vk::HandleType handleType, uint32_t count)
     mActiveHandleCounts.onDeallocate(handleType, count);
 }
 
-VkDeviceSize Renderer::getPreferedBufferBlockSize(uint32_t memoryTypeIndex) const
+VkDeviceSize Renderer::getPreferredInitialBufferBlockSize(uint32_t memoryTypeIndex) const
+{
+    // Try not to exceed 1/64 of heap size to begin with.
+    const VkDeviceSize heapSize = getMemoryProperties().getHeapSizeForMemoryType(memoryTypeIndex);
+    return std::min(heapSize / 64, mPreferredInitialBufferBlockSize);
+}
+
+VkDeviceSize Renderer::getPreferredLargeBufferBlockSize(uint32_t memoryTypeIndex) const
 {
     // Try not to exceed 1/64 of heap size to begin with.
     const VkDeviceSize heapSize = getMemoryProperties().getHeapSizeForMemoryType(memoryTypeIndex);
