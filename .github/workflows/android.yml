@@ -10,7 +10,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        arch: ["arm64", "arm64-buildfast", "arm64-debug"]
+        arch: ["arm64"]
       fail-fast: false
 
     name: "Build for Android ${{matrix.arch}}"
