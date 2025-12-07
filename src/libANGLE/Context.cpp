@@ -9674,7 +9674,7 @@ void Context::genPerfMonitors(GLsizei n, GLuint *monitors)
 {
     for (GLsizei monitorIndex = 0; monitorIndex < n; ++monitorIndex)
     {
-        monitors[n] = static_cast<GLuint>(monitorIndex);
+        monitors[monitorIndex] = static_cast<GLuint>(monitorIndex);
     }
 }
 
@@ -9685,7 +9685,6 @@ void Context::getPerfMonitorCounterData(GLuint monitor,
                                         GLint *bytesWritten)
 {
     using namespace angle;
-    const PerfMonitorCounterGroups &perfMonitorGroups = mImplementation->getPerfMonitorCounters();
     GLint byteCount                                   = 0;
     switch (pname)
     {
@@ -9697,8 +9696,10 @@ void Context::getPerfMonitorCounterData(GLuint monitor,
         }
         case GL_PERFMON_RESULT_SIZE_AMD:
         {
+            const PerfMonitorCounterGroupsInfo &perfMonitorGroups =
+                mImplementation->getPerfMonitorCountersInfo();
             GLuint resultSize = 0;
-            for (const PerfMonitorCounterGroup &group : perfMonitorGroups)
+            for (const PerfMonitorCounterGroupInfo &group : perfMonitorGroups)
             {
                 resultSize += sizeof(PerfMonitorTriplet) * group.counters.size();
             }
@@ -9708,6 +9709,8 @@ void Context::getPerfMonitorCounterData(GLuint monitor,
         }
         case GL_PERFMON_RESULT_AMD:
         {
+            const PerfMonitorCounterGroups &perfMonitorGroups =
+                mImplementation->getPerfMonitorCounters();
             PerfMonitorTriplet *resultsOut = reinterpret_cast<PerfMonitorTriplet *>(data);
             GLsizei maxResults             = dataSize / sizeof(PerfMonitorTriplet);
             GLsizei resultCount            = 0;
@@ -9742,9 +9745,10 @@ void Context::getPerfMonitorCounterData(GLuint monitor,
 void Context::getPerfMonitorCounterInfo(GLuint group, GLuint counter, GLenum pname, void *data)
 {
     using namespace angle;
-    const PerfMonitorCounterGroups &perfMonitorGroups = mImplementation->getPerfMonitorCounters();
+    const PerfMonitorCounterGroupsInfo &perfMonitorGroups =
+        mImplementation->getPerfMonitorCountersInfo();
     ASSERT(group < perfMonitorGroups.size());
-    const PerfMonitorCounters &counters = perfMonitorGroups[group].counters;
+    const PerfMonitorCountersInfo &counters = perfMonitorGroups[group].counters;
     ASSERT(counter < counters.size());
 
     switch (pname)
@@ -9774,9 +9778,10 @@ void Context::getPerfMonitorCounterString(GLuint group,
                                           GLchar *counterString)
 {
     using namespace angle;
-    const PerfMonitorCounterGroups &perfMonitorGroups = mImplementation->getPerfMonitorCounters();
+    const PerfMonitorCounterGroupsInfo &perfMonitorGroups =
+        mImplementation->getPerfMonitorCountersInfo();
     ASSERT(group < perfMonitorGroups.size());
-    const PerfMonitorCounters &counters = perfMonitorGroups[group].counters;
+    const PerfMonitorCountersInfo &counters = perfMonitorGroups[group].counters;
     ASSERT(counter < counters.size());
     GetPerfMonitorString(counters[counter].name, bufSize, length, counterString);
 }
@@ -9788,9 +9793,10 @@ void Context::getPerfMonitorCounters(GLuint group,
                                      GLuint *counters)
 {
     using namespace angle;
-    const PerfMonitorCounterGroups &perfMonitorGroups = mImplementation->getPerfMonitorCounters();
+    const PerfMonitorCounterGroupsInfo &perfMonitorGroups =
+        mImplementation->getPerfMonitorCountersInfo();
     ASSERT(group < perfMonitorGroups.size());
-    const PerfMonitorCounters &groupCounters = perfMonitorGroups[group].counters;
+    const PerfMonitorCountersInfo &groupCounters = perfMonitorGroups[group].counters;
 
     if (numCounters)
     {
@@ -9818,7 +9824,8 @@ void Context::getPerfMonitorGroupString(GLuint group,
                                         GLchar *groupString)
 {
     using namespace angle;
-    const PerfMonitorCounterGroups &perfMonitorGroups = mImplementation->getPerfMonitorCounters();
+    const PerfMonitorCounterGroupsInfo &perfMonitorGroups =
+        mImplementation->getPerfMonitorCountersInfo();
     ASSERT(group < perfMonitorGroups.size());
     GetPerfMonitorString(perfMonitorGroups[group].name, bufSize, length, groupString);
 }
@@ -9826,7 +9833,8 @@ void Context::getPerfMonitorGroupString(GLuint group,
 void Context::getPerfMonitorGroups(GLint *numGroups, GLsizei groupsSize, GLuint *groups)
 {
     using namespace angle;
-    const PerfMonitorCounterGroups &perfMonitorGroups = mImplementation->getPerfMonitorCounters();
+    const PerfMonitorCounterGroupsInfo &perfMonitorGroups =
+        mImplementation->getPerfMonitorCountersInfo();
 
     if (numGroups)
     {
@@ -9848,9 +9856,9 @@ void Context::selectPerfMonitorCounters(GLuint monitor,
                                         GLuint *counterList)
 {}
 
-const angle::PerfMonitorCounterGroups &Context::getPerfMonitorCounterGroups() const
+const angle::PerfMonitorCounterGroupsInfo &Context::getPerfMonitorCounterGroups() const
 {
-    return mImplementation->getPerfMonitorCounters();
+    return mImplementation->getPerfMonitorCountersInfo();
 }
 
 void Context::framebufferFoveationConfig(FramebufferID framebufferPacked,

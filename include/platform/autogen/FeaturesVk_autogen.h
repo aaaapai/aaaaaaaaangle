@@ -542,12 +542,6 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
-    FeatureInfo forceFragmentShaderPrecisionHighpToMediump = {
-        "forceFragmentShaderPrecisionHighpToMediump",
-        FeatureCategory::VulkanWorkarounds,
-        &members,
-    };
-
     FeatureInfo preferSubmitAtFBOBoundary = {
         "preferSubmitAtFBOBoundary",
         FeatureCategory::VulkanWorkarounds,
@@ -748,6 +742,12 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo useFrontFaceDynamicState = {
         "useFrontFaceDynamicState",
+        FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
+    FeatureInfo usePrimitiveTopologyDynamicState = {
+        "usePrimitiveTopologyDynamicState",
         FeatureCategory::VulkanWorkarounds,
         &members,
     };
@@ -1286,6 +1286,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo isVertexSyncDeferred = {
+        "isVertexSyncDeferred",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
     FeatureInfo recycleVkEvent = {
         "recycleVkEvent",
         FeatureCategory::VulkanFeatures,
@@ -1612,6 +1618,24 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo supportFragmentShadingRateExtExtensions = {
         "supportFragmentShadingRateExtExtensions",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo dropDepthStencilClearOnInvalidate = {
+        "dropDepthStencilClearOnInvalidate",
+        FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
+    FeatureInfo supportsTileMemoryHeap = {
+        "supportsTileMemoryHeap",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo simulateTileMemoryForTesting = {
+        "simulateTileMemoryForTesting",
         FeatureCategory::VulkanFeatures,
         &members,
     };
