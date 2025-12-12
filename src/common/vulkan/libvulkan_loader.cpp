@@ -23,13 +23,18 @@ static void* vulkan_load_from_pojavexec() {
         return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
     }
 
+    const char* turnipEnv = std::getenv("ANGLE_LOAD_TURNIP");
+    if (!turnipEnv || (std::string(turnipEnv) != "true")) {
+        return;
+    }
+
     printf("[ANGLE] Try to dlopen libpojavexec.\n");
     void* lib_handle = dlopen("libpojavexec.so", RTLD_NOLOAD);
     if (lib_handle == nullptr) {
       printf("[ANGLE] Failed to dlopen libpojavexec, now try again.\n");
       lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
       if (lib_handle == nullptr) {
-          printf("[ANGLE] Failed to dlopen libpojavexec.Are you using Pojav Glow Worm?Now try to dlopen libpgw.\n");
+          printf("[ANGLE] Failed to dlopen libpojavexec.Are you using Pojav Glow Worm? Now try to dlopen libpgw.\n");
           lib_handle = dlopen("libpgw.so", RTLD_NOLOAD);
           if (lib_handle == nullptr) {
             printf("[ANGLE] Failed to dlopen libpgw.Now try again.\n");
