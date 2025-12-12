@@ -76,5 +76,8 @@ jobs:
         uses: actions/upload-artifact@main
         with:
           name: libc++-${{matrix.arch}}-${{ github.run_number }}
-          path: obj/buildtools/third_party/libc++/libc++.a
+          path: |
+                obj/buildtools/third_party/libc++/libc++.a
+                obj/buildtools/third_party/libc++abi/libc++abi.a
+
 
