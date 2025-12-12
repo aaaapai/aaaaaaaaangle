@@ -60,9 +60,6 @@ cflags_c = [
   "-mllvm -polly-parallel",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
-  "-fvisibility=hidden",
-  "-flto",
-  "-fno-emulated-tls",
   "-fwhole-program-vtables",
 ]
 cflags_cc = [
@@ -93,9 +90,6 @@ cflags_cc = [
   "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
-  "-fvisibility=hidden",
-  "-flto",
-  "-fno-emulated-tls",
   "-fwhole-program-vtables",
 ]
 ldflags = [
