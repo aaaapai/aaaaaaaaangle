@@ -25,7 +25,7 @@ static void* vulkan_load_from_pojavexec() {
 
     const char* turnipEnv = std::getenv("ANGLE_LOAD_TURNIP");
     if (!turnipEnv || (std::string(turnipEnv) != "true")) {
-        return;
+        return nullptr;
     }
 
     printf("[ANGLE] Try to dlopen libpojavexec.\n");
