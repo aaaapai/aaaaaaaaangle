@@ -33,6 +33,8 @@ arm_use_neon = true
 arm_version = 8
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
 angle_build_tests = false
+use_thin_lto = true
+
 cflags_c = [
   "-Wno-unused-variable",
   "-Wno-error=unused-variable",
@@ -94,12 +96,6 @@ cflags_cc = [
 ]
 ldflags = [
   "-fuse-ld=lld",
-  "-flto",
-  "-Wl,-plugin-opt=-emulated-tls=0",
-  "-Wl,--strip-all",
-  "-Wl,--gc-sections",
-  "-Wl,-O3",
-  "-Wl,--as-needed",
 ]
 
 treat_warnings_as_errors = false
