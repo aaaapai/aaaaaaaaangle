@@ -254,7 +254,9 @@ bool ValidateDisablei(const PrivateState &state,
                 errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
                 return false;
             }
-            break; 
+            break;
+        case 0x8642:
+            break;
         default:
             errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
             return false;
@@ -347,7 +349,9 @@ bool ValidateEnablei(const PrivateState &state,
                 errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
                 return false;
             }
-            break; 
+            break;
+        case 0x8642:
+            break;
         default:
             errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
             return false;
@@ -541,6 +545,8 @@ bool ValidateIsEnabledi(const PrivateState &state,
                 errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
                 return false;
             }
+            break;
+        case 0x8642:
             break;
         default:
             errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
