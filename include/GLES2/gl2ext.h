@@ -1213,6 +1213,7 @@ GL_APICALL void GL_APIENTRY glClipControlEXT (GLenum origin, GLenum depth);
 #define GL_CLIP_DISTANCE5_EXT             0x3005
 #define GL_CLIP_DISTANCE6_EXT             0x3006
 #define GL_CLIP_DISTANCE7_EXT             0x3007
+#define GL_CLIP_DISTANCE6                 0x884F
 #endif /* GL_EXT_clip_cull_distance */
 
 #ifndef GL_EXT_color_buffer_float
