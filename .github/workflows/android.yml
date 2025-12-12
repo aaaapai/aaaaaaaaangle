@@ -66,8 +66,15 @@ jobs:
           chmod +x ./out/Android-${{matrix.arch}}/siso_failed_commands.sh
           ./out/Android-${{matrix.arch}}/siso_failed_commands.sh
 
-      - name: Upload artifacts
+      - name: Upload angle
         uses: actions/upload-artifact@main
         with:
           name: angle-${{matrix.arch}}-${{ github.run_number }}
           path: out/Android-${{matrix.arch}}/*.so
+
+      - name: Upload libc++
+        uses: actions/upload-artifact@main
+        with:
+          name: libc++-${{matrix.arch}}-${{ github.run_number }}
+          path: obj/buildtools/third_party/libc++/libc++.a
+
