@@ -248,6 +248,13 @@ bool ValidateDisablei(const PrivateState &state,
                 return false;
             }
             break;
+        case 0x884F: 
+            if (index >= static_cast<GLuint>(state.getCaps().maxClipDistances))
+            {
+                errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
+                return false;
+            }
+            break; 
         default:
             errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
             return false;
@@ -334,6 +341,13 @@ bool ValidateEnablei(const PrivateState &state,
                 return false;
             }
             break;
+        case 0x884F: 
+            if (index >= static_cast<GLuint>(state.getCaps().maxClipDistances))
+            {
+                errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
+                return false;
+            }
+            break; 
         default:
             errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
             return false;
@@ -518,6 +532,13 @@ bool ValidateIsEnabledi(const PrivateState &state,
             if (index >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
             {
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
+                return false;
+            }
+            break;
+        case 0x884F: 
+            if (index >= static_cast<GLuint>(state.getCaps().maxClipDistances))
+            {
+                errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
                 return false;
             }
             break;
