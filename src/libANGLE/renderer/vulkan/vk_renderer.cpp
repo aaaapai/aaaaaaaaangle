@@ -459,14 +459,15 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
       "BIT)",
       "prior_access = SYNC_IMAGE_LAYOUT_TRANSITION", "prior_command = vkCmdPipelineBarrier",
       "command = vkCmdBeginRenderingKHR", "load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE"}},
-    // https://anglebug.com/400789178
+    // https://anglebug.com/400789178, prior_command could be vkCmdEndRenderPass or
+    // vkCmdEndRenderingKHR
     {"SYNC-HAZARD-WRITE-AFTER-WRITE",
      false,
      {"message_type = ImageBarrierError", "hazard_type = WRITE_AFTER_WRITE",
       "access = SYNC_IMAGE_LAYOUT_TRANSITION",
       "prior_access = "
       "VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)",
-      "command = vkCmdPipelineBarrier", "prior_command = vkCmdEndRenderPass"}},
+      "command = vkCmdPipelineBarrier", "prior_command = vkCmdEndRender"}},
     // https://anglebug.com/400789178
     {"SYNC-HAZARD-WRITE-AFTER-WRITE",
      false,
@@ -6651,21 +6652,24 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // http://anglebug.com/443302350
     // http://anglebug.com/443302625
     // Temporarily disable the feature on PowerVR while the above 2 bugs are under investigations
-    // http://anglebug.com/446159597
-    // Disable the feature on Samsung devices
     // https://b.corp.google.com/issues/446844410
-    // Disable on driver implementations other than ARM proprietary until the performance impact on
-    // them is verified.
+    // Disable on driver implementations other than ARM proprietary and Samsung until the
+    // performance impact on them is verified.
+    // Older Samsung drivers with version < 26.0.0 have a bug in float16 conversion support.
+    const bool samsungDeviceWithFloat16ConversionBugFixed =
+        isSamsung && driverVersion >= angle::VersionTriple(26, 0, 0);
     ANGLE_FEATURE_CONDITION(&mFeatures, convertLowpAndMediumpFloatUniformsTo16Bits,
                             mFeatures.supports16BitUniformAndStorageBuffer.enabled &&
-                                mFeatures.supportsShaderFloat16.enabled && isARMProprietary);
+                                mFeatures.supportsShaderFloat16.enabled &&
+                                (isARMProprietary || samsungDeviceWithFloat16ConversionBugFixed));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsUnifiedImageLayouts,
                             mUnifiedImageLayoutsFeatures.unifiedImageLayouts == VK_TRUE);
 
+    // Disable the feature on Samsung devices - http://anglebug.com/467875813
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsGlobalPriority,
-        ExtensionFound(VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME, deviceExtensionNames));
+        ExtensionFound(VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME, deviceExtensionNames) && !isSamsung);
 
     // REALTIME priority is not permitted on most operating systems.  This feature is limited to
     // Android for now.

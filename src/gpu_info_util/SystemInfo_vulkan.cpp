@@ -278,14 +278,15 @@ class VulkanLibrary final : NonCopyable
             return VK_NULL_HANDLE;
         }
 
-        mPfnCreateInstance = getProc<PFN_vkCreateInstance>("vkCreateInstance");
+        mPfnCreateInstance = getProcWithDLSym<PFN_vkCreateInstance>("vkCreateInstance");
         if (!mPfnCreateInstance)
         {
             return VK_NULL_HANDLE;
         }
 
         mPfnEnumerateInstanceLayerProperties =
-            getProc<PFN_vkEnumerateInstanceLayerProperties>("vkEnumerateInstanceLayerProperties");
+            getProcWithDLSym<PFN_vkEnumerateInstanceLayerProperties>(
+                "vkEnumerateInstanceLayerProperties");
         if (!mPfnEnumerateInstanceLayerProperties)
         {
             return VK_NULL_HANDLE;
@@ -303,7 +304,7 @@ class VulkanLibrary final : NonCopyable
         uint32_t instanceVersion = VK_API_VERSION_1_0;
 #if defined(VK_VERSION_1_1)
         PFN_vkEnumerateInstanceVersion pfnEnumerateInstanceVersion =
-            getProc<PFN_vkEnumerateInstanceVersion>("vkEnumerateInstanceVersion");
+            getProcWithDLSym<PFN_vkEnumerateInstanceVersion>("vkEnumerateInstanceVersion");
         if (!pfnEnumerateInstanceVersion ||
             pfnEnumerateInstanceVersion(&instanceVersion) != VK_SUCCESS)
         {
@@ -406,14 +407,14 @@ class VulkanLibrary final : NonCopyable
         }
 
         mPfnEnumeratePhysicalDevices =
-            getProc<PFN_vkEnumeratePhysicalDevices>("vkEnumeratePhysicalDevices");
+            getProcWithDLSym<PFN_vkEnumeratePhysicalDevices>("vkEnumeratePhysicalDevices");
         if (!mPfnEnumeratePhysicalDevices)
         {
             return VK_NULL_HANDLE;
         }
 
         mPfnGetPhysicalDeviceProperties =
-            getProc<PFN_vkGetPhysicalDeviceProperties>("vkGetPhysicalDeviceProperties");
+            getProcWithDLSym<PFN_vkGetPhysicalDeviceProperties>("vkGetPhysicalDeviceProperties");
         if (!mPfnGetPhysicalDeviceProperties)
         {
             return VK_NULL_HANDLE;
@@ -425,13 +426,16 @@ class VulkanLibrary final : NonCopyable
         // Caller needs to check VkPhysicalDeviceProperties.apiVersion >= VK_API_VERSION_1_1 before
         // trying to access mPfnGetPhysicalDeviceProperties2.
         mPfnGetPhysicalDeviceProperties2 =
-            getProc<PFN_vkGetPhysicalDeviceProperties2>("vkGetPhysicalDeviceProperties2");
+            getProcWithDLSym<PFN_vkGetPhysicalDeviceProperties2>("vkGetPhysicalDeviceProperties2");
 
-        mPfnCreateDebugUtilsMessengerEXT =
-            getProc<PFN_vkCreateDebugUtilsMessengerEXT>("vkCreateDebugUtilsMessengerEXT");
+        if (hasDebugMessengerExtension)
+        {
+            mPfnCreateDebugUtilsMessengerEXT =
+                getProc<PFN_vkCreateDebugUtilsMessengerEXT>("vkCreateDebugUtilsMessengerEXT");
 
-        mPfnDestroyDebugUtilsMessengerEXT =
-            getProc<PFN_vkDestroyDebugUtilsMessengerEXT>("vkDestroyDebugUtilsMessengerEXT");
+            mPfnDestroyDebugUtilsMessengerEXT =
+                getProc<PFN_vkDestroyDebugUtilsMessengerEXT>("vkDestroyDebugUtilsMessengerEXT");
+        }
 
         // Set up vulkan validation layer debug messenger to relay the VVL error to the callback
         // function VVLDebugUtilsMessenger.
@@ -486,16 +490,16 @@ class VulkanLibrary final : NonCopyable
     void *mLibVulkan     = nullptr;
     VkInstance mInstance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT mDebugUtilsMessenger = VK_NULL_HANDLE;
-    PFN_vkGetInstanceProcAddr mPfnGetInstanceProcAddr;
-    PFN_vkCreateInstance mPfnCreateInstance;
-    PFN_vkDestroyInstance mPfnDestroyInstance;
-    PFN_vkEnumerateInstanceLayerProperties mPfnEnumerateInstanceLayerProperties;
-    PFN_vkEnumerateInstanceExtensionProperties mPfnEnumerateInstanceExtensionProperties;
-    PFN_vkEnumeratePhysicalDevices mPfnEnumeratePhysicalDevices;
-    PFN_vkGetPhysicalDeviceProperties mPfnGetPhysicalDeviceProperties;
-    PFN_vkGetPhysicalDeviceProperties2 mPfnGetPhysicalDeviceProperties2;
-    PFN_vkCreateDebugUtilsMessengerEXT mPfnCreateDebugUtilsMessengerEXT;
-    PFN_vkDestroyDebugUtilsMessengerEXT mPfnDestroyDebugUtilsMessengerEXT;
+    PFN_vkGetInstanceProcAddr mPfnGetInstanceProcAddr                           = nullptr;
+    PFN_vkCreateInstance mPfnCreateInstance                                     = nullptr;
+    PFN_vkDestroyInstance mPfnDestroyInstance                                   = nullptr;
+    PFN_vkEnumerateInstanceLayerProperties mPfnEnumerateInstanceLayerProperties = nullptr;
+    PFN_vkEnumerateInstanceExtensionProperties mPfnEnumerateInstanceExtensionProperties = nullptr;
+    PFN_vkEnumeratePhysicalDevices mPfnEnumeratePhysicalDevices                         = nullptr;
+    PFN_vkGetPhysicalDeviceProperties mPfnGetPhysicalDeviceProperties                   = nullptr;
+    PFN_vkGetPhysicalDeviceProperties2 mPfnGetPhysicalDeviceProperties2                 = nullptr;
+    PFN_vkCreateDebugUtilsMessengerEXT mPfnCreateDebugUtilsMessengerEXT                 = nullptr;
+    PFN_vkDestroyDebugUtilsMessengerEXT mPfnDestroyDebugUtilsMessengerEXT               = nullptr;
 };
 
 ANGLE_FORMAT_PRINTF(1, 2)

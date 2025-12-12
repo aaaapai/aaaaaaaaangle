@@ -2171,7 +2171,6 @@ class ImageHelper final : public Resource, public angle::Subject
                                YcbcrConversionDesc conversionDesc,
                                const void *compressionControl);
     VkResult initMemory(ErrorContext *context,
-                        const MemoryProperties &memoryProperties,
                         VkMemoryPropertyFlags flags,
                         VkMemoryPropertyFlags excludedFlags,
                         const VkMemoryRequirements *memoryRequirements,
@@ -2181,7 +2180,6 @@ class ImageHelper final : public Resource, public angle::Subject
                         VkDeviceSize *sizeOut);
     angle::Result initMemoryAndNonZeroFillIfNeeded(ErrorContext *context,
                                                    bool hasProtectedContent,
-                                                   const MemoryProperties &memoryProperties,
                                                    VkMemoryPropertyFlags flags,
                                                    MemoryAllocationType allocationType);
     angle::Result initExternalMemory(ErrorContext *context,
@@ -2244,7 +2242,6 @@ class ImageHelper final : public Resource, public angle::Subject
     //
     angle::Result init2DStaging(ErrorContext *context,
                                 bool hasProtectedContent,
-                                const MemoryProperties &memoryProperties,
                                 const gl::Extents &glExtents,
                                 angle::FormatID intendedFormatID,
                                 angle::FormatID actualFormatID,
@@ -2256,7 +2253,6 @@ class ImageHelper final : public Resource, public angle::Subject
     //
     angle::Result initStaging(ErrorContext *context,
                               bool hasProtectedContent,
-                              const MemoryProperties &memoryProperties,
                               VkImageType imageType,
                               const VkExtent3D &extents,
                               angle::FormatID intendedFormatID,
@@ -2269,7 +2265,6 @@ class ImageHelper final : public Resource, public angle::Subject
     // rendering.  If LAZILY_ALLOCATED memory is available, it will prefer that.
     angle::Result initImplicitMultisampledRenderToTexture(ErrorContext *context,
                                                           bool hasProtectedContent,
-                                                          const MemoryProperties &memoryProperties,
                                                           gl::TextureType textureType,
                                                           GLint samples,
                                                           const ImageHelper &resolveImage,
@@ -2277,7 +2272,6 @@ class ImageHelper final : public Resource, public angle::Subject
                                                           bool isRobustResourceInitEnabled);
     // Create a 2d image for use as the implicit RGB draw image in YUV rendering.
     angle::Result initRgbDrawImageForYuvResolve(ErrorContext *context,
-                                                const MemoryProperties &memoryProperties,
                                                 const ImageHelper &resolveImage,
                                                 bool isRobustResourceInitEnabled);
 
@@ -2337,6 +2331,7 @@ class ImageHelper final : public Resource, public angle::Subject
 
     bool valid() const { return mImage.valid(); }
 
+    VkImageAspectFlags getIntendedAspectFlags() const;
     VkImageAspectFlags getAspectFlags() const;
     // True if image contains both depth & stencil aspects
     bool isCombinedDepthStencilFormat() const;
@@ -2835,7 +2830,9 @@ class ImageHelper final : public Resource, public angle::Subject
     bool hasSubresourceDefinedStencilContent(gl::LevelIndex level,
                                              uint32_t layerIndex,
                                              uint32_t layerCount) const;
-    // Returns true if VkImage has valid content at any level/layer
+
+    // Returns true if VkImage has valid user content at any level/layer/aspect (emulated channel is
+    // ignored).
     bool isVkImageContentDefined() const;
     void invalidateEntireLevelContent(vk::ErrorContext *context, gl::LevelIndex level);
     void invalidateSubresourceContent(ContextVk *contextVk,
@@ -3264,6 +3261,12 @@ class ImageHelper final : public Resource, public angle::Subject
                           uint32_t *layerStart,
                           uint32_t *layerEnd);
 
+    // Copy most of state and move VkImage/VkDeviceMemory from other ImageHelper. This should not be
+    // used for general usage. It is specifically for stageSelfUpdate and falling back from tile
+    // memory where the VkImage and storage will be reallocated but most of ImageHelper property
+    // will keep the same.
+    void copyStateAndMoveStorageFrom(ImageHelper *other);
+
     // Vulkan objects.
     Image mImage;
     DeviceMemory mDeviceMemory;
@@ -3288,8 +3291,8 @@ class ImageHelper final : public Resource, public angle::Subject
     ImageSerial mImageSerial;
 
     // Current state.
-    ImageAccess mCurrentAccess;
     DeviceQueueIndex mCurrentDeviceQueueIndex;
+    ImageAccess mCurrentAccess;
     // For optimizing transition between different shader readonly layouts
     ImageAccess mLastNonShaderReadOnlyAccess;
     VkPipelineStageFlags mCurrentShaderReadStageMask;

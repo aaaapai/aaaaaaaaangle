@@ -29,8 +29,6 @@
 42266349 VULKAN : MultithreadingTestES3.UnsynchronizedTextureReads2/* = SKIP
 377614665 VULKAN : GLSLValidationTest.StructSamplerVsComma/* = SKIP
 410584007 VULKAN : ImageTestES31.UseSourceTextureAsStorageImage/* = SKIP
-// GL_WEBGL_video_texture extension doesn't work correctly with ESSL 100 on OpenGL backend.
-466412253 OPENGL : GLSLValidationExtensionDirectiveTest_ES3.SamplerVideoWEBGL_ESSL100/* = SKIP
 // Incorrectly handled pretty much in all backends
 42266871 : CopyTexImageTestES3.RedefineSameLevel/* = SKIP
 // Fails in Android with EGL_BAD_ALLOC
@@ -411,6 +409,16 @@
 42265665 MAC NVIDIA OPENGL : BlitFramebufferTest.ScissoredMultisampleStencil/* = SKIP
 273808966 MAC AMD OPENGL : BlitFramebufferTest.scissorDrawBlitAndDrawAgain/* = SKIP
 
+42266214 MAC APPLE OPENGL : ReadPixelsTextureNorm16PBOTest.R16_SNORM_RGBA/* = SKIP
+42266214 MAC APPLE OPENGL : ReadPixelsTextureNorm16PBOTest.RG16_SNORM_RGBA/* = SKIP
+42266214 MAC APPLE OPENGL : ReadPixelsTextureTest.LayerAttachment3DPBO/* = SKIP
+42266214 MAC APPLE OPENGL : ReadPixelsTextureTest.MipLayerAttachment3DPBO/* = SKIP
+42266214 MAC APPLE OPENGL : SRGBTextureTestES3.SRGBDecodeTexelFetch/* = SKIP
+42266214 MAC APPLE OPENGL : SRGBTextureTestES3.SRGBDecodeTexelFetchArray/* = SKIP
+42266214 MAC APPLE OPENGL : SRGBTextureTestES3.SRGBSkipEncodeAndDecodeInGenerateMipmap/* = SKIP
+42266214 MAC APPLE OPENGL : Texture2DTestES3.SampleThenAddLevel0ThenSampleAgain/* = SKIP
+42266214 MAC APPLE OPENGL : TextureUploadFormatTest_ES3.AllWithPBO/* = SKIP
+
 // Mac Metal
 
 // Failures from Transform Feedback Enablement. Passes on BigSur
@@ -455,6 +463,10 @@
 464927523 METAL : GLSLTest_ES3_PackUnpackEmulation.PackHalf2x16/* = SKIP
 464927523 METAL : GLSLTest_ES3_PackUnpackEmulation.PackSnorm2x16/* = SKIP
 464927523 METAL : GLSLTest_ES3_PackUnpackEmulation.PackUnorm2x16/* = SKIP
+42266214 MAC APPLE METAL : PixelLocalStorageTest.Coherency_noncoherent/ES3_Metal_EmulatePixelLocalStorage_DisableProgrammableBlending* = SKIP
+42266214 MAC APPLE METAL : PixelLocalStorageTest.R32_noncoherent/ES3_Metal_EmulatePixelLocalStorage_DisableProgrammableBlending* = SKIP
+42266214 MAC APPLE METAL : PixelLocalStorageTest.RGBA8_noncoherent/ES3_Metal_EmulatePixelLocalStorage_DisableProgrammableBlending* = SKIP
+42266214 MAC APPLE METAL : Texture2DTest.ManySupersedingTextureUpdates/* = SKIP
 
 // The workaround is not intended to be enabled in this configuration so
 // skip it as the failure is likely a driver bug.
@@ -1051,6 +1063,7 @@
 42265148 MAC INTEL OPENGL : DrawTextureTest.ColorArrayNotUsed/* = SKIP
 42265148 MAC INTEL OPENGL : DrawTextureTest.CorrectNdcForOddViewportDimensions/* = SKIP
 
+371987004 MAC APPLE OPENGL : BlitFramebufferANGLETest.BlitWithMissingAttachments/* = SKIP
 371987004 MAC INTEL OPENGL : BlitFramebufferANGLETest.BlitWithMissingAttachments/* = SKIP
 371987004 MAC NVIDIA OPENGL : BlitFramebufferANGLETest.BlitWithMissingAttachments/* = SKIP
 371987004 WIN D3D9 : BlitFramebufferANGLETest.BlitWithMissingAttachments/* = SKIP
@@ -1116,12 +1129,12 @@
 42265827 VULKAN : FramebufferTest_ES3.FramebufferConditionalFeedbackLoop/* = SKIP
 42265967 VULKAN : Texture2DTest.TextureMaxSize/* = SKIP
 
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeUnsignedNormalized_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeSignedNormalized_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeFloat_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeUnsignedInteger_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeSignedInteger_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeStencil_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerSD_TexNorm_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerSD_TexSNorm_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerSD_TexF_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerSD_TexUI_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerSD_TexSI_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerSD_TexS_* = SKIP
 
 // Intel Mesa 19.0.2 appears to have a driver bug.
 42265826 INTEL OPENGL : GLSLTest_ES31.ImageLoadAfterClear/* = SKIP
@@ -1155,7 +1168,7 @@
 42266091 WIN INTEL : *EmulateCopyTexImage2DFromRenderbuffers* = SKIP
 
 42266092 WIN SWIFTSHADER : VulkanPerformanceCounterTest.EndXfbAfterRenderPassClosed/* = SKIP
-466331749 WIN SWIFTSHADER : GLSLTest_ES31.ShortCircuitOutOfBoundsAccess/* = SKIP
+466331749 SWIFTSHADER : GLSLTest_ES31.ShortCircuitOutOfBoundsAccess/* = SKIP
 
 // Flat shading bug with lighting
 42264726 VULKAN : LightsTest.FlatLitMesh/* = SKIP
@@ -1224,32 +1237,32 @@
 358407353 LINUX INTEL OPENGL : ReadPixelsPBOTest.SmallRowLength/* = SKIP
 
 // D3D needs a workaround to follow OpenGL rules
-42266528 D3D9 : DepthWriteTest.Test/ES2_D3D9__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenZeroAndNearPlane_* = SKIP
-42266528 D3D9 : DepthWriteTest.Test/ES2_D3D9__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenFarPlaneAndOne_* = SKIP
-42266528 D3D9 : DepthWriteTest.Test/ES2_D3D9__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthNegative_* = SKIP
-42266528 D3D9 : DepthWriteTest.Test/ES2_D3D9__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthGreaterThanOne_* = SKIP
-42266528 D3D11 : DepthWriteTest.Test/ES2_D3D11__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenZeroAndNearPlane_* = SKIP
-42266528 D3D11 : DepthWriteTest.Test/ES2_D3D11__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenFarPlaneAndOne_* = SKIP
-42266528 D3D11 : DepthWriteTest.Test/ES2_D3D11__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthNegative_* = SKIP
-42266528 D3D11 : DepthWriteTest.Test/ES2_D3D11__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthGreaterThanOne_* = SKIP
-42266528 D3D11 : DepthWriteTest.Test/ES3_D3D11__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenZeroAndNearPlane_* = SKIP
-42266528 D3D11 : DepthWriteTest.Test/ES3_D3D11__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenFarPlaneAndOne_* = SKIP
-42266528 D3D11 : DepthWriteTest.Test/ES3_D3D11__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthNegative_* = SKIP
-42266528 D3D11 : DepthWriteTest.Test/ES3_D3D11__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthGreaterThanOne_* = SKIP
+42266528 D3D9 : DepthWriteTest.Test/ES2_D3D9__Reduced_Clipped_VInside_FZeroToNear_* = SKIP
+42266528 D3D9 : DepthWriteTest.Test/ES2_D3D9__Reduced_Clipped_VInside_FFarToOne_* = SKIP
+42266528 D3D9 : DepthWriteTest.Test/ES2_D3D9__Reduced_Clipped_VInside_FNegative_* = SKIP
+42266528 D3D9 : DepthWriteTest.Test/ES2_D3D9__Reduced_Clipped_VInside_FOverOne_* = SKIP
+42266528 D3D11 : DepthWriteTest.Test/ES2_D3D11__Reduced_Clipped_VInside_FZeroToNear_* = SKIP
+42266528 D3D11 : DepthWriteTest.Test/ES2_D3D11__Reduced_Clipped_VInside_FFarToOne_* = SKIP
+42266528 D3D11 : DepthWriteTest.Test/ES2_D3D11__Reduced_Clipped_VInside_FNegative_* = SKIP
+42266528 D3D11 : DepthWriteTest.Test/ES2_D3D11__Reduced_Clipped_VInside_FOverOne_* = SKIP
+42266528 D3D11 : DepthWriteTest.Test/ES3_D3D11__Reduced_Clipped_VInside_FZeroToNear_* = SKIP
+42266528 D3D11 : DepthWriteTest.Test/ES3_D3D11__Reduced_Clipped_VInside_FFarToOne_* = SKIP
+42266528 D3D11 : DepthWriteTest.Test/ES3_D3D11__Reduced_Clipped_VInside_FNegative_* = SKIP
+42266528 D3D11 : DepthWriteTest.Test/ES3_D3D11__Reduced_Clipped_VInside_FOverOne_* = SKIP
 
 // Driver bugs
-42266528 WIN INTEL OPENGL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenZeroAndNearPlane_* = SKIP
-42266528 WIN INTEL OPENGL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenFarPlaneAndOne_* = SKIP
-42266528 WIN INTEL OPENGL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthNegative_* = SKIP
-42266528 WIN INTEL OPENGL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthGreaterThanOne_* = SKIP
-42266528 MAC INTEL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenZeroAndNearPlane_* = SKIP
-42266528 MAC INTEL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenFarPlaneAndOne_* = SKIP
-42266528 MAC INTEL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthNegative_* = SKIP
-42266528 MAC INTEL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthGreaterThanOne_* = SKIP
-42266528 IOS METAL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenZeroAndNearPlane_* = SKIP
-42266528 IOS METAL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthBetweenFarPlaneAndOne_* = SKIP
-42266528 IOS METAL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthNegative_* = SKIP
-42266528 IOS METAL : DepthWriteTest.Test/*__DepthRangeReduced_Clipped_VertexDepthInsideClipVolume_FragmentDepthGreaterThanOne_* = SKIP
+42266528 WIN INTEL OPENGL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FZeroToNear_* = SKIP
+42266528 WIN INTEL OPENGL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FFarToOne_* = SKIP
+42266528 WIN INTEL OPENGL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FNegative_* = SKIP
+42266528 WIN INTEL OPENGL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FOverOne_* = SKIP
+42266528 MAC INTEL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FZeroToNear_* = SKIP
+42266528 MAC INTEL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FFarToOne_* = SKIP
+42266528 MAC INTEL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FNegative_* = SKIP
+42266528 MAC INTEL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FOverOne_* = SKIP
+42266528 IOS METAL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FZeroToNear_* = SKIP
+42266528 IOS METAL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FFarToOne_* = SKIP
+42266528 IOS METAL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FNegative_* = SKIP
+42266528 IOS METAL : DepthWriteTest.Test/*__Reduced_Clipped_VInside_FOverOne_* = SKIP
 
 // gl_PointCoord origin is flipped for non-default framebuffers
 40096885 WIN INTEL OPENGL : ClipControlTest.OriginPointCoord/* = SKIP
