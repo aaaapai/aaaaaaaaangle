@@ -97,6 +97,7 @@ gles_requestable_extensions = [
     "GL_EXT_buffer_storage",
     "GL_EXT_clear_texture",
     "GL_EXT_clip_control",
+    "GL_CLIP_DISTANCE6",
     "GL_EXT_clip_cull_distance",
     "GL_EXT_color_buffer_float",
     "GL_EXT_color_buffer_half_float",
