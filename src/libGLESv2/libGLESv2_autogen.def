@@ -738,6 +738,8 @@ EXPORTS
 
     ; GL_EXT_clip_cull_distance
 
+    ; GL_CLIP_DISTANCE6
+
     ; GL_EXT_color_buffer_float
 
     ; GL_EXT_color_buffer_half_float
