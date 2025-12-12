@@ -249,11 +249,6 @@ bool ValidateDisablei(const PrivateState &state,
             }
             break;
         case 0x884F: 
-            if (index >= static_cast<GLuint>(state.getCaps().maxClipDistances))
-            {
-                errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
-                return false;
-            }
             break;
         case 0x8642:
             break;
@@ -344,11 +339,6 @@ bool ValidateEnablei(const PrivateState &state,
             }
             break;
         case 0x884F: 
-            if (index >= static_cast<GLuint>(state.getCaps().maxClipDistances))
-            {
-                errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
-                return false;
-            }
             break;
         case 0x8642:
             break;
@@ -540,11 +530,6 @@ bool ValidateIsEnabledi(const PrivateState &state,
             }
             break;
         case 0x884F: 
-            if (index >= static_cast<GLuint>(state.getCaps().maxClipDistances))
-            {
-                errors->validationError(entryPoint, GL_INVALID_VALUE, "Index must be less than maxClipDistances.");
-                return false;
-            }
             break;
         case 0x8642:
             break;
