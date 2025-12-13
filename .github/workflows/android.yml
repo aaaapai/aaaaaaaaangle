@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: ["arm64"]
+        arch: ["arm64", "arm64-debug"]
       fail-fast: false
 
     name: "Build for Android ${{matrix.arch}}"
@@ -77,7 +77,7 @@ jobs:
         with:
           name: libc++-${{matrix.arch}}-${{ github.run_number }}
           path: |
-                obj/buildtools/third_party/libc++/libc++.a
-                obj/buildtools/third_party/libc++abi/libc++abi.a
+                **/libc++.a
+                **/libc++abi.a
 
 
