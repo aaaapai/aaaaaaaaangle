@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 387
+#define ANGLE_SH_VERSION 390
 
 enum ShShaderSpec
 {
@@ -114,6 +114,7 @@ enum class ShPixelLocalStorageFormat : uint8_t
     RGBA8I,
     RGBA8UI,
     R32F,
+    R32I,
     R32UI,
 };
 
@@ -340,7 +341,9 @@ struct ShCompileOptions
     // read undefined values that could be coming from another webpage/application.
     uint64_t initSharedVariables : 1;
 
-    uint64_t unused : 1;
+    // For MSL, non-const global variables cannot have an initializer, even if the initializer is
+    // constant.  Initialization of these variables is deferred to the beginning of main.
+    uint64_t forceDeferNonConstGlobalInitializers : 1;
 
     // Rewrite gl_BaseVertex and gl_BaseInstance as uniform int
     uint64_t emulateGLBaseVertexBaseInstance : 1;
@@ -397,6 +400,9 @@ struct ShCompileOptions
 
     // Always write explicit location layout qualifiers for fragment outputs.
     uint64_t explicitFragmentLocations : 1;
+
+    // Dithering is emulated by injecting code in the fragment shader
+    uint64_t emulateDithering : 1;
 
     // Add round() after applying dither.  This works around a Qualcomm quirk where values can get
     // ceil()ed instead.

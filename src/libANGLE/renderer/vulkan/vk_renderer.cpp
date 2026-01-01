@@ -76,6 +76,75 @@ constexpr bool kEnableVulkanAPIDumpLayer = false;
 
 namespace rx
 {
+namespace
+{
+constexpr angle::PackedEnumMap<QueueSubmitReason, const char *> kQueueSubmitReason = {{
+    {QueueSubmitReason::EGLSwapBuffers, "Queue submission imminent due to eglSwapBuffers()"},
+    {QueueSubmitReason::EGLWaitClient, "Queue submission imminent due to eglWaitClient()"},
+    {QueueSubmitReason::DeferredFlush, "Queue submission imminent due to deferred flushing"},
+    {QueueSubmitReason::GLFinish, "Queue submission imminent due to glFinish()"},
+    {QueueSubmitReason::GLFlush, "Queue submission imminent due to glFlush()"},
+    {QueueSubmitReason::GLReadPixels, "Queue submission imminent due to glReadPixels()"},
+    {QueueSubmitReason::AcquireNextImage, "Queue submission imminent due to acquiring next image"},
+    {QueueSubmitReason::ContextChange, "Queue submission imminent due to context change"},
+    {QueueSubmitReason::ContextDestruction, "Queue submission imminent due to context destruction"},
+    {QueueSubmitReason::ContextPriorityChange,
+     "Queue submission imminent due to context priority change"},
+    {QueueSubmitReason::SurfaceUnMakeCurrent,
+     "Queue submission imminent due to unmaking current on surface"},
+    {QueueSubmitReason::CopyBufferToImageOneOff,
+     "Queue submission imminent after one-off copying buffer to image"},
+    {QueueSubmitReason::CopyBufferToSurfaceImage,
+     "Queue submission imminent after copying buffer to surface image"},
+    {QueueSubmitReason::CopySurfaceImageToBuffer,
+     "Queue submission imminent after copying surface image to buffer"},
+    {QueueSubmitReason::ForeignImageRelease,
+     "Queue submission imminent due to releasing foreign image"},
+    {QueueSubmitReason::ImageUseThenReleaseToExternal,
+     "Queue submission imminent due to image used in render pass being released"},
+    {QueueSubmitReason::TextureReformatToRenderable,
+     "Queue submission imminent due to reformatting texture to a renderable fallback"},
+    {QueueSubmitReason::CopyTextureOnCPU,
+     "Queue submission imminent due to fallback to CPU when copying texture"},
+    {QueueSubmitReason::GenerateMipmapOnCPU,
+     "Queue submission imminent due to fallback to CPU when generating mipmaps"},
+    {QueueSubmitReason::ExternalSemaphoreSignal,
+     "Queue submission imminent due to external semaphore signal"},
+    {QueueSubmitReason::GetQueryResult, "Queue submission imminent after getting query result"},
+    {QueueSubmitReason::GetTimestamp, "Queue submission imminent after getting the timestamp"},
+    {QueueSubmitReason::SyncCPUGPUTime,
+     "Queue submission imminent due to synchronizing CPU and GPU time"},
+    {QueueSubmitReason::SyncObjectInit, "Queue submission imminent after initializing sync object"},
+    {QueueSubmitReason::SyncObjectClientWait,
+     "Queue submission imminent due to sync object client wait"},
+    {QueueSubmitReason::SyncObjectWithFdInit,
+     "Queue submission imminent due to inserting sync object with file descriptor"},
+    {QueueSubmitReason::DeviceLocalBufferMap,
+     "Queue submission imminent due to mapping device local buffer"},
+    {QueueSubmitReason::BufferWriteThenMap,
+     "Queue submission imminent due to mapping buffer being written to by render pass"},
+    {QueueSubmitReason::BufferInUseWhenSynchronizedMap,
+     "Queue submission imminent due to mapping buffer in use by GPU without "
+     "GL_MAP_UNSYNCHRONIZED_BIT"},
+    {QueueSubmitReason::WaitSemaphore, "Queue submission imminent after waiting for semaphore"},
+    {QueueSubmitReason::ExcessivePendingGarbage,
+     "Queue submission imminent due to exceeding pending garbage memory size threshold"},
+    {QueueSubmitReason::OutOfMemory,
+     "Queue submission imminent due to context finish to mitigate running out of device memory"},
+    {QueueSubmitReason::RenderPassCountLimitReached,
+     "Queue submission imminent due to exceeding the threshold for render pass command count"},
+    {QueueSubmitReason::RenderPassCommandLimitReached,
+     "Queue submission imminent due to exceeding write command limit at draw time"},
+    {QueueSubmitReason::BufferToImageUpdateLimitReached,
+     "Queue submission imminent due to exceeding buffer-to-image update size limit"},
+    {QueueSubmitReason::ForceSubmitStagedTexture,
+     "Queue submission imminent due to staged texture updates"},
+    {QueueSubmitReason::DrawOverlay, "Queue submission imminent due to drawing overlay"},
+    {QueueSubmitReason::InitNonZeroMemory,
+     "Queue submission imminent due to initializing non-zero memory"},
+}};
+}  // namespace
+
 namespace vk
 {
 namespace
@@ -90,7 +159,7 @@ constexpr uint32_t kPreferredDefaultUniformBufferSize = 64 * 1024u;
 
 // Maximum size to use VMA image suballocation. Any allocation greater than or equal to this
 // value will use a dedicated VkDeviceMemory.
-constexpr size_t kImageSizeThresholdForDedicatedMemoryAllocation = 4 * 1024 * 1024;
+constexpr size_t kImageSizeThresholdForDedicatedMemoryAllocation = 8 * 1024 * 1024;
 
 // Pipeline cache header version. It should be incremented any time there is an update to the cache
 // header or data structure.
@@ -289,6 +358,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkBindBufferMemory-size-01037",
     // https://anglebug.com/443133082
     "VUID-vkCmdDraw-None-09549",
+    // https://anglebug.com/470128354
+    "VUID-vkCmdEndQuery-None-07007",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -2630,7 +2701,7 @@ angle::Result Renderer::initializeMemoryAllocator(vk::ErrorContext *context)
     // The preferred heap block size was picked by looking at memory usage of
     // Android apps. The allocator will start making blocks at 1/8 the max size
     // and builds up block size as needed before capping at the max set here.
-    mPreferredLargeHeapBlockSize = 4 * 1024 * 1024;
+    mPreferredLargeHeapBlockSize = 8 * 1024 * 1024;
 
     // The first allocated buffer block from an empty buffer pool has a smaller size in order to
     // reduce the memory footprint.
@@ -4624,6 +4695,12 @@ angle::Result Renderer::createDeviceAndQueue(vk::ErrorContext *context, uint32_t
     // Log the memory heap stats when the device has been initialized (when debugging).
     mMemoryAllocationTracker.onDeviceInit();
 
+    // Synchronize the Vulkan pipeline cache to the blob cache every frame
+    if (mFeatures.syncPipelineCacheToBlobCacheEveryFrame.enabled)
+    {
+        mPipelineCacheVkUpdateTimeout = 1;
+    }
+
     return angle::Result::Continue;
 }
 
@@ -6041,12 +6118,16 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     // On Qualcomm drivers prior to 777, this feature had a bug.
     // http://anglebug.com/381384988
+    //
+    // Use of vertexInputDynamicState on PowerVR devices is disabled for performance reasons
+    // (http://issuetracker.google.com/469320616).
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsVertexInputDynamicState,
         mVertexInputDynamicStateFeatures.vertexInputDynamicState == VK_TRUE &&
             !(IsWindows() && isIntel) &&
             !(isARMProprietary && driverVersion < angle::VersionTriple(48, 0, 0)) &&
-            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 777, 0)));
+            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 777, 0)) &&
+            !isPowerVR);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExtendedDynamicState,
                             mExtendedDynamicStateFeatures.extendedDynamicState == VK_TRUE &&
@@ -6652,16 +6733,14 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // http://anglebug.com/443302350
     // http://anglebug.com/443302625
     // Temporarily disable the feature on PowerVR while the above 2 bugs are under investigations
+    // http://anglebug.com/446159597
+    // Disable the feature on Samsung devices
     // https://b.corp.google.com/issues/446844410
-    // Disable on driver implementations other than ARM proprietary and Samsung until the
-    // performance impact on them is verified.
-    // Older Samsung drivers with version < 26.0.0 have a bug in float16 conversion support.
-    const bool samsungDeviceWithFloat16ConversionBugFixed =
-        isSamsung && driverVersion >= angle::VersionTriple(26, 0, 0);
+    // Disable on driver implementations other than ARM proprietary until the performance impact on
+    // them is verified.
     ANGLE_FEATURE_CONDITION(&mFeatures, convertLowpAndMediumpFloatUniformsTo16Bits,
                             mFeatures.supports16BitUniformAndStorageBuffer.enabled &&
-                                mFeatures.supportsShaderFloat16.enabled &&
-                                (isARMProprietary || samsungDeviceWithFloat16ConversionBugFixed));
+                                mFeatures.supportsShaderFloat16.enabled && isARMProprietary);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsUnifiedImageLayouts,
                             mUnifiedImageLayoutsFeatures.unifiedImageLayouts == VK_TRUE);
@@ -6942,7 +7021,8 @@ angle::Result Renderer::syncPipelineCacheVk(const gl::Context *contextGL)
         return angle::Result::Continue;
     }
 
-    mPipelineCacheVkUpdateTimeout = kPipelineCacheVkUpdatePeriod;
+    mPipelineCacheVkUpdateTimeout =
+        mFeatures.syncPipelineCacheToBlobCacheEveryFrame.enabled ? 1 : kPipelineCacheVkUpdatePeriod;
 
     ContextVk *contextVk = vk::GetImpl(contextGL);
 
@@ -7391,6 +7471,40 @@ angle::Result Renderer::submitCommands(vk::ErrorContext *context,
     return angle::Result::Continue;
 }
 
+angle::Result Renderer::insertOneOffSubmitDebugMarker(vk::ErrorContext *context,
+                                                      vk::ProtectionType protectionType,
+                                                      egl::ContextPriority priority,
+                                                      QueueSubmitReason reason)
+{
+    if (!enableDebugUtils() && !angleDebuggerMode())
+    {
+        return angle::Result::Continue;
+    }
+
+    ScopedPrimaryCommandBuffer scopedCommandBuffer(getDevice());
+    ANGLE_TRY(getCommandBufferOneOff(context, protectionType, &scopedCommandBuffer));
+    PrimaryCommandBuffer &commandBuffer = scopedCommandBuffer.get();
+    insertSubmitDebugMarkerInCommandBuffer(commandBuffer, reason);
+    ANGLE_VK_TRY(context, commandBuffer.end());
+
+    QueueSerial queueSerial;
+    return queueSubmitOneOff(context, std::move(scopedCommandBuffer), protectionType, priority,
+                             VK_NULL_HANDLE, 0, &queueSerial);
+}
+
+void Renderer::insertSubmitDebugMarkerInCommandBuffer(PrimaryCommandBuffer &commandBuffer,
+                                                      QueueSubmitReason reason)
+{
+    if (!enableDebugUtils() && !angleDebuggerMode())
+    {
+        return;
+    }
+
+    VkDebugUtilsLabelEXT labelInfo;
+    vk::MakeDebugUtilsLabel(GL_DEBUG_SOURCE_API, kQueueSubmitReason[reason], &labelInfo);
+    commandBuffer.insertDebugUtilsLabelEXT(labelInfo);
+}
+
 angle::Result Renderer::submitPriorityDependency(vk::ErrorContext *context,
                                                  vk::ProtectionTypes protectionTypes,
                                                  egl::ContextPriority srcContextPriority,
@@ -7420,6 +7534,9 @@ angle::Result Renderer::submitPriorityDependency(vk::ErrorContext *context,
             semaphore.get().setQueueSerial(queueSerial);
             signalSemaphore = &semaphore.get().get();
         }
+
+        ANGLE_TRY(insertOneOffSubmitDebugMarker(context, protectionType, srcContextPriority,
+                                                QueueSubmitReason::ContextPriorityChange));
         ANGLE_TRY(submitCommands(context, signalSemaphore, nullptr, queueSerial,
                                  std::move(commandsState)));
         mSubmittedResourceUse.setQueueSerial(queueSerial);
@@ -7428,6 +7545,9 @@ angle::Result Renderer::submitPriorityDependency(vk::ErrorContext *context,
     // Submit only Wait Semaphore into the destination Priority (VkQueue).
     QueueSerial queueSerial(index, generateQueueSerial(index));
     semaphore.get().setQueueSerial(queueSerial);
+
+    ANGLE_TRY(insertOneOffSubmitDebugMarker(context, ProtectionType::Unprotected,
+                                            dstContextPriority, QueueSubmitReason::WaitSemaphore));
     ANGLE_TRY(queueSubmitWaitSemaphore(context, dstContextPriority, semaphore.get().get(),
                                        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, queueSerial));
 

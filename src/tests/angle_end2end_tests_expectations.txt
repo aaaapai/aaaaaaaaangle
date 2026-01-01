@@ -10,9 +10,6 @@
 42266467 TSAN : MultithreadingTest.CreateMultiSharedContextAndDraw/* = SKIP
 
 // Generic
-// Fails in the flush thread when calling eglMakeCurrent.
-42264594 OPENGL : SimpleStateChangeTestES31.DrawThenChangeFBOThenDrawThenFlushInAnotherThreadThenDrawIndexed/* = SKIP
-42264594 GLES : SimpleStateChangeTestES31.DrawThenChangeFBOThenDrawThenFlushInAnotherThreadThenDrawIndexed/* = SKIP
 // Crashes in setUniformValuesFromBindingQualifiers() because mUniformRealLocationMap is not
 // initialized when the program is loaded from cache.
 42264670 VULKAN : BlitFramebufferTest.BlitDepthStencilPixelByPixel/* = SKIP
@@ -62,6 +59,9 @@
 359729255 D3D11 : VertexAttributeTest.VertexAttribPointerCopyBufferFromInvalid* = SKIP
 359729255 METAL : VertexAttributeTest.VertexAttribPointerCopyBufferFromInvalid* = SKIP
 359729255 WGPU : VertexAttributeTest.VertexAttribPointerCopyBufferFromInvalid* = SKIP
+
+// Using a non-zero offset non-aligned with the stride.
+468923885 WGPU : VertexAttributeTest.BufferOffsetNonAlignedWithStride/* = SKIP
 
 // Propagate buffer changes to VertexArray fail on some desktop drivers
 433331119 LINUX NVIDIA OPENGL : ValidationStateChangeTest.RebindBufferShouldPickupBufferChange/* = SKIP
@@ -659,9 +659,11 @@
 42266774 PIXEL4ORXL GLES : MultithreadingTestES3.SimultaneousUploadAndDraw/* = SKIP
 42266774 PIXEL4ORXL VULKAN : MultithreadingTestES3.SimultaneousUploadAndDraw/* = SKIP
 384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariableConditional/* = SKIP
+384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariableConditionalFunctionCall/* = SKIP
 384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariableDiscard/* = SKIP
 384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariableEarlyReturn/* = SKIP
 384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariablePartial/* = SKIP
+384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariableInOutArgument/* = SKIP
 42264513 PIXEL4ORXL GLES : GLSLTest.NestedInoutVars2/* = SKIP
 42264513 PIXEL4ORXL GLES : GLSLTest.NestedInoutVars3/* = SKIP
 42264513 PIXEL4ORXL GLES : SimpleUniformTestES3.TernarySelectAnArrayThenIndex/* = SKIP
