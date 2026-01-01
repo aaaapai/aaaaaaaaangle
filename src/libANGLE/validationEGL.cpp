@@ -275,8 +275,8 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             break;
 
         default:
-            val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR "X", attribute);
-            return false;
+            //val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR "X", attribute);
+            return true;
     }
 
     return true;
@@ -1468,8 +1468,8 @@ bool ValidateSyncAttribute(const ValidationContext *val,
             break;
 
         default:
-            val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR "X", attribute);
-            return false;
+            //val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR "X", attribute);
+            return true;
     }
 
     return true;
@@ -1998,8 +1998,8 @@ bool ValidateCreateContextAttribute(const ValidationContext *val,
             break;
 
         default:
-            val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR "X", attribute);
-            return false;
+            //val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR "X", attribute);
+            return true;
     }
 
     return true;
@@ -3449,8 +3449,8 @@ bool ValidateCreatePixmapSurface(const ValidationContext *val,
                 break;
 
             default:
-                val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR, attribute);
-                return false;
+                //val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR, attribute);
+                return true;
         }
     }
 
@@ -6194,8 +6194,8 @@ bool ValidateQueryDebugKHR(const ValidationContext *val, EGLint attribute, const
             break;
 
         default:
-            val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04X", attribute);
-            return false;
+            //val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04X", attribute);
+            return true;
     }
 
     return true;
