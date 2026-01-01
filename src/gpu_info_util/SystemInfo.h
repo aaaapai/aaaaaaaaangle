@@ -135,7 +135,6 @@ constexpr DeviceID kDeviceID_UHD630Mobile = 0x3E9B;
 // Predicates on vendor IDs
 bool IsAMD(VendorID vendorId);
 bool IsARM(VendorID vendorId);
-bool IsMaleoon(VendorID vendorId);
 bool IsBroadcom(VendorID vendorId);
 bool IsImgTec(VendorID vendorId);
 bool IsIntel(VendorID vendorId);
