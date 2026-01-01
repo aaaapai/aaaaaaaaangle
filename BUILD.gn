@@ -24,6 +24,7 @@ if (angle_has_build) {
     # android/rules.gni can only be imported for Android targets
     import("//build/config/android/config.gni")
     import("//build/config/android/rules.gni")
+    import("android/angle_apk.gni")
   }
 } else {
   using_sanitizer = false
