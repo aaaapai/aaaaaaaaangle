@@ -138,6 +138,11 @@ bool IsARM(VendorID vendorId)
     return vendorId == kVendorID_ARM;
 }
 
+bool IsMaleoon(VendorID vendorId)
+{
+    return vendorId == kVendorID_Maleoon;
+}
+
 bool IsBroadcom(VendorID vendorId)
 {
     return vendorId == kVendorID_Broadcom;

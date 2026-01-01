@@ -22,6 +22,7 @@ bool GetSystemInfoVulkanWithICD(SystemInfo *info, vk::ICD preferredICD);
 
 VersionInfo ParseAMDVulkanDriverVersion(uint32_t version);
 VersionInfo ParseArmVulkanDriverVersion(uint32_t version);
+VersionInfo ParseMaleoonVulkanDriverVersion(uint32_t version);
 VersionInfo ParseBroadcomVulkanDriverVersion(uint32_t version);
 VersionInfo ParseSwiftShaderVulkanDriverVersion(uint32_t version);
 VersionInfo ParseImaginationVulkanDriverVersion(uint32_t version);

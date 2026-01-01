@@ -130,15 +130,14 @@ EGLContext EGLAPIENTRY EGL_CreateContext(EGLDisplay dpy,
 
         {
             ANGLE_EGL_SCOPED_CONTEXT_LOCK(CreateContext, thread, dpyPacked, share_contextPacked);
-            if (IsEGLValidationEnabled())
-            {
+
+        if (IsEGLValidationEnabled())
+        {
                 ANGLE_EGL_VALIDATE(thread, CreateContext, GetDisplayIfValid(dpyPacked), EGLContext,
                                    dpyPacked, configPacked, share_contextPacked, attrib_listPacked);
-            }
-            else
-            {
+        } else {
                 attrib_listPacked.initializeWithoutValidation();
-            }
+        }
 
             returnValue = CreateContext(thread, dpyPacked, configPacked, share_contextPacked,
                                         attrib_listPacked);
@@ -147,6 +146,7 @@ EGLContext EGLAPIENTRY EGL_CreateContext(EGLDisplay dpy,
         ANGLE_CAPTURE_EGL(CreateContext, true, thread, dpyPacked, configPacked, share_contextPacked,
                           attrib_listPacked, returnValue);
     }
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     return returnValue;
 }

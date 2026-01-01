@@ -231,6 +231,8 @@ std::string GetVendorString(uint32_t vendorId)
             return "AMD";
         case VENDOR_ID_ARM:
             return "ARM";
+        case VENDOR_ID_Maleoon:
+            return "Maleoon";
         case VENDOR_ID_APPLE:
             return "Apple";
         case VENDOR_ID_BROADCOM:
@@ -262,6 +264,8 @@ std::string GetVendorString(uint32_t vendorId)
             return "Test";
         case 0:
             return "NULL";
+        default:
+            return "Unknown";
     }
 
     std::stringstream s;

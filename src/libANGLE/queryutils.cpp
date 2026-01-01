@@ -13,6 +13,7 @@
 #include "libANGLE/queryutils.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 #include "common/utilities.h"
 
@@ -3697,6 +3698,17 @@ bool GetQueryParameterInfo(const State &glState,
             *numParams = 1;
             return true;
     }
+
+        switch (pname)
+        {
+            case GL_CONTEXT_FLAGS:
+            case GL_CONTEXT_PROFILE_MASK:
+            {
+                *type      = GL_INT;
+                *numParams = 1;
+                return true;
+            }
+        } //For DesktopGL
 
     if (glState.getClientVersion() >= Version(3, 2))
     {

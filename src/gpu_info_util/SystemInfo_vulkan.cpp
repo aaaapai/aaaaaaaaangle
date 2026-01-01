@@ -55,6 +55,11 @@ VersionInfo ParseArmVulkanDriverVersion(uint32_t driverVersion)
     return ParseGenericDriverVersion(driverVersion);
 }
 
+VersionInfo ParseMaleoonVulkanDriverVersion(uint32_t driverVersion)
+{
+    return ParseGenericDriverVersion(driverVersion);
+}
+
 VersionInfo ParseBroadcomVulkanDriverVersion(uint32_t driverVersion)
 {
     return ParseGenericDriverVersion(driverVersion);
@@ -595,6 +600,10 @@ bool GetSystemInfoVulkanWithICD(SystemInfo *info, vk::ICD preferredICD)
             case kVendorID_ARM:
                 gpu.driverVendor                = "Arm Holdings";
                 gpu.detailedDriverVersion = ParseArmVulkanDriverVersion(properties.driverVersion);
+                break;
+            case kVendorID_Maleoon:
+                gpu.driverVendor                = "Huawei";
+                gpu.detailedDriverVersion = ParseMaleoonVulkanDriverVersion(properties.driverVersion);
                 break;
             case kVendorID_Broadcom:
                 gpu.driverVendor                = "Broadcom";

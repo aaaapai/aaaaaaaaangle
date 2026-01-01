@@ -21,6 +21,7 @@
 #include <iterator>
 #include <sstream>
 #include <vector>
+#include <cstdlib>
 
 #include "common/PackedEnums.h"
 #include "common/angle_version_info.h"
@@ -2113,6 +2114,7 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
         // GLES3.2 client flags
         case GL_CONTEXT_FLAGS:
         {
+
             GLint contextFlags = 0;
             if (mState.hasProtectedContent())
             {
@@ -2130,6 +2132,9 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
             }
             *params = contextFlags;
         }
+        break;
+        case GL_CONTEXT_PROFILE_MASK:
+            *params = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
         break;
 
         // GL_ANGLE_request_extension
@@ -4194,7 +4199,7 @@ void Context::initCaps()
     *extensions            = mSupportedExtensions;
 
     // GLES1 emulation: Initialize caps (Table 6.20 / 6.22 in the ES 1.1 spec)
-    if (getClientVersion() < Version(2, 0))
+    if (std::getenv("ANGLE_USE_EGL_OPENGL_API") || getClientVersion() < Version(2, 0))
     {
         caps->maxMultitextureUnits          = 4;
         caps->maxClipPlanes                 = 6;
@@ -9219,6 +9224,10 @@ GLenum Context::getConvertedRenderbufferFormat(GLenum internalformat) const
     if (isWebGL1() && internalformat == GL_DEPTH_STENCIL)
     {
         return GL_DEPTH24_STENCIL8;
+    }
+    if (internalformat == GL_DEPTH_COMPONENT)
+    {
+        return GL_DEPTH_COMPONENT24;
     }
     return internalformat;
 }

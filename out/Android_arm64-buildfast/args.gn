@@ -1,0 +1,56 @@
+target_os = "android"
+target_cpu = "arm64"
+is_component_build = false
+is_debug = false
+angle_build_all = false
+angle_enable_gl = false
+angle_enable_vulkan = true
+angle_enable_d3d9 = false
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_metal = false
+angle_expose_non_conformant_extensions_and_versions = true
+jobs = 6
+enable_iterator_debugging = false
+symbol_level = 0
+use_goma = false
+dcheck_always_on = false
+angle_assert_always_on = false
+is_clang = true
+android_ndk_api_level = 26
+strip_debug_info = true
+generate_debug_info = false
+enable_resource_allowlist_generation = false
+use_thin_lto = true
+angle_enable_vulkan = true
+angle_enable_vulkan_validation_layers = false
+angle_enable_swiftshader = false
+angle_enable_essl = true
+angle_enable_glsl = true
+angle_enable_hlsl = false
+angle_expose_non_conformant_extensions_and_versions = true
+build_angle_deqp_tests = false
+angle_build_tests = false
+cflags = [
+  "-Wno-unused-variable",
+  "-Wno-error=unused-variable",
+  "-Wno-error",
+  "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
+  "-DUNSAFE_BUFFERS_BUILD",
+]
+cflags_cc = [
+  "-Wno-unused-variable",
+  "-Wno-error=unused-variable",
+  "-Wno-error",
+  "-stdlib=libc++",
+  "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
+  "-DUNSAFE_BUFFERS_BUILD",
+]
+ldflags = [
+  "-fuse-ld=lld",
+]
+
+treat_warnings_as_errors = false
+angle_vulkan_display_mode = "headless"
+android_ndk_root = "/usr/local/lib/android/sdk/ndk/28.2.13676358"
+android_ndk_version = "r28c"

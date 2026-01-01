@@ -1,0 +1,93 @@
+target_os = "android"
+target_cpu = "arm"
+is_component_build = false
+is_debug = false
+angle_build_all = false
+angle_enable_gl = false
+angle_enable_vulkan = true
+angle_enable_d3d9 = false
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_metal = false
+angle_expose_non_conformant_extensions_and_versions = true
+jobs = 4
+enable_iterator_debugging = false
+symbol_level = 0
+use_goma = false
+dcheck_always_on = false
+angle_assert_always_on = false
+is_clang = true
+android_ndk_api_level = 26
+strip_debug_info = true
+generate_debug_info = false
+enable_resource_allowlist_generation = false
+use_thin_lto = true
+angle_enable_vulkan = true
+angle_enable_vulkan_validation_layers = false
+angle_enable_swiftshader = false
+angle_enable_essl = true
+angle_enable_glsl = true
+angle_enable_hlsl = false
+angle_expose_non_conformant_extensions_and_versions = true
+build_angle_deqp_tests = false
+arm_use_neon = true
+angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
+angle_build_tests = false
+cflags = [
+  "-Wno-unused-variable",
+  "-Wno-error=unused-variable",
+  "-Wno-error",
+  "-O3",
+  "-mllvm -polly",
+  "-fomit-frame-pointer",
+  "-fno-semantic-interposition",
+  "-mllvm -hot-cold-split=true",
+  "-fdata-sections",
+  "-ffunction-sections",
+  "-fmerge-all-constants",
+  "-ftree-vectorize",
+  "-fvectorize",
+  "-fslp-vectorize",
+  "-pipe",
+  "-integrated-as",
+  "-mllvm -polly-vectorizer=stripmine",
+  "-mllvm -polly-invariant-load-hoisting",
+  "-mllvm -polly-run-inliner",
+  "-mllvm -polly-run-dce",
+  "-mllvm -polly-detect-keep-going",
+  "-mllvm -polly-ast-use-context",
+  "-mllvm -polly-parallel",
+  "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
+]
+cflags_cc = [
+  "-Wno-unused-variable",
+  "-Wno-error=unused-variable",
+  "-Wno-error",
+  "-O3",
+  "-mllvm -polly",
+  "-fomit-frame-pointer",
+  "-fno-semantic-interposition",
+  "-mllvm -hot-cold-split=true",
+  "-fdata-sections",
+  "-ffunction-sections",
+  "-fmerge-all-constants",
+  "-ftree-vectorize",
+  "-fvectorize",
+  "-fslp-vectorize",
+  "-pipe",
+  "-integrated-as",
+  "-mllvm -polly-vectorizer=stripmine",
+  "-mllvm -polly-invariant-load-hoisting",
+  "-mllvm -polly-run-inliner",
+  "-mllvm -polly-run-dce",
+  "-mllvm -polly-detect-keep-going",
+  "-mllvm -polly-ast-use-context",
+  "-mllvm -polly-parallel",
+  "-stdlib=libc++",
+  "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
+]
+ldflags = [
+  "-fuse-ld=lld",
+]
+
+treat_warnings_as_errors = false
