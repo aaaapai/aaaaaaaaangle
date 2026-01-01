@@ -5260,7 +5260,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isAMD      = IsAMD(mPhysicalDeviceProperties.vendorID);
     const bool isApple    = IsAppleGPU(mPhysicalDeviceProperties.vendorID);
     const bool isARM      = IsARM(mPhysicalDeviceProperties.vendorID);
-    const bool isMaleoon  = IsMaleoon(mPhysicalDeviceProperties.vendorID);
     const bool isIntel    = IsIntel(mPhysicalDeviceProperties.vendorID);
     const bool isNvidia   = IsNvidia(mPhysicalDeviceProperties.vendorID);
     const bool isPowerVR  = IsPowerVR(mPhysicalDeviceProperties.vendorID);
@@ -5284,15 +5283,13 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Distinguish between the ARM proprietary driver and the Mesa open source driver
     const bool isMesaPanVK      = IsMesaPanVK(mDriverProperties.driverID);
-    const bool isARMProprietary = (isARM && !isMesaPanVK) || (isMaleoon && std::getenv("ANGLE_view_Maleoon_as_Mali") != nullptr);
+    const bool isARMProprietary = (isARM && !isMesaPanVK);
 
     // Lacking other explicit ways to tell if mali GPU is job manager based or command stream front
     // end based, we use maxDrawIndirectCount as equivalent since all JM based has
     // maxDrawIndirectCount==1 and all CSF based has maxDrawIndirectCount>1.
     bool isMaliJobManagerBasedGPU =
         isARM && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
-    bool isMaleoonJobManagerBasedGPU =
-        isMaleoon && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
 
     // Distinguish between the mesa and proprietary drivers
     const bool isRADV = IsRADV(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
@@ -5302,11 +5299,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     if (isARMProprietary)
     {
         driverVersion = angle::ParseArmVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
-    }
-    else if (isMaleoon)
-    {
-        driverVersion =
-            angle::ParseMaleoonVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
     }
     else if (isQualcommProprietary)
     {
@@ -5350,7 +5342,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // the device architecture for optimal performance on both.
     const bool isImmediateModeRenderer =
         isNvidia || isAMD || isIntel || isSamsung || isSoftwareRenderer;
-    const bool isTileBasedRenderer = isARM || isMaleoon || isPowerVR || isQualcomm || isBroadcom || isApple;
+    const bool isTileBasedRenderer = isARM || isPowerVR || isQualcomm || isBroadcom || isApple;
 
     // Make sure all known architectures are accounted for.
     if (!isImmediateModeRenderer && !isTileBasedRenderer && !isMockICDEnabled())
@@ -5402,8 +5394,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // outweigh framebuffer compression on sampled textures on the following GPUs:
     //
     // - ARM
-    // - Maleoon?
-    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM || isMaleoon);
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM);
     
     // VK_EXT_pipeline_creation_feedback is promoted to core in Vulkan 1.3.
     ANGLE_FEATURE_CONDITION(
@@ -5991,7 +5982,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // sample can only access values for the same sample by reading "the current color value",
     // unlike Vulkan-GLSL's |subpassLoad()| which takes a sample index.
     mIsColorFramebufferFetchCoherent =
-        isARM || isMaleoon || isPowerVR || mFeatures.supportsRasterizationOrderAttachmentAccess.enabled;
+        isARM || isPowerVR || mFeatures.supportsRasterizationOrderAttachmentAccess.enabled;
 
     // Support EGL_KHR_lock_surface3 extension.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsLockSurfaceExtension, IsAndroid());
@@ -6619,7 +6610,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
             !emulatesMultisampledRenderToTexture &&
             !(isARMProprietary && driverVersion < angle::VersionTriple(52, 0, 0)) &&
             !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 801, 0)) &&
-            !isPowerVR && !(isMaleoon && driverVersion < angle::VersionTriple(52, 0, 0)));
+            !isPowerVR);
 
     // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
     // framebuffer fetch causes the render pass to break so that the layout of the color attachments
