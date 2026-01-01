@@ -633,11 +633,11 @@ EGLContext EGLWindow::createContext(EGLContext share, EGLint *extraAttributes)
     contextAttributes.push_back(EGL_NONE);
 
     EGLContext context = eglCreateContext(mDisplay, mConfig, share, &contextAttributes[0]);
-    /*if (context == EGL_NO_CONTEXT)
+    if (context == EGL_NO_CONTEXT)
     {
         fprintf(stderr, "eglCreateContext failed: 0x%X\n", eglGetError());
-        return EGL_NO_CONTEXT;
-    }*/
+        //return EGL_NO_CONTEXT;
+    }
 
     return context;
 }
@@ -645,17 +645,17 @@ EGLContext EGLWindow::createContext(EGLContext share, EGLint *extraAttributes)
 bool EGLWindow::initializeContext()
 {
     mContext = createContext(EGL_NO_CONTEXT, nullptr);
-    /*if (mContext == EGL_NO_CONTEXT)
+    if (mContext == EGL_NO_CONTEXT)
     {
-        destroyGL();
-        return false;
+        //destroyGL();
+        //return false;
     }
 
     if (!makeCurrent())
     {
-        destroyGL();
-        return false;
-    }*/
+        //destroyGL();
+        //return false;
+    }
 
     // Without EGL_ANGLE_create_context_backwards_compatible and specifying
     // EGL_CONTEXT_OPENGL_BACKWARDS_COMPATIBLE_ANGLE = EGL_FALSE, ANGLE will create a context with
