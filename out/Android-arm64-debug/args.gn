@@ -55,7 +55,7 @@ ldflags = [
 treat_warnings_as_errors = false
 
 treat_warnings_as_errors = false
-libcxx_abi_unstable = true
+libcxx_abi_unstable = false
 angle_vulkan_display_mode = "headless"
 use_cxx23 = true
 android_ndk_root = "/usr/local/lib/android/sdk/ndk/28.2.13676358"
