@@ -121,20 +121,6 @@ int getMaliTNumber(const FunctionsGL *functions)
     return number;
 }
 
-int getMaleoonNumber(const FunctionsGL *functions)
-{
-    static int number = -1;
-    if (number == -1)
-    {
-        const char *nativeGLRenderer = GetString(functions, GL_RENDERER);
-        if (std::sscanf(nativeGLRenderer, "Maleoon %d", &number) < 1)
-        {
-            number = 0;
-        }
-    }
-    return number;
-}
-
 int getMaliGNumber(const FunctionsGL *functions)
 {
     static int number = -1;
@@ -275,10 +261,6 @@ VendorID GetVendorID(const FunctionsGL *functions)
     else if (nativeVendorString.find("Mali") != std::string::npos)
     {
         return VENDOR_ID_ARM;
-    }
-    else if (nativeVendorString.find("Maleoon") != std::string::npos)
-    {
-        return VENDOR_ID_Maleoon;
     }
     else
     {
