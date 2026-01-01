@@ -104,7 +104,6 @@ bool GetSystemInfoVulkan(SystemInfo *info);
 // Known PCI vendor IDs
 constexpr VendorID kVendorID_AMD           = 0x1002;
 constexpr VendorID kVendorID_ARM           = 0x13B5;
-constexpr VendorID kVendorID_Maleoon       = 0x19E5;
 constexpr VendorID kVendorID_Broadcom      = 0x14E4;
 constexpr VendorID kVendorID_GOOGLE        = 0x1AE0;
 constexpr VendorID kVendorID_ImgTec        = 0x1010;
