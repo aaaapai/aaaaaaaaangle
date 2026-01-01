@@ -104,3 +104,7 @@ angle_vulkan_display_mode = "headless"
 use_cxx23 = true
 android_ndk_root = "/usr/local/lib/android/sdk/ndk/29.0.14206865"
 android_ndk_version = "r29"
+
+# Whether the ANGLE translator should be built with IR instead
+# THIS IS CURRENTLY EXPERIMENTAL.
+angle_ir = true
