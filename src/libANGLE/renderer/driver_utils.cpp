@@ -262,8 +262,6 @@ std::string GetVendorString(uint32_t vendorId)
             return "Test";
         case 0:
             return "NULL";
-        default:
-            return "Unknown";
     }
 
     std::stringstream s;
