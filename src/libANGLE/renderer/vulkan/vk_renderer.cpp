@@ -4960,12 +4960,12 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     {
         return maxVersion;
     }
-    /*if (!CanSupportGLES32(mNativeExtensions))
+    if (!CanSupportGLES32(mNativeExtensions))
     {
         //maxVersion = LimitVersionTo(maxVersion, {3, 1});
         //std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n"; //烦人的
         return maxVersion;
-    }*/
+    }
 
     // Limit to ES3.0 if there are any blockers for 3.1.
 
@@ -4998,10 +4998,10 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     // Limit to ES2.0 if there are any blockers for 3.0.
 
     // VK_EXT_provoking_vertex is required for flat shading.
-    if (!mFeatures.provokingVertex.enabled)
+    /*if (!mFeatures.provokingVertex.enabled)
     {
         maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     // Multisample textures (ES3.1) and multisample renderbuffers (ES3.0) require the Vulkan driver
     // to support the standard sample locations (in order to pass dEQP tests that check these
@@ -5114,6 +5114,7 @@ bool Renderer::canSupportFragmentShadingRate() const
     // VK_KHR_create_renderpass2 is required for VK_KHR_fragment_shading_rate
     if (!mFeatures.supportsRenderpass2.enabled)
     {
+        if (std::getenv("ANGLE_FORCE_RENDERPASS2")) return true;
         return false;
     }
 
