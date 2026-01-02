@@ -23,10 +23,10 @@ static void* vulkan_load_from_pojavexec() {
         return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
     }
 
-    /*const char* turnipEnv = std::getenv("ANGLE_LOAD_TURNIP");
+    const char* turnipEnv = std::getenv("ANGLE_LOAD_TURNIP");
     if (!turnipEnv || (std::string(turnipEnv) != "true")) {
         return nullptr;
-    }*/
+    }
 
     printf("[ANGLE] Try to dlopen libpojavexec.\n");
     void* lib_handle = dlopen("libpojavexec.so", RTLD_NOLOAD);
