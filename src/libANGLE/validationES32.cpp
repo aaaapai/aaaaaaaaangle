@@ -248,6 +248,10 @@ bool ValidateDisablei(const PrivateState &state,
                 return false;
             }
             break;
+        case 0x884F: 
+            break;
+        case 0x8642:
+            break;
         default:
             errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
             return false;
@@ -333,6 +337,10 @@ bool ValidateEnablei(const PrivateState &state,
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
                 return false;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
@@ -520,6 +528,10 @@ bool ValidateIsEnabledi(const PrivateState &state,
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
                 return false;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
