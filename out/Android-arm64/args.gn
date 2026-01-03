@@ -33,6 +33,7 @@ arm_use_neon = true
 arm_version = 8
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
 angle_build_tests = false
+use_thin_lto = true
 
 cflags_c = [
   "-Wno-unused-variable",
@@ -92,15 +93,11 @@ cflags_cc = [
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
   "-fwhole-program-vtables",
-  "-flto",
 ]
 ldflags = [
   "-fuse-ld=lld",
-  "-flto",
   "-Wl,-z,max-page-size=16384",
-  "-Wl,--lto-O3",
   "-Wl,--gc-sections",
-  "-Wl,-O3"
 ]
 
 treat_warnings_as_errors = false
