@@ -31,6 +31,7 @@ angle_expose_non_conformant_extensions_and_versions = true
 build_angle_deqp_tests = false
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
 angle_build_tests = false
+use_thin_lto = true
 
 cflags_c = [
   "-Wno-unused-variable",
@@ -88,11 +89,9 @@ cflags_cc = [
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
   "-fwhole-program-vtables",
-  "-flto",
 ]
 ldflags = [
   "-fuse-ld=lld",
-  "-flto",
   "-Wl,-z,max-page-size=16384",
   "-Wl,--gc-sections",
 ]
