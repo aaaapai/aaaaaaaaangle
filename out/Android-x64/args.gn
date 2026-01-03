@@ -10,7 +10,7 @@ angle_enable_d3d11 = false
 angle_enable_null = false
 angle_enable_metal = false
 angle_expose_non_conformant_extensions_and_versions = true
-jobs = 4
+jobs = 6
 enable_iterator_debugging = false
 symbol_level = 0
 use_goma = false
@@ -21,7 +21,6 @@ android_ndk_api_level = 26
 strip_debug_info = true
 generate_debug_info = false
 enable_resource_allowlist_generation = false
-use_thin_lto = true
 angle_enable_vulkan = true
 angle_enable_vulkan_validation_layers = false
 angle_enable_swiftshader = false
@@ -32,7 +31,9 @@ angle_expose_non_conformant_extensions_and_versions = true
 build_angle_deqp_tests = false
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
 angle_build_tests = false
-cflags = [
+use_thin_lto = true
+
+cflags_c = [
   "-Wno-unused-variable",
   "-Wno-error=unused-variable",
   "-Wno-error",
@@ -57,6 +58,9 @@ cflags = [
   "-mllvm -polly-ast-use-context",
   "-mllvm -polly-parallel",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
+  "-DUNSAFE_BUFFERS_BUILD",
+  "-fwhole-program-vtables",
+  "-flto",
 ]
 cflags_cc = [
   "-Wno-unused-variable",
@@ -73,8 +77,7 @@ cflags_cc = [
   "-ftree-vectorize",
   "-fvectorize",
   "-fslp-vectorize",
-  "-pipe",
-  "-integrated-as",
+  "-pipe -integrated-as",
   "-mllvm -polly-vectorizer=stripmine",
   "-mllvm -polly-invariant-load-hoisting",
   "-mllvm -polly-run-inliner",
@@ -84,9 +87,22 @@ cflags_cc = [
   "-mllvm -polly-parallel",
   "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
+  "-DUNSAFE_BUFFERS_BUILD",
+  "-fwhole-program-vtables",
 ]
 ldflags = [
   "-fuse-ld=lld",
+  "-Wl,-z,max-page-size=16384",
+  "-Wl,--gc-sections",
 ]
 
 treat_warnings_as_errors = false
+libcxx_abi_unstable = true
+angle_vulkan_display_mode = "headless"
+use_cxx23 = true
+android_ndk_root = "/usr/local/lib/android/sdk/ndk/29.0.14206865"
+android_ndk_version = "r29"
+
+# Whether the ANGLE translator should be built with IR instead
+# THIS IS CURRENTLY EXPERIMENTAL.
+angle_ir = true
