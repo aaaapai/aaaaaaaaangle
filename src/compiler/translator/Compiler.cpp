@@ -771,8 +771,10 @@ bool TCompiler::getShaderBinary(const ShHandle compilerHandle,
         mOutputType);
 
     stream.writeBytes(
-        reinterpret_cast<const unsigned char *>(angle::GetANGLEShaderProgramVersion()),
-        angle::GetANGLEShaderProgramVersionHashSize());
+        // NOTE: version api could return a string view.
+        ANGLE_UNSAFE_TODO(angle::Span(
+            reinterpret_cast<const unsigned char *>(angle::GetANGLEShaderProgramVersion()),
+            angle::GetANGLEShaderProgramVersionHashSize())));
     stream.writeEnum(shaderType);
     stream.writeEnum(mOutputType);
 
@@ -785,8 +787,8 @@ bool TCompiler::getShaderBinary(const ShHandle compilerHandle,
     }
     stream.writeString(sourceString);
 
-    stream.writeBytes(reinterpret_cast<const uint8_t *>(&compileOptions), sizeof(compileOptions));
-    stream.writeBytes(reinterpret_cast<const uint8_t *>(&mResources), sizeof(mResources));
+    stream.writeBytes(angle::byte_span_from_ref(compileOptions));
+    stream.writeBytes(angle::byte_span_from_ref(mResources));
 
     state.serialize(stream);
 
@@ -945,9 +947,8 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     }
     mValidateASTOptions.validateNoStatementsAfterBranch = true;
 
-    // We need to generate globals early if we have non constant initializers enabled
-    bool initializeLocalsAndGlobals =
-        compileOptions.initializeUninitializedLocals && !IsOutputHLSL(getOutputType());
+    // We need to generate globals early if we have non constant initializers enabled.
+    bool initializeLocalsAndGlobals    = compileOptions.initializeUninitializedLocals;
     bool canUseLoopsToInitialize       = !compileOptions.dontUseLoopsToInitializeVariables;
     bool enableNonConstantInitializers = IsExtensionEnabled(
         mExtensionBehavior, TExtension::EXT_shader_non_constant_global_initializers);
@@ -1230,6 +1231,16 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     }
 
     collectVariables(root);
+    const bool hlslFragmentOutputsNeedInit =
+        IsOutputHLSL(mOutputType) && mShaderType == GL_FRAGMENT_SHADER &&
+        (compileOptions.initOutputVariables || compileOptions.initFragmentOutputVariables);
+    if (hlslFragmentOutputsNeedInit)
+    {
+        for (sh::ShaderVariable &outputVariable : mOutputVariables)
+        {
+            outputVariable.active = true;
+        }
+    }
 
     if (compileOptions.useUnusedStandardSharedBlocks)
     {
@@ -1262,10 +1273,13 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     // For the MSL output, keep the inactive fragment outputs, but remove them otherwise.
     if (compileOptions.removeInactiveVariables)
     {
-        if (!RemoveInactiveInterfaceVariables(this, root, &getSymbolTable(), getAttributes(),
-                                              getInputVaryings(), getOutputVariables(),
-                                              getUniforms(), getInterfaceBlocks(),
-                                              mOutputType != SH_MSL_METAL_OUTPUT))
+        const bool keepInactiveFragmentOutputsForInit = hlslFragmentOutputsNeedInit;
+        const bool removeFragmentOutputs =
+            mOutputType != SH_MSL_METAL_OUTPUT && !keepInactiveFragmentOutputsForInit;
+
+        if (!RemoveInactiveInterfaceVariables(
+                this, root, &getSymbolTable(), getAttributes(), getInputVaryings(),
+                getOutputVariables(), getUniforms(), getInterfaceBlocks(), removeFragmentOutputs))
         {
             return false;
         }
