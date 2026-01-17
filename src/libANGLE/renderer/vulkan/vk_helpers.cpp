@@ -6431,6 +6431,59 @@ angle::Result ImageHelper::initExternalMemory(ErrorContext *context,
     return angle::Result::Continue;
 }
 
+angle::Result ImageHelper::fallbackFromTileMemory(ContextVk *contextVk)
+{
+    ASSERT(mUseTileMemory);
+    ANGLE_TRACE_EVENT0("gpu.angle", "ImageHelper::fallbackFromTileMemory");
+    Renderer *renderer                  = contextVk->getRenderer();
+    UtilsVk &utilsVk                    = contextVk->getUtils();
+    MemoryAllocationType allocationType = mMemoryAllocationType;
+
+    ANGLE_VK_PERF_WARNING(contextVk, GL_DEBUG_SEVERITY_LOW,
+                          "The Vulkan driver has to copy from tile memory to regular memory. "
+                          "Consider calling glInvalidateFramebuffer");
+
+    // Move the necessary information from this ImageHelper to prevImage
+    std::unique_ptr<ImageHelper> prevImage = std::make_unique<ImageHelper>();
+    // Move storage from this object to prevImage
+    prevImage->copyStateAndMoveStorageFrom(this);
+
+    // Recreate VkImage with original usage bits
+    mImageSerial             = renderer->getResourceSerialFactory().generateImageSerial();
+    mVkImageCreateInfo.usage = mRequestedUsage;
+    ANGLE_VK_TRY(contextVk, mImage.init(contextVk->getDevice(), mVkImageCreateInfo));
+    contextVk->getPerfCounters().tileMemoryImages--;
+    contextVk->getPerfCounters().fallbackFromTileMemory++;
+
+    // reallocate device memory.
+    VkMemoryRequirements memoryRequirements;
+    mImage.getMemoryRequirements(renderer->getDevice(), &memoryRequirements);
+    bool allocateDedicatedMemory =
+        renderer->getImageMemorySuballocator().needsDedicatedMemory(memoryRequirements.size);
+    VkMemoryPropertyFlags memoryPropertyFlagsOut;
+    VkDeviceSize deviceMemorySizeOut;
+    ANGLE_VK_TRY(contextVk, initMemory(contextVk, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0x0,
+                                       &memoryRequirements, allocateDedicatedMemory, allocationType,
+                                       &memoryPropertyFlagsOut, &deviceMemorySizeOut));
+
+    // Copy data from the previous image.
+    if (prevImage->isVkImageContentDefined())
+    {
+        ANGLE_TRY(
+            utilsVk.copyImageFromTileMemory(contextVk, getAspectFlags(), this, prevImage.get()));
+        ASSERT(isVkImageContentDefined());
+    }
+
+    prevImage->releaseImage(renderer);
+    prevImage.release();
+
+    // Notify RenderBufferVk/SurfaceVk so that they can free all cached objects like ImageViews and
+    // VkFramebuffers.
+    onStateChange(angle::SubjectMessage::VkImageChanged);
+
+    return angle::Result::Continue;
+}
+
 angle::Result ImageHelper::initLayerImageView(ContextVk *contextVk,
                                               gl::TextureType textureType,
                                               VkImageAspectFlags aspectMask,
@@ -9885,6 +9938,10 @@ angle::Result ImageHelper::flushStagedUpdatesImpl(ContextVk *contextVk,
         transferAccess.onImageTransferDstAndComputeWrite(
             levelGLStart, 1, kMaxContentDefinedLayerCount, 0, aspectFlags, this);
     }
+    else if (mUseTileMemory)
+    {
+        ASSERT(areStagedUpdatesClearOnly());
+    }
     else
     {
         transferAccess.onImageTransferWrite(levelGLStart, 1, kMaxContentDefinedLayerCount, 0,
@@ -10034,9 +10091,23 @@ angle::Result ImageHelper::flushStagedUpdatesImpl(ContextVk *contextVk,
                 case UpdateSource::Clear:
                 case UpdateSource::ClearAfterInvalidate:
                 {
-                    clear(renderer, update.data.clear.aspectFlags, update.data.clear.value,
-                          updateMipLevelVk, updateBaseLayer, updateLayerCount,
-                          &commandBuffer->getCommandBuffer());
+                    if (canTransferTo())
+                    {
+                        clear(renderer, update.data.clear.aspectFlags, update.data.clear.value,
+                              updateMipLevelVk, updateBaseLayer, updateLayerCount,
+                              &commandBuffer->getCommandBuffer());
+                    }
+                    else
+                    {
+                        ASSERT(mUseTileMemory);
+                        UtilsVk::ClearTextureParameters params = {};
+                        params.aspectFlags                     = getAspectFlags();
+                        params.level                           = updateMipLevelVk;
+                        params.clearArea  = gl::Box(0, 0, 0, mExtents.width, mExtents.height, 1);
+                        params.clearValue = update.data.clear.value;
+                        params.layer      = updateBaseLayer;
+                        ANGLE_TRY(contextVk->getUtils().clearTexture(contextVk, this, params));
+                    }
                     contextVk->getPerfCounters().fullImageClears++;
                     // Remember the latest operation is a clear call.
                     mCurrentSingleClearValue = update.data.clear;
@@ -11021,7 +11092,8 @@ bool ImageHelper::canCopyWithTransformForReadPixels(const PackPixelsParams &pack
 
     // Don't allow copies from emulated formats for simplicity.
     return !hasEmulatedImageFormat() && isSameFormatCopy && !needsTransformation &&
-           isPitchMultipleOfTexelSize && isOffsetMultipleOfTexelSize && isRowLengthEnough;
+           isPitchMultipleOfTexelSize && isOffsetMultipleOfTexelSize && isRowLengthEnough &&
+           canTransferFrom();
 }
 
 bool ImageHelper::canCopyWithComputeForReadPixels(const PackPixelsParams &packPixelsParams,
@@ -11312,6 +11384,16 @@ angle::Result ImageHelper::readPixelsImpl(ContextVk *contextVk,
         srcSubresource.baseArrayLayer = 0;
         srcSubresource.layerCount     = 1;
         srcSubresource.mipLevel       = 0;
+    }
+
+    if (!src->canTransferFrom())
+    {
+        ASSERT(src->useTileMemory());
+        if (src->useTileMemory())
+        {
+            ANGLE_TRY(src->fallbackFromTileMemory(contextVk));
+            ASSERT(src->canTransferFrom());
+        }
     }
 
     // If PBO and if possible, copy directly on the GPU.
