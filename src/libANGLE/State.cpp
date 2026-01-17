@@ -14,6 +14,7 @@
 
 #include <string.h>
 #include <limits>
+#include <cstdlib>
 
 #include "common/bitset_utils.h"
 #include "common/mathutil.h"
@@ -485,7 +486,7 @@ void PrivateState::initialize(Context *context)
     mNoUnclampedBlendColor = context->getLimitations().noUnclampedBlendColor;
 
     // GLES1 emulation: Initialize state for GLES1 if version applies
-    if (context->getClientVersion() < Version(2, 0))
+    if (context->getClientVersion() < Version(2, 0) || std::getenv("ANGLE_USE_EGL_OPENGL_API"))
     {
         mGLES1State.initialize(context, this);
     }

@@ -249,6 +249,10 @@ bool ValidateDisablei(const PrivateState &state,
                 return false;
             }
             break;
+        case 0x884F: 
+            break;
+        case 0x8642:
+            break;
         default:
             ANGLE_UNSAFE_TODO(
                 errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target));
@@ -336,6 +340,10 @@ bool ValidateEnablei(const PrivateState &state,
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
                 return false;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             ANGLE_UNSAFE_TODO(
@@ -524,6 +532,10 @@ bool ValidateIsEnabledi(const PrivateState &state,
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
                 return false;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             ANGLE_UNSAFE_TODO(

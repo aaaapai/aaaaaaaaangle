@@ -10,6 +10,8 @@
 #    pragma allow_unsafe_buffers
 #endif
 
+#include <cstdlib>
+
 #include "libANGLE/validationES3_autogen.h"
 
 #include "anglebase/numerics/safe_conversions.h"
@@ -243,6 +245,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
 {
     // The type and format are valid if any supported internal format has that type and format.
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
+
     if (gl::IsYuvFormat(format))
     {
         if (!context->getExtensions().yuvInternalFormatANGLE)
