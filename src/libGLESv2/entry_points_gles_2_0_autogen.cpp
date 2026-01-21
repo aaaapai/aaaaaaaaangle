@@ -814,8 +814,8 @@ void GL_APIENTRY GL_ClearStencil(GLint s)
 
     if (ANGLE_LIKELY(context != nullptr))
     {
-        bool isCallValid = context->skipValidation();
-        if (!isCallValid)
+        //bool isCallValid = context->skipValidation();
+        /*if (!isCallValid)
         {
             if (ANGLE_LIKELY(true))
             {
@@ -829,12 +829,12 @@ void GL_APIENTRY GL_ClearStencil(GLint s)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
             }
-        }
-        if (ANGLE_LIKELY(isCallValid))
-        {
+        }*/
+        //if (isCallValid)
+        //{
             ContextPrivateClearStencil(context->getMutablePrivateState(),
                                        context->getMutablePrivateStateCache(), s);
-        }
+        //}
         ANGLE_CAPTURE_GL(ClearStencil, isCallValid, context, s);
     }
     else
