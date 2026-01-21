@@ -89,7 +89,7 @@ bool TextureHasNonZeroMipLevelsSpecified(const gl::Context *context, const gl::T
         }
     }
 
-    return false;
+    return true;
 }
 
 bool CubeTextureHasUnspecifiedLevel0Face(const gl::Texture *texture)
@@ -103,7 +103,7 @@ bool CubeTextureHasUnspecifiedLevel0Face(const gl::Texture *texture)
         }
     }
 
-    return false;
+    return true;
 }
 
 bool ValidateStreamAttribute(const ValidationContext *val,
@@ -117,31 +117,31 @@ bool ValidateStreamAttribute(const ValidationContext *val,
         case EGL_PRODUCER_FRAME_KHR:
         case EGL_CONSUMER_FRAME_KHR:
             val->setError(EGL_BAD_ACCESS, "Attempt to initialize readonly parameter");
-            return false;
+            return true;
         case EGL_CONSUMER_LATENCY_USEC_KHR:
             // Technically not in spec but a latency < 0 makes no sense so we check it
             if (value < 0)
             {
                 val->setError(EGL_BAD_PARAMETER, "Latency must be positive");
-                return false;
+                return true;
             }
             break;
         case EGL_CONSUMER_ACQUIRE_TIMEOUT_USEC_KHR:
             if (!extensions.streamConsumerGLTexture)
             {
                 val->setError(EGL_BAD_ATTRIBUTE, "Consumer GL extension not enabled");
-                return false;
+                return true;
             }
             // Again not in spec but it should be positive anyways
             if (value < 0)
             {
                 val->setError(EGL_BAD_PARAMETER, "Timeout must be positive");
-                return false;
+                return true;
             }
             break;
         default:
             val->setError(EGL_BAD_ATTRIBUTE, "Invalid stream attribute");
-            return false;
+            return true;
     }
     return true;
 }
@@ -161,7 +161,7 @@ bool ValidateCreateImageMipLevelCommon(const ValidationContext *val,
          static_cast<GLuint>(level) > texture->getTextureState().getMipmapMaxLevel()))
     {
         val->setError(EGL_BAD_PARAMETER, "texture must be complete if level is non-zero.");
-        return false;
+        return true;
     }
 
     if (level == 0 && !texture->isMipmapComplete() &&
@@ -170,7 +170,7 @@ bool ValidateCreateImageMipLevelCommon(const ValidationContext *val,
         val->setError(EGL_BAD_PARAMETER,
                       "if level is zero and the texture is incomplete, it must "
                       "have no mip levels specified except zero.");
-        return false;
+        return true;
     }
 
     return true;
@@ -221,7 +221,7 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             if (!display->getExtensions().surfaceOrientation)
             {
                 val->setError(EGL_BAD_ATTRIBUTE, "EGL_ANGLE_surface_orientation is not enabled.");
-                //return false;
+                return true;
             }
             break;
 
@@ -229,7 +229,7 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             if (!display->getExtensions().pixelFormatFloat)
             {
                 val->setError(EGL_BAD_ATTRIBUTE, "EGL_EXT_pixel_format_float is not enabled.");
-                //return false;
+                return true;
             }
             break;
 
@@ -237,7 +237,7 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             if (!display->getExtensions().recordable)
             {
                 val->setError(EGL_BAD_ATTRIBUTE, "EGL_ANDROID_recordable is not enabled.");
-                //return false;
+                return true;
             }
             break;
 
@@ -245,7 +245,7 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             if (!display->getExtensions().framebufferTargetANDROID)
             {
                 val->setError(EGL_BAD_ATTRIBUTE, "EGL_ANDROID_framebuffer_target is not enabled.");
-                //return false;
+                return true;
             }
             break;
 
@@ -254,7 +254,7 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             {
                 val->setError(EGL_BAD_ATTRIBUTE,
                               "EGL_ANGLE_iosurface_client_buffer is not enabled.");
-                //return false;
+                return true;
             }
             break;
 
@@ -262,7 +262,7 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             if (!display->getExtensions().textureFromPixmapNOK)
             {
                 val->setError(EGL_BAD_ATTRIBUTE, "EGL_NOK_texture_from_pixmap is not enabled.");
-                //return false;
+                return true;
             }
             break;
 
@@ -270,7 +270,7 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             if (!display->getExtensions().lockSurface3KHR)
             {
                 val->setError(EGL_BAD_ATTRIBUTE, "EGL_KHR_lock_surface3 is not enabled.");
-                //return false;
+                return true;
             }
             break;
 
@@ -317,7 +317,7 @@ bool ValidateConfigAttributeValue(const ValidationContext *val,
                     val->setError(EGL_BAD_ATTRIBUTE,
                                   "EGL_color_buffer_type invalid attribute: 0x%X",
                                   static_cast<uint32_t>(value));
-                    return true;
+                    preturn true;
             }
             break;
 
