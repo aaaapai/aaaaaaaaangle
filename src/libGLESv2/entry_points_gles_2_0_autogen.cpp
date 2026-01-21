@@ -700,8 +700,8 @@ void GL_APIENTRY GL_Clear(GLbitfield mask)
     if (ANGLE_LIKELY(context != nullptr))
     {
         SCOPED_SHARE_CONTEXT_LOCK(context);
-        /*bool isCallValid = context->skipValidation();
-        if (!isCallValid)
+        bool isCallValid = context->skipValidation();
+        /*if (!isCallValid)
         {
             if (ANGLE_LIKELY(true))
             {
@@ -776,8 +776,8 @@ void GL_APIENTRY GL_ClearDepthf(GLfloat d)
 
     if (ANGLE_LIKELY(context != nullptr))
     {
-        /*bool isCallValid = context->skipValidation();
-        if (!isCallValid)
+        bool isCallValid = context->skipValidation();
+        /*if (!isCallValid)
         {
             if (ANGLE_LIKELY(true))
             {
