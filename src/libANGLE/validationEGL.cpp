@@ -317,7 +317,7 @@ bool ValidateConfigAttributeValue(const ValidationContext *val,
                     val->setError(EGL_BAD_ATTRIBUTE,
                                   "EGL_color_buffer_type invalid attribute: 0x%X",
                                   static_cast<uint32_t>(value));
-                    preturn true;
+                    return true;
             }
             break;
 
