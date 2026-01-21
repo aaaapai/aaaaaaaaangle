@@ -830,7 +830,7 @@ void GL_APIENTRY GL_ClearStencil(GLint s)
 #endif
             }
         }
-        if (isCallValid)
+        if (ANGLE_LIKELY(isCallValid))
         {
             ContextPrivateClearStencil(context->getMutablePrivateState(),
                                        context->getMutablePrivateStateCache(), s);
