@@ -4935,7 +4935,7 @@ void Context::clear(GLbitfield mask)
 
     // If we have active PLS using framebuffer fetch, disable those draw buffers so we don't clear
     // the pixel local store.
-    ScopedPLSFramebufferFetchDrawBuffersDisable scopedPLSFramebufferFetchDrawBuffersDisable(this);
+    //ScopedPLSFramebufferFetchDrawBuffersDisable scopedPLSFramebufferFetchDrawBuffersDisable(this);
 
     // Remove clear bits that are ineffective. An effective clear changes at least one fragment. If
     // color/depth/stencil masks make the clear ineffective we skip it altogether.
