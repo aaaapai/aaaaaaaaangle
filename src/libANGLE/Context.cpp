@@ -4928,47 +4928,50 @@ void Context::blitFramebufferNV(GLint srcX0,
 
 void Context::clear(GLbitfield mask)
 {
-    if (mState.isRasterizerDiscardEnabled())
-    {
+    
+    GLbitfield allowedMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+    if (mask & ~allowedMask) {
         return;
     }
 
-    // If we have active PLS using framebuffer fetch, disable those draw buffers so we don't clear
-    // the pixel local store.
-    ScopedPLSFramebufferFetchDrawBuffersDisable scopedPLSFramebufferFetchDrawBuffersDisable(this);
+    if (mState.isRasterizerDiscardEnabled()) {
+        return;
+    }
 
-    // Remove clear bits that are ineffective. An effective clear changes at least one fragment. If
-    // color/depth/stencil masks make the clear ineffective we skip it altogether.
-
-    // If all color channels in all draw buffers are masked, don't attempt to clear color.
-    if (mState.allActiveDrawBufferChannelsMasked())
-    {
+    bool hasColorBuffer = mState.getDrawFramebuffer()->hasColorAttachment();
+    if (!hasColorBuffer) {
         mask &= ~GL_COLOR_BUFFER_BIT;
     }
 
-    // If depth write is disabled, don't attempt to clear depth.
-    if (mState.getDrawFramebuffer()->getDepthAttachment() == nullptr ||
-        mState.getDepthStencilState().isDepthMaskedOut())
-    {
+    ScopedPLSFramebufferFetchDrawBuffersDisable scopedPLSFramebufferFetchDrawBuffersDisable(this);
+
+    bool scissorEnabled = mState.isScissorTestEnabled();
+    
+    if (mState.allActiveDrawBufferChannelsMasked()) {
+        mask &= ~GL_COLOR_BUFFER_BIT;
+    }
+
+    const FramebufferAttachment *depthAttachment = mState.getDrawFramebuffer()->getDepthAttachment();
+    if (depthAttachment == nullptr || depthAttachment->getType() == GL_NONE ||
+        mState.getDepthStencilState().isDepthMaskedOut()) {
         mask &= ~GL_DEPTH_BUFFER_BIT;
     }
 
-    // If all stencil bits are masked, don't attempt to clear stencil.
-    if (mState.getDepthStencilState().isStencilMaskedOut(
-            mState.getDrawFramebuffer()->getStencilBitCount()))
-    {
+    const FramebufferAttachment *stencilAttachment = mState.getDrawFramebuffer()->getStencilAttachment();
+    if (stencilAttachment == nullptr || stencilAttachment->getType() == GL_NONE ||
+        mState.getDepthStencilState().isStencilMaskedOut(
+            mState.getDrawFramebuffer()->getStencilBitCount())) {
         mask &= ~GL_STENCIL_BUFFER_BIT;
     }
 
-    if (mask == 0)
-    {
-        ANGLE_PERF_WARNING(mState.getDebug(), GL_DEBUG_SEVERITY_LOW,
-                           "Clear called for non-existing buffers");
+    if (mask == 0) {
         return;
     }
 
+    bool multisample = mState.getDrawFramebuffer()->isMultisampled();
+    
     ANGLE_CONTEXT_TRY(prepareForClear(mask));
-    ANGLE_CONTEXT_TRY(mState.getDrawFramebuffer()->clear(this, mask));
+    ANGLE_CONTEXT_TRY(mState.getDrawFramebuffer()->clear(this, mask, scissorEnabled));
 }
 
 bool Context::isClearBufferMaskedOut(GLenum buffer,
