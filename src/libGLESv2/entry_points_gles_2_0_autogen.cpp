@@ -700,24 +700,16 @@ void GL_APIENTRY GL_Clear(GLbitfield mask)
     if (ANGLE_LIKELY(context != nullptr))
     {
         SCOPED_SHARE_CONTEXT_LOCK(context);
-        bool isCallValid = context->skipValidation();
-        /*if (!isCallValid)
+        bool isCallValid =
+            (context->skipValidation() ||
+             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
+                                                context->getMutableErrorSetForValidation(),
+                                                angle::EntryPoint::GLClear) &&
+              ValidateClear(context, angle::EntryPoint::GLClear, mask)));
+        if (ANGLE_LIKELY(isCallValid))
         {
-            if (ANGLE_LIKELY(true))
-            {
-#if defined(ANGLE_ENABLE_ASSERTS)
-                const uint32_t errorCount = context->getPushedErrorCount();
-#endif
-                isCallValid = ValidateClear(context, angle::EntryPoint::GLClear, mask);
-#if defined(ANGLE_ENABLE_ASSERTS)
-                ASSERT(context->getPushedErrorCount() - errorCount == (isCallValid ? 0 : 1));
-#endif
-            }
-        }*/
-        //if (ANGLE_LIKELY(isCallValid))
-        //{
             context->clear(mask);
-        //}
+        }
         ANGLE_CAPTURE_GL(Clear, isCallValid, context, mask);
     }
     else
@@ -737,22 +729,14 @@ void GL_APIENTRY GL_ClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat
 
     if (ANGLE_LIKELY(context != nullptr))
     {
-        bool isCallValid = context->skipValidation();
-        if (!isCallValid)
-        {
-            if (ANGLE_LIKELY(true))
-            {
-#if defined(ANGLE_ENABLE_ASSERTS)
-                const uint32_t errorCount = context->getPushedErrorCount();
-#endif
-                isCallValid = ValidateClearColor(
-                    context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                    angle::EntryPoint::GLClearColor, red, green, blue, alpha);
-#if defined(ANGLE_ENABLE_ASSERTS)
-                ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
-#endif
-            }
-        }
+        bool isCallValid =
+            (context->skipValidation() ||
+             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
+                                                context->getMutableErrorSetForValidation(),
+                                                angle::EntryPoint::GLClearColor) &&
+              ValidateClearColor(context->getPrivateState(),
+                                 context->getMutableErrorSetForValidation(),
+                                 angle::EntryPoint::GLClearColor, red, green, blue, alpha)));
         if (ANGLE_LIKELY(isCallValid))
         {
             ContextPrivateClearColor(context->getMutablePrivateState(),
@@ -777,7 +761,7 @@ void GL_APIENTRY GL_ClearDepthf(GLfloat d)
     if (ANGLE_LIKELY(context != nullptr))
     {
         bool isCallValid = context->skipValidation();
-        /*if (!isCallValid)
+        if (!isCallValid)
         {
             if (ANGLE_LIKELY(true))
             {
@@ -791,12 +775,12 @@ void GL_APIENTRY GL_ClearDepthf(GLfloat d)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
             }
-        }*/
-        //if (ANGLE_LIKELY(isCallValid))
-        //{
+        }
+        if (ANGLE_LIKELY(isCallValid))
+        {
             ContextPrivateClearDepthf(context->getMutablePrivateState(),
                                       context->getMutablePrivateStateCache(), d);
-        //}
+        }
         ANGLE_CAPTURE_GL(ClearDepthf, isCallValid, context, d);
     }
     else
