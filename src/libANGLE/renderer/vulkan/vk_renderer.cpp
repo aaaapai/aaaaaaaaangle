@@ -6118,8 +6118,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // wrong index, according to the errata:
     // https://developer.arm.com/documentation/SDEN-3735689/0100/?lang=en
     //
-    // On Qualcomm drivers prior to 777, this feature had a bug.
-    // http://anglebug.com/381384988
+    // On Qualcomm proprietary drivers prior to 777, this feature had a bug
+    // (http://anglebug.com/381384988). Further data also shows that disable vertexInputDynamicState
+    // has less overall CPU overhead.
     //
     // Use of vertexInputDynamicState on PowerVR devices is disabled for performance reasons
     // (http://issuetracker.google.com/469320616).
@@ -6128,8 +6129,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         mVertexInputDynamicStateFeatures.vertexInputDynamicState == VK_TRUE &&
             !(IsWindows() && isIntel) &&
             !(isARMProprietary && driverVersion < angle::VersionTriple(48, 0, 0)) &&
-            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 777, 0)) &&
-            !isPowerVR);
+            !isQualcommProprietary && !isPowerVR);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExtendedDynamicState,
                             mExtendedDynamicStateFeatures.extendedDynamicState == VK_TRUE &&
@@ -6138,9 +6138,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // VK_EXT_vertex_input_dynamic_state enables dynamic state for the full vertex input state. As
     // such, when available use supportsVertexInputDynamicState instead of
     // useVertexInputBindingStrideDynamicState.
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, useVertexInputBindingStrideDynamicState,
-        mFeatures.supportsExtendedDynamicState.enabled && !isVertexInputBindingStrideBuggy);
+    ANGLE_FEATURE_CONDITION(&mFeatures, useVertexInputBindingStrideDynamicState,
+                            mFeatures.supportsExtendedDynamicState.enabled &&
+                                !mFeatures.supportsVertexInputDynamicState.enabled &&
+                                !isVertexInputBindingStrideBuggy);
     // On ARM proprietary drivers prior to r52, |vkCmdSetCullMode| incorrectly culls non-triangle
     // topologies, according to the errata:
     // https://developer.arm.com/documentation/SDEN-3735689/0100/?lang=en
@@ -6173,11 +6174,15 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, useStencilTestEnableDynamicState,
                             mFeatures.supportsExtendedDynamicState.enabled);
 
+    // vkCmdBindVertexBuffers2EXT() requires extended dynamic state.
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsBindVertexBuffers2,
+                            mFeatures.supportsExtendedDynamicState.enabled);
+
     // Providing vkCmdBindVertexBuffers2() with a pointer to the sizes of the bound buffers can help
     // with syncval issues and robustness.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, forceSizePointerForBoundVertexBuffers,
-        mEnableValidationLayers && mFeatures.useVertexInputBindingStrideDynamicState.enabled);
+        mEnableValidationLayers && mFeatures.supportsBindVertexBuffers2.enabled);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExtendedDynamicState2,
                             mExtendedDynamicState2Features.extendedDynamicState2 == VK_TRUE &&

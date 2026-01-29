@@ -502,7 +502,6 @@
 
 // D3D
 42264944 WIN D3D9 : GLSLValidationTest.HandleExcessiveLoopBug/* = SKIP
-42264620 WIN D3D11 : GLSLTest_ES3.InitGlobalComplexConstant/* = SKIP
 42264653 WIN D3D11 : GLSLTestLoops.*ContinueInSwitch/* = SKIP
 // D3D does not support compressed textures where the base mip level is not a multiple of 4
 40644741 WIN D3D9 : DXT1CompressedTextureTest.NonBlockSizesMipLevels/* = SKIP
@@ -575,6 +574,7 @@
 42264513 PIXEL4ORXL GLES : CubeMapTextureTest.SampleCoordinateTransform/* = SKIP
 42265301 PIXEL4ORXL GLES : GLSLTest_ES31.StructAndArrayEqualOperator/* = SKIP
 452919815 PIXEL4ORXL GLES : GLSLTest_ES3.VaryingAnonymousStructEquality/* = SKIP
+479224190 PIXEL4ORXL GLES : GLSLTest_ES31.StructArraySamplerWithShortCircuitedSideEffectInIndex/* = SKIP
 454827197 PIXEL4ORXL GLES : GLSLConstantFoldingTest_ES31.NamedArrayOfArrayIndex/* = SKIP
 42265301 PIXEL4ORXL GLES : GeometryShaderTest.RedeclareGlIn/* = SKIP
 42265301 PIXEL4ORXL GLES : GeometryShaderTest.RedeclareGlInBeforeInputSize/* = SKIP
@@ -2098,8 +2098,13 @@
 
 // Linux/Nvidia GTX 1660 failures after OS/driver upgrade to Ubuntu 22.04.
 362486580 LINUX NVIDIA OPENGL : InstancingTestES31.UpdateAttribBindingByVertexAttribDivisor/* = SKIP
+362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.TwoIndirectDrawsShareIndexBuffer/* = SKIP
 362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.UByteIndexIndirectBuffer/* = SKIP
-362486580 LINUX NVIDIA VULKAN : SixteenBppTextureTestES3.RGB5A1UploadRGB10A2/ES3_Vulkan_EnableParallelCompileAndLink_VaryingsRequireMatchingPrecisionInSpirv = SKIP
+362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.UseAsUBOThenUpdateThenUByteIndexIndirectBuffer/* = SKIP
+362486580 LINUX NVIDIA OPENGL : MultiDrawIndirectTest.MultiDrawArraysIndirect/* = SKIP
+362486580 LINUX NVIDIA OPENGL : MultiDrawIndirectTest.MultiDrawElementsIndirect/* = SKIP
+362486580 LINUX NVIDIA VULKAN : SixteenBppTextureTest.RGBA5551Validation/* = SKIP
+362486580 LINUX NVIDIA VULKAN : SixteenBppTextureTestES3.RGB5A1UploadRGB10A2/* = SKIP
 362486580 LINUX NVIDIA VULKAN : FramebufferTestWithFormatFallback.R4G4B4A4_OutOfRangeStagedUpdateReformated/* = SKIP
 362486580 LINUX NVIDIA VULKAN : EXTBlendFuncExtendedDrawTestES31.UseProgramPipeline/* = SKIP
 362486580 LINUX NVIDIA VULKAN : EGLSurfaceTest.ResizeBeforeMakeCurrent*/* = SKIP
