@@ -359,6 +359,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdEndQuery-None-07007",
     // https://anglebug.com/475549551
     "VUID-VkGraphicsPipelineCreateInfo-renderPass-09652",
+    // https://anglebug.com/481069415
+    "VUID-vkCmdDraw-viewMask-06178",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -6435,6 +6437,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // decoration. Guard against this by parsing shader for "sample" decoration and explicitly
     // enabling per-sample shading pipeline state.
     ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyEnablePerSampleShading, !isQualcommProprietary);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyCastMediumpFloatTo16Bit, isARMProprietary);
 
     // Force to create swapchain with continuous refresh on shared present. Disabled by default.
     // Only enable it on integrations without EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID passthrough.
