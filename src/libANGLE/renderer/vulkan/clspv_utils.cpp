@@ -634,8 +634,9 @@ spv_target_env ClspvGetSpirvVersion(const vk::Renderer *renderer)
     if (vulkanApiVersion < VK_API_VERSION_1_1)
     {
         // Minimum supported Vulkan version is 1.1 by Angle
-        UNREACHABLE();
-        return SPV_ENV_MAX;
+        /*UNREACHABLE();
+        return SPV_ENV_MAX;*/
+        return SPV_ENV_VULKAN_1_0;
     }
     else if (vulkanApiVersion < VK_API_VERSION_1_2)
     {
