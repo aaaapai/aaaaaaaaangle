@@ -910,7 +910,11 @@ static bool ParseIntValue(const std::string &num, int emptyDefault, int *outValu
 static void PrintSpirv(const sh::BinaryBlob &blob)
 {
 #if defined(ANGLE_ENABLE_VULKAN)
-    spvtools::SpirvTools spirvTools(SPV_ENV_VULKAN_1_1);
+    if (std::getenv("ANGLE_VK10")) {
+        spvtools::SpirvTools spirvTools(SPV_ENV_VULKAN_1_0);
+    } else {
+        spvtools::SpirvTools spirvTools(SPV_ENV_VULKAN_1_1);
+    }
 
     std::string readableSpirv;
     spirvTools.Disassemble(blob, &readableSpirv,
