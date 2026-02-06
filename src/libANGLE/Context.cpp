@@ -1757,7 +1757,7 @@ void Context::getQueryiv(QueryType target, GLenum pname, GLint *params)
 
 void Context::getQueryivRobust(QueryType target,
                                GLenum pname,
-                               GLsizei bufSize,
+                               GLsizei paramCount,
                                GLsizei *length,
                                GLint *params)
 {
@@ -1781,7 +1781,7 @@ void Context::getQueryObjectiv(QueryID id, GLenum pname, GLint *params)
 
 void Context::getQueryObjectivRobust(QueryID id,
                                      GLenum pname,
-                                     GLsizei bufSize,
+                                     GLsizei paramCount,
                                      GLsizei *length,
                                      GLint *params)
 {
@@ -1795,7 +1795,7 @@ void Context::getQueryObjectuiv(QueryID id, GLenum pname, GLuint *params)
 
 void Context::getQueryObjectuivRobust(QueryID id,
                                       GLenum pname,
-                                      GLsizei bufSize,
+                                      GLsizei paramCount,
                                       GLsizei *length,
                                       GLuint *params)
 {
@@ -1809,7 +1809,7 @@ void Context::getQueryObjecti64v(QueryID id, GLenum pname, GLint64 *params)
 
 void Context::getQueryObjecti64vRobust(QueryID id,
                                        GLenum pname,
-                                       GLsizei bufSize,
+                                       GLsizei paramCount,
                                        GLsizei *length,
                                        GLint64 *params)
 {
@@ -1823,7 +1823,7 @@ void Context::getQueryObjectui64v(QueryID id, GLenum pname, GLuint64 *params)
 
 void Context::getQueryObjectui64vRobust(QueryID id,
                                         GLenum pname,
-                                        GLsizei bufSize,
+                                        GLsizei paramCount,
                                         GLsizei *length,
                                         GLuint64 *params)
 {
@@ -2607,7 +2607,7 @@ void Context::getIntegeri_v(GLenum target, GLuint index, GLint *data)
 
 void Context::getIntegeri_vRobust(GLenum target,
                                   GLuint index,
-                                  GLsizei bufSize,
+                                  GLsizei paramCount,
                                   GLsizei *length,
                                   GLint *data)
 {
@@ -2636,7 +2636,7 @@ void Context::getInteger64i_v(GLenum target, GLuint index, GLint64 *data)
 
 void Context::getInteger64i_vRobust(GLenum target,
                                     GLuint index,
-                                    GLsizei bufSize,
+                                    GLsizei paramCount,
                                     GLsizei *length,
                                     GLint64 *data)
 {
@@ -2671,7 +2671,7 @@ void Context::getBufferParameteriv(BufferBinding target, GLenum pname, GLint *pa
 
 void Context::getBufferParameterivRobust(BufferBinding target,
                                          GLenum pname,
-                                         GLsizei bufSize,
+                                         GLsizei paramCount,
                                          GLsizei *length,
                                          GLint *params)
 {
@@ -2690,7 +2690,7 @@ void Context::getFramebufferAttachmentParameteriv(GLenum target,
 void Context::getFramebufferAttachmentParameterivRobust(GLenum target,
                                                         GLenum attachment,
                                                         GLenum pname,
-                                                        GLsizei bufSize,
+                                                        GLsizei paramCount,
                                                         GLsizei *length,
                                                         GLint *params)
 {
@@ -2705,7 +2705,7 @@ void Context::getRenderbufferParameteriv(GLenum target, GLenum pname, GLint *par
 
 void Context::getRenderbufferParameterivRobust(GLenum target,
                                                GLenum pname,
-                                               GLsizei bufSize,
+                                               GLsizei paramCount,
                                                GLsizei *length,
                                                GLint *params)
 {
@@ -2742,7 +2742,7 @@ void Context::getTexParameterfv(TextureType target, GLenum pname, GLfloat *param
 
 void Context::getTexParameterfvRobust(TextureType target,
                                       GLenum pname,
-                                      GLsizei bufSize,
+                                      GLsizei paramCount,
                                       GLsizei *length,
                                       GLfloat *params)
 {
@@ -2769,7 +2769,7 @@ void Context::getTexParameterIuiv(TextureType target, GLenum pname, GLuint *para
 
 void Context::getTexParameterivRobust(TextureType target,
                                       GLenum pname,
-                                      GLsizei bufSize,
+                                      GLsizei paramCount,
                                       GLsizei *length,
                                       GLint *params)
 {
@@ -2785,7 +2785,7 @@ void Context::getTexLevelParameteriv(TextureTarget target, GLint level, GLenum p
 void Context::getTexLevelParameterivRobust(TextureTarget target,
                                            GLint level,
                                            GLenum pname,
-                                           GLsizei bufSize,
+                                           GLsizei paramCount,
                                            GLsizei *length,
                                            GLint *params)
 {
@@ -2804,7 +2804,7 @@ void Context::getTexLevelParameterfv(TextureTarget target,
 void Context::getTexLevelParameterfvRobust(TextureTarget target,
                                            GLint level,
                                            GLenum pname,
-                                           GLsizei bufSize,
+                                           GLsizei paramCount,
                                            GLsizei *length,
                                            GLfloat *params)
 {
@@ -2825,7 +2825,7 @@ void Context::texParameterfv(TextureType target, GLenum pname, const GLfloat *pa
 
 void Context::texParameterfvRobust(TextureType target,
                                    GLenum pname,
-                                   GLsizei bufSize,
+                                   GLsizei paramCount,
                                    const GLfloat *params)
 {
     texParameterfv(target, pname, params);
@@ -2864,7 +2864,7 @@ void Context::texParameterIuiv(TextureType target, GLenum pname, const GLuint *p
 
 void Context::texParameterivRobust(TextureType target,
                                    GLenum pname,
-                                   GLsizei bufSize,
+                                   GLsizei paramCount,
                                    const GLint *params)
 {
     texParameteriv(target, pname, params);
@@ -3352,7 +3352,7 @@ void Context::samplerParameterIuiv(SamplerID sampler, GLenum pname, const GLuint
 
 void Context::samplerParameterivRobust(SamplerID sampler,
                                        GLenum pname,
-                                       GLsizei bufSize,
+                                       GLsizei paramCount,
                                        const GLint *param)
 {
     samplerParameteriv(sampler, pname, param);
@@ -3374,7 +3374,7 @@ void Context::samplerParameterfv(SamplerID sampler, GLenum pname, const GLfloat 
 
 void Context::samplerParameterfvRobust(SamplerID sampler,
                                        GLenum pname,
-                                       GLsizei bufSize,
+                                       GLsizei paramCount,
                                        const GLfloat *param)
 {
     samplerParameterfv(sampler, pname, param);
@@ -3403,7 +3403,7 @@ void Context::getSamplerParameterIuiv(SamplerID sampler, GLenum pname, GLuint *p
 
 void Context::getSamplerParameterivRobust(SamplerID sampler,
                                           GLenum pname,
-                                          GLsizei bufSize,
+                                          GLsizei paramCount,
                                           GLsizei *length,
                                           GLint *params)
 {
@@ -3419,7 +3419,7 @@ void Context::getSamplerParameterfv(SamplerID sampler, GLenum pname, GLfloat *pa
 
 void Context::getSamplerParameterfvRobust(SamplerID sampler,
                                           GLenum pname,
-                                          GLsizei bufSize,
+                                          GLsizei paramCount,
                                           GLsizei *length,
                                           GLfloat *params)
 {
@@ -5657,7 +5657,7 @@ void Context::compressedTexImage2DRobust(TextureTarget target,
                                          GLsizei height,
                                          GLint border,
                                          GLsizei imageSize,
-                                         GLsizei dataSize,
+                                         GLsizei bufSize,
                                          const GLvoid *data)
 {
     compressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
@@ -5692,7 +5692,7 @@ void Context::compressedTexImage3DRobust(TextureTarget target,
                                          GLsizei depth,
                                          GLint border,
                                          GLsizei imageSize,
-                                         GLsizei dataSize,
+                                         GLsizei bufSize,
                                          const GLvoid *data)
 {
     compressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize,
@@ -5728,7 +5728,7 @@ void Context::compressedTexSubImage2DRobust(TextureTarget target,
                                             GLsizei height,
                                             GLenum format,
                                             GLsizei imageSize,
-                                            GLsizei dataSize,
+                                            GLsizei bufSize,
                                             const GLvoid *data)
 {
     compressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize,
@@ -5774,7 +5774,7 @@ void Context::compressedTexSubImage3DRobust(TextureTarget target,
                                             GLsizei depth,
                                             GLenum format,
                                             GLsizei imageSize,
-                                            GLsizei dataSize,
+                                            GLsizei bufSize,
                                             const GLvoid *data)
 {
     compressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format,
@@ -5917,7 +5917,7 @@ void Context::getBufferPointerv(BufferBinding target, GLenum pname, void **param
 
 void Context::getBufferPointervRobust(BufferBinding target,
                                       GLenum pname,
-                                      GLsizei bufSize,
+                                      GLsizei paramCount,
                                       GLsizei *length,
                                       void **params)
 {
@@ -6072,7 +6072,7 @@ void Context::getVertexAttribiv(GLuint index, GLenum pname, GLint *params)
 
 void Context::getVertexAttribivRobust(GLuint index,
                                       GLenum pname,
-                                      GLsizei bufSize,
+                                      GLsizei paramCount,
                                       GLsizei *length,
                                       GLint *params)
 {
@@ -6091,7 +6091,7 @@ void Context::getVertexAttribfv(GLuint index, GLenum pname, GLfloat *params)
 
 void Context::getVertexAttribfvRobust(GLuint index,
                                       GLenum pname,
-                                      GLsizei bufSize,
+                                      GLsizei paramCount,
                                       GLsizei *length,
                                       GLfloat *params)
 {
@@ -6110,7 +6110,7 @@ void Context::getVertexAttribIiv(GLuint index, GLenum pname, GLint *params)
 
 void Context::getVertexAttribIivRobust(GLuint index,
                                        GLenum pname,
-                                       GLsizei bufSize,
+                                       GLsizei paramCount,
                                        GLsizei *length,
                                        GLint *params)
 {
@@ -6129,7 +6129,7 @@ void Context::getVertexAttribIuiv(GLuint index, GLenum pname, GLuint *params)
 
 void Context::getVertexAttribIuivRobust(GLuint index,
                                         GLenum pname,
-                                        GLsizei bufSize,
+                                        GLsizei paramCount,
                                         GLsizei *length,
                                         GLuint *params)
 {
@@ -6144,7 +6144,7 @@ void Context::getVertexAttribPointerv(GLuint index, GLenum pname, void **pointer
 
 void Context::getVertexAttribPointervRobust(GLuint index,
                                             GLenum pname,
-                                            GLsizei bufSize,
+                                            GLsizei paramCount,
                                             GLsizei *length,
                                             void **pointer)
 {
@@ -6479,7 +6479,7 @@ void Context::getMultisamplefv(GLenum pname, GLuint index, GLfloat *val)
 
 void Context::getMultisamplefvRobust(GLenum pname,
                                      GLuint index,
-                                     GLsizei bufSize,
+                                     GLsizei paramCount,
                                      GLsizei *length,
                                      GLfloat *val)
 {
@@ -7110,9 +7110,9 @@ void Context::getBooleanv(GLenum pname, GLboolean *params)
     }
 }
 
-void Context::getBooleanvRobust(GLenum pname, GLsizei bufSize, GLsizei *length, GLboolean *params)
+void Context::getBooleanvRobust(GLenum pname, GLsizei paramCount, GLsizei *length, GLboolean *data)
 {
-    getBooleanv(pname, params);
+    getBooleanv(pname, data);
 }
 
 void Context::getFloatv(GLenum pname, GLfloat *params)
@@ -7131,9 +7131,9 @@ void Context::getFloatv(GLenum pname, GLfloat *params)
     }
 }
 
-void Context::getFloatvRobust(GLenum pname, GLsizei bufSize, GLsizei *length, GLfloat *params)
+void Context::getFloatvRobust(GLenum pname, GLsizei paramCount, GLsizei *length, GLfloat *data)
 {
-    getFloatv(pname, params);
+    getFloatv(pname, data);
 }
 
 void Context::getIntegerv(GLenum pname, GLint *params)
@@ -7152,7 +7152,7 @@ void Context::getIntegerv(GLenum pname, GLint *params)
     }
 }
 
-void Context::getIntegervRobust(GLenum pname, GLsizei bufSize, GLsizei *length, GLint *data)
+void Context::getIntegervRobust(GLenum pname, GLsizei paramCount, GLsizei *length, GLint *data)
 {
     getIntegerv(pname, data);
 }
@@ -7171,7 +7171,7 @@ void Context::getProgramiv(ShaderProgramID program, GLenum pname, GLint *params)
 
 void Context::getProgramivRobust(ShaderProgramID program,
                                  GLenum pname,
-                                 GLsizei bufSize,
+                                 GLsizei paramCount,
                                  GLsizei *length,
                                  GLint *params)
 {
@@ -7245,7 +7245,7 @@ void Context::getShaderiv(ShaderProgramID shader, GLenum pname, GLint *params)
 
 void Context::getShaderivRobust(ShaderProgramID shader,
                                 GLenum pname,
-                                GLsizei bufSize,
+                                GLsizei paramCount,
                                 GLsizei *length,
                                 GLint *params)
 {
@@ -7851,7 +7851,7 @@ void Context::getActiveUniformBlockiv(ShaderProgramID program,
 void Context::getActiveUniformBlockivRobust(ShaderProgramID program,
                                             UniformBlockIndex uniformBlockIndex,
                                             GLenum pname,
-                                            GLsizei bufSize,
+                                            GLsizei paramCount,
                                             GLsizei *length,
                                             GLint *params)
 {
@@ -7935,7 +7935,7 @@ void Context::getInteger64v(GLenum pname, GLint64 *params)
     }
 }
 
-void Context::getInteger64vRobust(GLenum pname, GLsizei bufSize, GLsizei *length, GLint64 *data)
+void Context::getInteger64vRobust(GLenum pname, GLsizei paramCount, GLsizei *length, GLint64 *data)
 {
     getInteger64v(pname, data);
 }
@@ -7948,7 +7948,7 @@ void Context::getBufferParameteri64v(BufferBinding target, GLenum pname, GLint64
 
 void Context::getBufferParameteri64vRobust(BufferBinding target,
                                            GLenum pname,
-                                           GLsizei bufSize,
+                                           GLsizei paramCount,
                                            GLsizei *length,
                                            GLint64 *params)
 {
@@ -8001,11 +8001,11 @@ void Context::getInternalformativ(GLenum target,
 void Context::getInternalformativRobust(GLenum target,
                                         GLenum internalformat,
                                         GLenum pname,
-                                        GLsizei bufSize,
+                                        GLsizei paramCount,
                                         GLsizei *length,
                                         GLint *params)
 {
-    getInternalformativ(target, internalformat, pname, bufSize, params);
+    getInternalformativ(target, internalformat, pname, paramCount, params);
 }
 
 void Context::programUniform1i(ShaderProgramID program, UniformLocation location, GLint v0)
@@ -8973,7 +8973,7 @@ void Context::getFramebufferPixelLocalStorageParameteriv(GLint plane, GLenum pna
 
 void Context::getFramebufferPixelLocalStorageParameterfvRobust(GLint plane,
                                                                GLenum pname,
-                                                               GLsizei bufSize,
+                                                               GLsizei paramCount,
                                                                GLsizei *length,
                                                                GLfloat *params)
 {
@@ -8982,7 +8982,7 @@ void Context::getFramebufferPixelLocalStorageParameterfvRobust(GLint plane,
 
 void Context::getFramebufferPixelLocalStorageParameterivRobust(GLint plane,
                                                                GLenum pname,
-                                                               GLsizei bufSize,
+                                                               GLsizei paramCount,
                                                                GLsizei *length,
                                                                GLint *params)
 {
