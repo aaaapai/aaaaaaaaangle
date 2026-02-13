@@ -100,6 +100,9 @@ mod ffi {
     // Limits corresponding to ShBuiltInResources
     struct Limits {
         max_combined_draw_buffers_and_pixel_local_storage_planes: u32,
+
+        min_point_size: f32,
+        max_point_size: f32,
     }
 
     #[derive(Copy, Clone)]
@@ -178,6 +181,10 @@ mod ffi {
         // Note: This is currently not a generalized workaround, just applied to Pixel Local
         // Storage emulation, but in theory it should be.
         pass_highp_to_pack_unorm_snorm_built_ins: bool,
+
+        // If the flag is enabled, gl_PointSize is clamped to the maximum point size specified in
+        // ShBuiltInResources in vertex shaders.
+        clamp_point_size: bool,
 
         // Whether the ANGLE_pixel_local_storage extension has been used and there are PLS uniforms
         // to rewrite.
@@ -325,6 +332,14 @@ fn common_post_variable_collection_transforms(ir: &mut IR, options: &Options) {
                 .initializer_allowed_on_non_constant_global_variables,
         };
         transform::initialize_uninitialized_variables::run(ir, &transform_options);
+    }
+
+    if options.clamp_point_size {
+        transform::clamp_point_size::run(
+            ir,
+            options.limits.min_point_size,
+            options.limits.max_point_size,
+        );
     }
 
     // Note: this is a per-generator transformation, not really "common", so it should be moved to

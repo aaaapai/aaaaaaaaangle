@@ -6999,7 +6999,7 @@ void SharedCacheKeyManager<SharedCacheKeyT>::releaseKeys(ContextVk *contextVk)
     {
         if (sharedCacheKey->valid())
         {
-            // Immediate destroy the cached object and the key itself when first releaseRef call is
+            // Immediate destroy the cached object and the key itself when first releaseKeys call is
             // made
             sharedCacheKey->releaseCachedObject(contextVk);
         }
@@ -7066,7 +7066,7 @@ bool SharedCacheKeyManager<SharedCacheKeyT>::containsKeyWithOwnerEqual(
 }
 
 template <class SharedCacheKeyT>
-void SharedCacheKeyManager<SharedCacheKeyT>::assertAllEntriesDestroyed() const
+ANGLE_INLINE void SharedCacheKeyManager<SharedCacheKeyT>::assertAllEntriesDestroyed() const
 {
     // Caller must have already freed all caches
     for (const SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
@@ -7344,9 +7344,10 @@ void UpdateDescriptorSetsBuilder::updateWriteDescriptorSet(
                 writeSet.pBufferInfo = writeBuffers;
                 break;
             }
-            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            // VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE is not possible.
+            // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER is handled exclusively by
+            // |UpdateFullTexturesDescriptorSet|.
             case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
             case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
             {
                 VkDescriptorImageInfo *writeImages =
@@ -7360,7 +7361,6 @@ void UpdateDescriptorSetsBuilder::updateWriteDescriptorSet(
 
                     imageInfo.imageLayout = static_cast<VkImageLayout>(infoDesc.imageLayoutOrRange);
                     imageInfo.imageView   = handles[infoDescIndex + arrayElement].imageView;
-                    imageInfo.sampler     = handles[infoDescIndex + arrayElement].sampler;
                 }
                 writeSet.pImageInfo = writeImages;
                 break;

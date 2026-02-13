@@ -2589,8 +2589,8 @@ void Context::getIntegeri_vRobust(GLenum target,
 
     GLenum nativeType;
     unsigned int numParams;
-    bool queryStatus = getIndexedQueryParameterInfo(target, &nativeType, &numParams);
-    ASSERT(queryStatus);
+    const bool paramFound = getIndexedQueryParameterInfo(target, &nativeType, &numParams);
+    ASSERT(paramFound);
 
     if (nativeType == GL_INT)
     {
@@ -2635,8 +2635,8 @@ void Context::getInteger64i_vRobust(GLenum target,
 
     GLenum nativeType;
     unsigned int numParams;
-    bool queryStatus = getIndexedQueryParameterInfo(target, &nativeType, &numParams);
-    ASSERT(queryStatus);
+    const bool paramFound = getIndexedQueryParameterInfo(target, &nativeType, &numParams);
+    ASSERT(paramFound);
 
     if (nativeType == GL_INT_64_ANGLEX)
     {
@@ -2660,8 +2660,8 @@ void Context::getBooleani_v(GLenum target, GLuint index, GLboolean *data)
 
     GLenum nativeType;
     unsigned int numParams;
-    bool queryStatus = getIndexedQueryParameterInfo(target, &nativeType, &numParams);
-    ASSERT(queryStatus);
+    const bool paramFound = getIndexedQueryParameterInfo(target, &nativeType, &numParams);
+    ASSERT(paramFound);
 
     if (nativeType == GL_BOOL)
     {
@@ -2673,19 +2673,24 @@ void Context::getBooleani_v(GLenum target, GLuint index, GLboolean *data)
     }
 }
 
-void Context::getBufferParameteriv(BufferBinding target, GLenum pname, GLint *params)
+void Context::getBufferParameteriv(BufferBinding target, BufferParam pnamePacked, GLint *params)
 {
     Buffer *buffer = mState.getTargetBuffer(target);
-    QueryBufferParameteriv(buffer, pname, params);
+    QueryBufferParameteriv(buffer, pnamePacked, params);
 }
 
 void Context::getBufferParameterivRobust(BufferBinding target,
-                                         GLenum pname,
+                                         BufferParam pnamePacked,
                                          GLsizei paramCount,
                                          GLsizei *length,
                                          GLint *params)
 {
-    getBufferParameteriv(target, pname, params);
+    getBufferParameteriv(target, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::getFramebufferAttachmentParameteriv(GLenum target,
@@ -5917,21 +5922,26 @@ void Context::compressedCopyTexture(TextureID sourceId, TextureID destId)
     ANGLE_CONTEXT_TRY(destTexture->copyCompressedTexture(this, sourceTexture));
 }
 
-void Context::getBufferPointerv(BufferBinding target, GLenum pname, void **params)
+void Context::getBufferPointerv(BufferBinding targetPacked, GLenum pname, void **params)
 {
-    Buffer *buffer = mState.getTargetBuffer(target);
-    ASSERT(buffer);
-
-    QueryBufferPointerv(buffer, pname, params);
+    const Buffer *buffer = mState.getTargetBuffer(targetPacked);
+    ASSERT(buffer != nullptr);
+    ASSERT(pname == GL_BUFFER_MAP_POINTER);
+    *params = buffer->getMapPointer();
 }
 
-void Context::getBufferPointervRobust(BufferBinding target,
+void Context::getBufferPointervRobust(BufferBinding targetPacked,
                                       GLenum pname,
                                       GLsizei paramCount,
                                       GLsizei *length,
                                       void **params)
 {
-    getBufferPointerv(target, pname, params);
+    getBufferPointerv(targetPacked, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void *Context::mapBuffer(BufferBinding target, GLenum access)
@@ -7113,7 +7123,11 @@ void Context::getBooleanvRobust(GLenum pname, GLsizei paramCount, GLsizei *lengt
 {
     GLenum nativeType;
     unsigned int numParams;
-    getQueryParameterInfo(pname, &nativeType, &numParams);
+    const bool paramFound = getQueryParameterInfo(pname, &nativeType, &numParams);
+    if (ANGLE_UNLIKELY(!paramFound))
+    {
+        return;  // Avoid crashing with invalid apps running with no validation.
+    }
 
     if (nativeType == GL_BOOL)
     {
@@ -7139,7 +7153,11 @@ void Context::getFloatvRobust(GLenum pname, GLsizei paramCount, GLsizei *length,
 {
     GLenum nativeType;
     unsigned int numParams;
-    getQueryParameterInfo(pname, &nativeType, &numParams);
+    const bool paramFound = getQueryParameterInfo(pname, &nativeType, &numParams);
+    if (ANGLE_UNLIKELY(!paramFound))
+    {
+        return;  // Avoid crashing with invalid apps running with no validation.
+    }
 
     if (nativeType == GL_FLOAT)
     {
@@ -7165,7 +7183,11 @@ void Context::getIntegervRobust(GLenum pname, GLsizei paramCount, GLsizei *lengt
 {
     GLenum nativeType;
     unsigned int numParams;
-    getQueryParameterInfo(pname, &nativeType, &numParams);
+    const bool paramFound = getQueryParameterInfo(pname, &nativeType, &numParams);
+    if (ANGLE_UNLIKELY(!paramFound))
+    {
+        return;  // Avoid crashing with invalid apps running with no validation.
+    }
 
     if (nativeType == GL_INT)
     {
@@ -7953,7 +7975,11 @@ void Context::getInteger64vRobust(GLenum pname, GLsizei paramCount, GLsizei *len
 {
     GLenum nativeType;
     unsigned int numParams;
-    getQueryParameterInfo(pname, &nativeType, &numParams);
+    const bool paramFound = getQueryParameterInfo(pname, &nativeType, &numParams);
+    if (ANGLE_UNLIKELY(!paramFound))
+    {
+        return;  // Avoid crashing with invalid apps running with no validation.
+    }
 
     if (nativeType == GL_INT_64_ANGLEX)
     {
@@ -7970,19 +7996,24 @@ void Context::getInteger64vRobust(GLenum pname, GLsizei paramCount, GLsizei *len
     }
 }
 
-void Context::getBufferParameteri64v(BufferBinding target, GLenum pname, GLint64 *params)
+void Context::getBufferParameteri64v(BufferBinding target, BufferParam pnamePacked, GLint64 *params)
 {
     Buffer *buffer = mState.getTargetBuffer(target);
-    QueryBufferParameteri64v(buffer, pname, params);
+    QueryBufferParameteri64v(buffer, pnamePacked, params);
 }
 
 void Context::getBufferParameteri64vRobust(BufferBinding target,
-                                           GLenum pname,
+                                           BufferParam pnamePacked,
                                            GLsizei paramCount,
                                            GLsizei *length,
                                            GLint64 *params)
 {
-    getBufferParameteri64v(target, pname, params);
+    getBufferParameteri64v(target, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::genSamplers(GLsizei count, SamplerID *samplers)

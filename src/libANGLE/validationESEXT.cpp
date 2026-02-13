@@ -34,6 +34,11 @@ void RecordVersionErrorESEXT(const Context *context, angle::EntryPoint entryPoin
     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointRequiresESEXT);
 }
 
+void RecordEntryPointBaseUnsupportedError(const Context *context, angle::EntryPoint entryPoint)
+{
+    ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
+}
+
 namespace
 {
 template <typename ObjectT>
@@ -1088,8 +1093,7 @@ bool ValidateGetInteger64vEXT(const Context *context,
                               GLenum pname,
                               const GLint64 *data)
 {
-    unsigned int numParams;
-    return ValidateStateQuery(context, entryPoint, pname, data, &numParams);
+    return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
 }
 
 bool ValidateCopyImageSubDataEXT(const Context *context,
@@ -2502,12 +2506,6 @@ bool ValidateGetFramebufferPixelLocalStorageParameterfvRobustANGLE(const Context
                                                                    const GLsizei *length,
                                                                    const GLfloat *params)
 {
-    if (!context->getExtensions().shaderPixelLocalStorageANGLE)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
-        return false;
-    }
-
     return ValidateGetFramebufferPixelLocalStorageParameterRobustCommon(context, entryPoint, plane,
                                                                         pname, bufSize, params);
 }
@@ -2520,12 +2518,6 @@ bool ValidateGetFramebufferPixelLocalStorageParameterivRobustANGLE(const Context
                                                                    const GLsizei *length,
                                                                    const GLint *params)
 {
-    if (!context->getExtensions().shaderPixelLocalStorageANGLE)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
-        return false;
-    }
-
     return ValidateGetFramebufferPixelLocalStorageParameterRobustCommon(context, entryPoint, plane,
                                                                         pname, bufSize, params);
 }
@@ -2670,7 +2662,7 @@ bool ValidateBufferStorageEXT(const Context *context,
 {
     if (!context->isValidBufferBinding(targetPacked))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 

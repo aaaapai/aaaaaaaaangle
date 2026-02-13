@@ -18,6 +18,7 @@
 #include "libANGLE/renderer/ContextImpl.h"
 #include "libANGLE/renderer/renderer_utils.h"
 #include "libANGLE/renderer/vulkan/DisplayVk.h"
+#include "libANGLE/renderer/vulkan/DriverUniforms.h"
 #include "libANGLE/renderer/vulkan/OverlayVk.h"
 #include "libANGLE/renderer/vulkan/PersistentCommandPool.h"
 #include "libANGLE/renderer/vulkan/ShareGroupVk.h"
@@ -62,6 +63,20 @@ enum class UpdateDepthFeedbackLoopReason
     None,
     Draw,
     Clear,
+};
+
+// Whether the image being presented needs to transition to the VK_IMAGE_LAYOUT_PRESENT_SRC or not.
+enum class PresentImageLayout
+{
+    Keep,
+    PresentSrc,
+};
+
+// Whether the contents of the ancillary buffer should be invalidated on swap
+enum class SurfaceAncillaryColorBehavior
+{
+    Retain,
+    InvalidateOnPresent,
 };
 
 static constexpr GLbitfield kBufferMemoryBarrierBits =
@@ -446,8 +461,9 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     angle::Result optimizeRenderPassForPresent(vk::ImageViewHelper *colorImageView,
                                                vk::ImageHelper *colorImage,
-                                               vk::ImageHelper *colorImageMS,
-                                               bool isSharedPresentMode,
+                                               vk::ImageHelper *ancillaryColorImage,
+                                               PresentImageLayout layout,
+                                               SurfaceAncillaryColorBehavior ancillaryBehavior,
                                                bool *imageResolved);
 
     vk::DynamicQueryPool *getQueryPool(gl::QueryType queryType);
@@ -1311,8 +1327,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                                 PipelineType pipelineType);
     void handleDirtyGraphicsDynamicScissorImpl(bool isPrimitivesGeneratedQueryActive);
 
-    void writeAtomicCounterBufferDriverUniformOffsets(uint32_t *offsetsOut, size_t offsetsSize);
-
     void updateUniformBufferBlocksOffset();
 
     void prepareToSubmitAllCommands();
@@ -1514,14 +1528,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     gl::DrawElementsType mCurrentDrawElementsType;
     angle::PackedEnumMap<gl::DrawElementsType, VkIndexType> mIndexTypeMap;
 
-    // Cache the current draw call's firstVertex to be passed to
-    // TransformFeedbackVk::getBufferOffsets.  Unfortunately, gl_BaseVertex support in Vulkan is
-    // not yet ubiquitous, which would have otherwise removed the need for this value to be passed
-    // as a uniform.
-    GLint mXfbBaseVertex;
-    // Cache the current draw call's vertex count as well to support instanced draw calls
-    GLuint mXfbVertexCountPerInstance;
-
     // Cached clear value/mask for color and depth/stencil.
     VkClearValue mClearColorValue;
     VkClearValue mClearDepthStencilValue;
@@ -1685,6 +1691,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     RangedSerialFactory mOutsideRenderPassSerialFactory;
 
     uint32_t mCommandsPendingSubmissionCount;
+
+    GraphicsDriverUniforms mGraphicsDriverUniforms;
 };
 
 ANGLE_INLINE angle::Result ContextVk::endRenderPassIfTransformFeedbackBuffer(
@@ -1718,8 +1726,6 @@ ANGLE_INLINE bool UseLineRaster(const ContextVk *contextVk, gl::PrimitiveMode mo
 {
     return gl::IsLineMode(mode);
 }
-
-uint32_t GetDriverUniformSize(vk::ErrorContext *context, PipelineType pipelineType);
 }  // namespace rx
 
 // Generate a perf warning, and insert an event marker in the command buffer.

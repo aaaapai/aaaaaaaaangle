@@ -328,7 +328,7 @@ bool ValidateStateQuery(const Context *context,
                         angle::EntryPoint entryPoint,
                         GLenum pname,
                         const void *data,
-                        unsigned int *outNumParams);
+                        GLsizei *outNumParams);
 bool ValidateRobustStateQuery(const Context *context,
                               angle::EntryPoint entryPoint,
                               GLenum pname,
@@ -458,10 +458,9 @@ bool ValidateDrawBuffersBase(const Context *context,
 
 bool ValidateGetBufferPointervBase(const Context *context,
                                    angle::EntryPoint entryPoint,
-                                   BufferBinding target,
+                                   BufferBinding targetPacked,
                                    GLenum pname,
-                                   GLsizei *length,
-                                   void *const *params);
+                                   GLsizei *outNumParams);
 bool ValidateUnmapBufferBase(const Context *context,
                              angle::EntryPoint entryPoint,
                              BufferBinding target);
@@ -506,10 +505,9 @@ bool ValidateGetFramebufferParameterivBase(const Context *context,
 
 bool ValidateGetBufferParameterBase(const Context *context,
                                     angle::EntryPoint entryPoint,
-                                    BufferBinding target,
-                                    GLenum pname,
-                                    bool pointerVersion,
-                                    GLsizei *numParams);
+                                    BufferBinding targetPacked,
+                                    BufferParam pnamePacked,
+                                    GLsizei *outNumParams);
 
 bool ValidateGetProgramivBase(const Context *context,
                               angle::EntryPoint entryPoint,

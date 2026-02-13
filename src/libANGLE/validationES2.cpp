@@ -3089,11 +3089,11 @@ bool ValidateCompressedTexSubImage3DOES(const Context *context,
 
 bool ValidateGetBufferPointervOES(const Context *context,
                                   angle::EntryPoint entryPoint,
-                                  BufferBinding target,
+                                  BufferBinding targetPacked,
                                   GLenum pname,
                                   void *const *params)
 {
-    return ValidateGetBufferPointervBase(context, entryPoint, target, pname, nullptr, params);
+    return ValidateGetBufferPointervBase(context, entryPoint, targetPacked, pname, nullptr);
 }
 
 bool ValidateMapBufferOES(const Context *context,
@@ -3103,7 +3103,7 @@ bool ValidateMapBufferOES(const Context *context,
 {
     if (!context->isValidBufferBinding(target))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 
@@ -3663,7 +3663,7 @@ bool ValidateBufferData(const Context *context,
 
     if (!context->isValidBufferBinding(target))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 
@@ -3725,7 +3725,7 @@ bool ValidateBufferSubData(const Context *context,
 
     if (!context->isValidBufferBinding(target))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 
@@ -4580,8 +4580,7 @@ bool ValidateGetBooleanv(const Context *context,
                          GLenum pname,
                          const GLboolean *data)
 {
-    unsigned int numParams;
-    return ValidateStateQuery(context, entryPoint, pname, data, &numParams);
+    return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
 }
 
 bool ValidateGetError(const Context *context, angle::EntryPoint entryPoint)
@@ -4594,8 +4593,7 @@ bool ValidateGetFloatv(const Context *context,
                        GLenum pname,
                        const GLfloat *data)
 {
-    unsigned int numParams;
-    return ValidateStateQuery(context, entryPoint, pname, data, &numParams);
+    return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
 }
 
 bool ValidateGetIntegerv(const Context *context,
@@ -4603,8 +4601,7 @@ bool ValidateGetIntegerv(const Context *context,
                          GLenum pname,
                          const GLint *data)
 {
-    unsigned int numParams;
-    return ValidateStateQuery(context, entryPoint, pname, data, &numParams);
+    return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
 }
 
 bool ValidateGetProgramInfoLog(const Context *context,
