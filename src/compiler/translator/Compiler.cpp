@@ -26,7 +26,6 @@
 #include "compiler/translator/OutputTree.h"
 #include "compiler/translator/ParseContext.h"
 #include "compiler/translator/SizeClipCullDistance.h"
-#include "compiler/translator/VariablePacker.h"
 #include "compiler/translator/ir/src/compile.h"
 #include "compiler/translator/tree_ops/ClampFragDepth.h"
 #include "compiler/translator/tree_ops/ClampIndirectIndices.h"
@@ -355,30 +354,8 @@ size_t GetGlobalMaxTokenSize(ShShaderSpec spec)
     }
 }
 
-int GetMaxUniformVectorsForShaderType(GLenum shaderType, const ShBuiltInResources &resources)
-{
-    switch (shaderType)
-    {
-        case GL_VERTEX_SHADER:
-            return resources.MaxVertexUniformVectors;
-        case GL_FRAGMENT_SHADER:
-            return resources.MaxFragmentUniformVectors;
-
-        // TODO (jiawei.shao@intel.com): check if we need finer-grained component counting
-        case GL_COMPUTE_SHADER:
-            return resources.MaxComputeUniformComponents / 4;
-        case GL_GEOMETRY_SHADER_EXT:
-            return resources.MaxGeometryUniformComponents / 4;
-        default:
-            UNREACHABLE();
-            return -1;
-    }
-}
-
 namespace
 {
-
-
 class [[nodiscard]] TScopedSymbolTableLevel
 {
   public:
@@ -964,24 +941,20 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
                 return false;
             }
         }
-    }
 
-    if (compileOptions.initializeBuiltinsForInstancedMultiview &&
-        (parseContext.isExtensionEnabled(TExtension::OVR_multiview2) ||
-         parseContext.isExtensionEnabled(TExtension::OVR_multiview)) &&
-        getShaderType() != GL_COMPUTE_SHADER)
-    {
-        // Note: if multiview is enabled via #extension all, num_views may not be set.
-        if (!DeclareAndInitBuiltinsForInstancedMultiview(this, root, std::max(mNumViews, 1),
-                                                         mShaderType, compileOptions, mOutputType,
-                                                         &mSymbolTable))
+        if (compileOptions.initializeBuiltinsForInstancedMultiview &&
+            (parseContext.isExtensionEnabled(TExtension::OVR_multiview2) ||
+             parseContext.isExtensionEnabled(TExtension::OVR_multiview)))
         {
-            return false;
+            // Note: if multiview is enabled via #extension all, num_views may not be set.
+            if (!DeclareAndInitBuiltinsForInstancedMultiview(this, root, std::max(mNumViews, 1),
+                                                             mShaderType, compileOptions,
+                                                             mOutputType, &mSymbolTable))
+            {
+                return false;
+            }
         }
-    }
 
-    if (!useIR)
-    {
         if (compileOptions.addAndTrueToLoopCondition)
         {
             if (!AddAndTrueToLoopCondition(this, root))
@@ -1005,17 +978,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
                 return false;
             }
         }
-    }
-
-    // https://crbug.com/437678149:
-    // On Mac, if ANGLE internal uniforms are not placed on the top of ANGLE_UserUniforms struct,
-    // the other user-defined uniforms are not intercepted correctly by the shader code.
-    // Sort user-defined uniforms first before adding ANGLE internal uniforms like
-    // angle_DrawID on top of them, so that the sort doesn't reorder the ANGLE internal uniforms
-    // and trigger the bug on Mac.
-    if (!sortUniforms(root))
-    {
-        return false;
     }
 
     if (compileOptions.emulateGLDrawID &&
@@ -1048,6 +1010,11 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         {
             return false;
         }
+    }
+
+    if (!sortUniforms(root))
+    {
+        return false;
     }
 
     // Needs to run before SimplifyLoopConditions to be able to detect |for| loops correctly.
@@ -1135,21 +1102,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     {
         if (!useAllMembersInUnusedStandardAndSharedBlocks(root))
         {
-            return false;
-        }
-    }
-    if (compileOptions.enforcePackingRestrictions)
-    {
-        int maxUniformVectors = GetMaxUniformVectorsForShaderType(mShaderType, mResources);
-        if (mShaderType == GL_VERTEX_SHADER && compileOptions.emulateClipOrigin)
-        {
-            --maxUniformVectors;
-        }
-        // Returns true if, after applying the packing rules in the GLSL ES 1.00.17 spec
-        // Appendix A, section 7, the shader does not use too many uniforms.
-        if (!CheckVariablesInPackingLimits(maxUniformVectors, mUniforms))
-        {
-            mDiagnostics.globalError("too many uniforms");
             return false;
         }
     }
@@ -1326,6 +1278,7 @@ ShCompileOptions TCompiler::adjustOptions(const ShCompileOptions &compileOptions
     if (mShaderType == GL_COMPUTE_SHADER)
     {
         compileOptions.initOutputVariables = false;
+        compileOptions.initializeBuiltinsForInstancedMultiview = false;
     }
     if (mShaderType != GL_VERTEX_SHADER)
     {
