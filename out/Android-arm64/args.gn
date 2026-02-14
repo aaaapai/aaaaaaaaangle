@@ -32,6 +32,10 @@ build_angle_deqp_tests = false
 arm_use_neon = true
 arm_version = 8
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
+angle_enable_custom_vulkan_cmd_buffers = true
+angle_enable_vulkan_validation_layers = false
+angle_enable_trace = false
+
 angle_build_tests = false
 use_thin_lto = true
 
@@ -110,3 +114,6 @@ android_ndk_version = "r29"
 # Whether the ANGLE translator should be built with IR instead
 # THIS IS CURRENTLY EXPERIMENTAL.
 angle_ir = true
+
+is_official_build = true
+angle_enable_perf_counter_output = false
