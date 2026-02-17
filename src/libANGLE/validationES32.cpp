@@ -505,6 +505,12 @@ bool ValidateGetnUniformiv(const Context *context,
                            GLsizei bufSize,
                            const GLint *params)
 {
+    // TODO(anglebug.com/484215148): Remove this check once CTS is fixed.
+    if (ANGLE_UNLIKELY(bufSize < 0))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kNegativeBufSize);
+        return false;
+    }
     return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize);
 }
 
@@ -515,6 +521,12 @@ bool ValidateGetnUniformuiv(const Context *context,
                             GLsizei bufSize,
                             const GLuint *params)
 {
+    // TODO(anglebug.com/484215148): Remove this check once CTS is fixed.
+    if (ANGLE_UNLIKELY(bufSize < 0))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kNegativeBufSize);
+        return false;
+    }
     return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize);
 }
 

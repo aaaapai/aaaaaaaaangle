@@ -548,6 +548,12 @@ bool ValidateGetVertexAttribBase(const Context *context,
                                  GLsizei *length,
                                  bool pointer);
 
+bool ValidateGetVertexAttribPointerBase(const Context *context,
+                                        angle::EntryPoint entryPoint,
+                                        GLuint index,
+                                        GLenum pname,
+                                        GLsizei *outNumParams);
+
 ANGLE_INLINE bool ValidateVertexFormat(const PrivateState &privateState,
                                        ErrorSet *errors,
                                        angle::EntryPoint entryPoint,
@@ -799,7 +805,8 @@ bool ValidateGetMultisamplefvBase(const Context *context,
                                   angle::EntryPoint entryPoint,
                                   GLenum pname,
                                   GLuint index,
-                                  const GLfloat *val);
+                                  GLsizei *outNumParams);
+
 bool ValidateSampleMaskiBase(const PrivateState &state,
                              ErrorSet *errors,
                              angle::EntryPoint entryPoint,

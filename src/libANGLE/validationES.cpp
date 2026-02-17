@@ -4689,6 +4689,12 @@ bool ValidateGetnUniformivEXT(const Context *context,
                               GLsizei bufSize,
                               const GLint *params)
 {
+    // TODO(anglebug.com/484215148): Remove this check once CTS is fixed.
+    if (ANGLE_UNLIKELY(bufSize < 0))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kNegativeBufSize);
+        return false;
+    }
     return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize);
 }
 
@@ -6331,28 +6337,22 @@ bool ValidateGetVertexAttribPointervRobustANGLE(const Context *context,
                                                 angle::EntryPoint entryPoint,
                                                 GLuint index,
                                                 GLenum pname,
-                                                GLsizei bufSize,
+                                                GLsizei paramCount,
                                                 const GLsizei *length,
                                                 void *const *pointer)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetVertexAttribPointerBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetVertexAttribPointerBase(context, entryPoint, index, pname, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei writeLength = 0;
-
-    if (!ValidateGetVertexAttribBase(context, entryPoint, index, pname, &writeLength, true))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, writeLength))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, writeLength);
 
     return true;
 }
@@ -6977,15 +6977,7 @@ bool ValidateGetVertexAttribBase(const Context *context,
         return false;
     }
 
-    if (pointer)
-    {
-        if (pname != GL_VERTEX_ATTRIB_ARRAY_POINTER)
-        {
-            ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
-            return false;
-        }
-    }
-    else
+    ASSERT(!pointer);
     {
         switch (pname)
         {
@@ -7043,6 +7035,32 @@ bool ValidateGetVertexAttribBase(const Context *context,
         {
             *length = 1;
         }
+    }
+
+    return true;
+}
+
+bool ValidateGetVertexAttribPointerBase(const Context *context,
+                                        angle::EntryPoint entryPoint,
+                                        GLuint index,
+                                        GLenum pname,
+                                        GLsizei *outNumParams)
+{
+    if (ANGLE_UNLIKELY(index >= static_cast<GLuint>(context->getCaps().maxVertexAttributes)))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxVertexAttribute);
+        return false;
+    }
+
+    if (ANGLE_UNLIKELY(pname != GL_VERTEX_ATTRIB_ARRAY_POINTER))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kParameterNameUnknown);
+        return false;
+    }
+
+    if (outNumParams != nullptr)
+    {
+        *outNumParams = 1;
     }
 
     return true;
@@ -8457,21 +8475,25 @@ bool ValidateGetMultisamplefvBase(const Context *context,
                                   angle::EntryPoint entryPoint,
                                   GLenum pname,
                                   GLuint index,
-                                  const GLfloat *val)
+                                  GLsizei *outNumParams)
 {
-    if (pname != GL_SAMPLE_POSITION)
+    if (ANGLE_UNLIKELY(pname != GL_SAMPLE_POSITION))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPname);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kUnknownParameter);
         return false;
     }
 
-    Framebuffer *framebuffer = context->getState().getDrawFramebuffer();
-    GLint samples            = framebuffer->getSamples(context);
-
-    if (index >= static_cast<GLuint>(samples))
+    const Framebuffer *framebuffer = context->getState().getDrawFramebuffer();
+    const GLuint samples           = static_cast<GLuint>(framebuffer->getSamples(context));
+    if (ANGLE_UNLIKELY(index >= samples))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsSamples);
         return false;
+    }
+
+    if (outNumParams != nullptr)
+    {
+        *outNumParams = 2;
     }
 
     return true;
