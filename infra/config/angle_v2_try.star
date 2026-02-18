@@ -61,6 +61,7 @@ angle_linux_functional_cq_tester(
     description_html = "Tests release ANGLE on Linux/x64 on multiple hardware configs. Blocks CL submission.",
     mirrors = [
         "ci/angle-linux-x64-builder-rel",
+        "ci/angle-linux-x64-nvidia-gtx1660-rel",
         "ci/angle-linux-x64-sws-rel",
     ],
     gn_args = "ci/angle-linux-x64-builder-rel",
@@ -83,6 +84,16 @@ def angle_linux_manual_builder(*, name, **kwargs):
     )
 
 ## Functional testers
+
+angle_linux_manual_builder(
+    name = "angle-try-linux-x64-nvidia-gtx1660-rel",
+    description_html = "Tests release ANGLE on Linux/x64 on NVIDIA GTX 1660 GPUs. Manual only.",
+    mirrors = [
+        "ci/angle-linux-x64-builder-rel",
+        "ci/angle-linux-x64-nvidia-gtx1660-rel",
+    ],
+    gn_args = "ci/angle-linux-x64-builder-rel",
+)
 
 angle_linux_manual_builder(
     name = "angle-try-linux-x64-sws-rel",
