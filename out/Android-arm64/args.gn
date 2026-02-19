@@ -23,10 +23,16 @@ generate_debug_info = false
 enable_resource_allowlist_generation = false
 angle_enable_vulkan = true
 angle_enable_vulkan_validation_layers = false
+angle_enable_gl = true
+angle_enable_d3d9 = false
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_wgpu = false
 angle_enable_swiftshader = false
+angle_enable_metal = false
 angle_enable_essl = true
 angle_enable_glsl = true
-angle_enable_hlsl = false
+
 angle_expose_non_conformant_extensions_and_versions = true
 build_angle_deqp_tests = false
 arm_use_neon = true
@@ -105,8 +111,8 @@ ldflags = [
 ]
 
 treat_warnings_as_errors = false
-libcxx_abi_unstable = true
-angle_vulkan_display_mode = "headless"
+libcxx_abi_unstable = false
+angle_vulkan_display_mode = "simple"
 use_cxx23 = true
 android_ndk_root = "/usr/local/lib/android/sdk/ndk/29.0.14206865"
 android_ndk_version = "r29"
@@ -117,3 +123,7 @@ angle_ir = true
 
 angle_enable_perf_counter_output = false
 use_pgo = false
+
+angle_standalone = false
+
+angle_has_frame_capture = false
