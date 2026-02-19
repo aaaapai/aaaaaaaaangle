@@ -4,6 +4,7 @@
 
 """Try ANGLE builders using the angle_v2 recipe."""
 
+load("@chromium-luci//builder_config.star", "builder_config")
 load("@chromium-luci//builders.star", "os")
 load("@chromium-luci//try.star", "try_")
 load("//constants.star", "default_experiments", "siso")
@@ -22,6 +23,13 @@ try_.defaults.set(
     siso_project = siso.project.DEFAULT_UNTRUSTED,
     siso_remote_jobs = siso.remote_jobs.DEFAULT,
     experiments = default_experiments,
+    builder_config_settings = builder_config.try_settings(
+        analyze_names = [
+            "angle",
+        ],
+        retry_failed_shards = False,
+        retry_without_patch = False,
+    ),
 )
 
 ################################################################################
@@ -61,6 +69,7 @@ angle_linux_functional_cq_tester(
     description_html = "Tests release ANGLE on Linux/x64 on multiple hardware configs. Blocks CL submission.",
     mirrors = [
         "ci/angle-linux-x64-builder-rel",
+        "ci/angle-linux-x64-intel-uhd630-rel",
         "ci/angle-linux-x64-nvidia-gtx1660-rel",
         "ci/angle-linux-x64-sws-rel",
     ],
@@ -84,6 +93,16 @@ def angle_linux_manual_builder(*, name, **kwargs):
     )
 
 ## Functional testers
+
+angle_linux_manual_builder(
+    name = "angle-try-linux-x64-intel-uhd630-rel",
+    description_html = "Tests release ANGLE on Linux/x64 on Intel UHD 630 GPUs. Manual only.",
+    mirrors = [
+        "ci/angle-linux-x64-builder-rel",
+        "ci/angle-linux-x64-intel-uhd630-rel",
+    ],
+    gn_args = "ci/angle-linux-x64-builder-rel",
+)
 
 angle_linux_manual_builder(
     name = "angle-try-linux-x64-nvidia-gtx1660-rel",
