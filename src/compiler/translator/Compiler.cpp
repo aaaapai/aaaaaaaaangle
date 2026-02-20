@@ -978,25 +978,25 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
                 return false;
             }
         }
-    }
 
-    if (compileOptions.emulateGLDrawID &&
-        IsExtensionEnabled(mExtensionBehavior, TExtension::ANGLE_multi_draw))
-    {
-        if (!EmulateGLDrawID(this, root, &mSymbolTable))
+        if (compileOptions.emulateGLDrawID &&
+            IsExtensionEnabled(mExtensionBehavior, TExtension::ANGLE_multi_draw))
         {
-            return false;
+            if (!EmulateGLDrawID(this, root, &mSymbolTable))
+            {
+                return false;
+            }
         }
-    }
 
-    if (compileOptions.emulateGLBaseVertexBaseInstance &&
-        IsExtensionEnabled(mExtensionBehavior,
-                           TExtension::ANGLE_base_vertex_base_instance_shader_builtin))
-    {
-        if (!EmulateGLBaseVertexBaseInstance(this, root, &mSymbolTable,
-                                             compileOptions.addBaseVertexToVertexID))
+        if (compileOptions.emulateGLBaseVertexBaseInstance &&
+            IsExtensionEnabled(mExtensionBehavior,
+                               TExtension::ANGLE_base_vertex_base_instance_shader_builtin))
         {
-            return false;
+            if (!EmulateGLBaseVertexBaseInstance(this, root, &mSymbolTable,
+                                                 compileOptions.addBaseVertexToVertexID))
+            {
+                return false;
+            }
         }
     }
 
