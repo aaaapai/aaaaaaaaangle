@@ -111,7 +111,7 @@ ldflags = [
 ]
 
 treat_warnings_as_errors = false
-libcxx_abi_unstable = false
+libcxx_abi_unstable = true
 angle_vulkan_display_mode = "simple"
 use_cxx23 = true
 android_ndk_root = "/usr/local/lib/android/sdk/ndk/29.0.14206865"
@@ -122,8 +122,11 @@ android_ndk_version = "r29"
 angle_ir = true
 
 angle_enable_perf_counter_output = false
-use_pgo = false
 
 angle_standalone = false
 
 angle_has_frame_capture = false
+
+enable_stripping = true
+angle_use_custom_libvulkan = true
+angle_use_vulkan_display = true
