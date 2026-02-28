@@ -1631,20 +1631,20 @@ bool ValidateEndQuery(const Context *context, angle::EntryPoint entryPoint, Quer
 
 bool ValidateGetQueryiv(const Context *context,
                         angle::EntryPoint entryPoint,
-                        QueryType target,
-                        GLenum pname,
+                        QueryType targetPacked,
+                        QueryParameter pnamePacked,
                         const GLint *params)
 {
-    return ValidateGetQueryivBase(context, entryPoint, target, pname, nullptr);
+    return ValidateGetQueryivBase(context, entryPoint, targetPacked, pnamePacked, nullptr);
 }
 
 bool ValidateGetQueryObjectuiv(const Context *context,
                                angle::EntryPoint entryPoint,
-                               QueryID id,
-                               GLenum pname,
+                               QueryID idPacked,
+                               QueryObjectParameter pnamePacked,
                                const GLuint *params)
 {
-    return ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, nullptr);
+    return ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, nullptr);
 }
 
 bool ValidateFramebufferTextureLayer(const Context *context,
@@ -4347,13 +4347,13 @@ bool ValidateGetUniformBlockIndex(const Context *context,
 
 bool ValidateGetActiveUniformBlockiv(const Context *context,
                                      angle::EntryPoint entryPoint,
-                                     ShaderProgramID program,
-                                     UniformBlockIndex uniformBlockIndex,
-                                     GLenum pname,
+                                     ShaderProgramID programPacked,
+                                     UniformBlockIndex uniformBlockIndexPacked,
+                                     UniformBlockParameter pnamePacked,
                                      const GLint *params)
 {
-    return ValidateGetActiveUniformBlockivBase(context, entryPoint, program, uniformBlockIndex,
-                                               pname, nullptr);
+    return ValidateGetActiveUniformBlockivBase(context, entryPoint, programPacked,
+                                               uniformBlockIndexPacked, pnamePacked, nullptr);
 }
 
 bool ValidateGetActiveUniformBlockName(const Context *context,
@@ -4599,56 +4599,58 @@ bool ValidateGetBufferParameteri64v(const Context *context,
 
 bool ValidateGetSamplerParameterfv(const Context *context,
                                    angle::EntryPoint entryPoint,
-                                   SamplerID sampler,
-                                   GLenum pname,
+                                   SamplerID samplerPacked,
+                                   SamplerParameter pnamePacked,
                                    const GLfloat *params)
 {
-    return ValidateGetSamplerParameterBase(context, entryPoint, sampler, pname, nullptr, params);
+    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params,
+                                           nullptr);
 }
 
 bool ValidateGetSamplerParameteriv(const Context *context,
                                    angle::EntryPoint entryPoint,
-                                   SamplerID sampler,
-                                   GLenum pname,
+                                   SamplerID samplerPacked,
+                                   SamplerParameter pnamePacked,
                                    const GLint *params)
 {
-    return ValidateGetSamplerParameterBase(context, entryPoint, sampler, pname, nullptr, params);
+    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params,
+                                           nullptr);
 }
 
 bool ValidateSamplerParameterf(const Context *context,
                                angle::EntryPoint entryPoint,
-                               SamplerID sampler,
-                               GLenum pname,
+                               SamplerID samplerPacked,
+                               SamplerParameter pnamePacked,
                                GLfloat param)
 {
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, false, &param);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, &param);
 }
 
 bool ValidateSamplerParameterfv(const Context *context,
                                 angle::EntryPoint entryPoint,
-                                SamplerID sampler,
-                                GLenum pname,
+                                SamplerID samplerPacked,
+                                SamplerParameter pnamePacked,
                                 const GLfloat *params)
 {
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, true, params);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params);
 }
 
 bool ValidateSamplerParameteri(const Context *context,
                                angle::EntryPoint entryPoint,
-                               SamplerID sampler,
-                               GLenum pname,
+                               SamplerID samplerPacked,
+                               SamplerParameter pnamePacked,
                                GLint param)
 {
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, false, &param);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, &param);
 }
 
 bool ValidateSamplerParameteriv(const Context *context,
                                 angle::EntryPoint entryPoint,
-                                SamplerID sampler,
-                                GLenum pname,
+                                SamplerID samplerPacked,
+                                SamplerParameter pnamePacked,
                                 const GLint *params)
 {
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, true, params);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params);
 }
 
 bool ValidateGetVertexAttribIiv(const Context *context,
@@ -4657,7 +4659,7 @@ bool ValidateGetVertexAttribIiv(const Context *context,
                                 GLenum pname,
                                 const GLint *params)
 {
-    return ValidateGetVertexAttribBase(context, entryPoint, index, pname, nullptr, false);
+    return ValidateGetVertexAttribBase(context, entryPoint, index, pname, nullptr);
 }
 
 bool ValidateGetVertexAttribIuiv(const Context *context,
@@ -4666,7 +4668,7 @@ bool ValidateGetVertexAttribIuiv(const Context *context,
                                  GLenum pname,
                                  const GLuint *params)
 {
-    return ValidateGetVertexAttribBase(context, entryPoint, index, pname, nullptr, false);
+    return ValidateGetVertexAttribBase(context, entryPoint, index, pname, nullptr);
 }
 
 bool ValidateGetInternalformativ(const Context *context,

@@ -79,6 +79,7 @@ namespace rx
 namespace
 {
 constexpr angle::PackedEnumMap<QueueSubmitReason, const char *> kQueueSubmitReason = {{
+    {QueueSubmitReason::EGLBindTexImage, "Queue submission imminent due to eglBindTexImage()"},
     {QueueSubmitReason::EGLSwapBuffers, "Queue submission imminent due to eglSwapBuffers()"},
     {QueueSubmitReason::EGLWaitClient, "Queue submission imminent due to eglWaitClient()"},
     {QueueSubmitReason::DeferredFlush, "Queue submission imminent due to deferred flushing"},
@@ -153,9 +154,14 @@ constexpr uint32_t kMinDefaultUniformBufferSize = 16 * 1024u;
 // This size is picked based on experience. Majority of devices support 64K
 // maxUniformBufferSize. Since this is per context buffer, a bigger buffer size reduces the
 // number of descriptor set allocations, so we picked the maxUniformBufferSize that most
-// devices supports. It may needs further tuning based on specific device needs and balance
+// devices supports. It may need further tuning based on specific device needs and balance
 // between performance and memory usage.
 constexpr uint32_t kPreferredDefaultUniformBufferSize = 64 * 1024u;
+
+// The limit below is used to avoid allocating too many device memory handles. If the device has an
+// allocation count limit less than or equal to this threshold, the initial size for the dynamic
+// buffers will be larger.
+constexpr size_t kAllocationCountThresholdForDynamicVertexDataSize = 4096;
 
 // Maximum size to use VMA image suballocation. Any allocation greater than or equal to this
 // value will use a dedicated VkDeviceMemory.
@@ -5757,6 +5763,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData,
                             isARMProprietary || isQualcommProprietary || isPowerVR);
 
+    // Prefer GPU for glCopyBufferSubData dirty region buffer update on ARM devices.
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferGPUForCopyBufferSubData, isARMProprietary);
+
     // On android, we usually are GPU limited, we try to use CPU to do data copy when other
     // conditions are the same. Set to zero will use GPU to do copy. This is subject to further
     // tuning for each platform https://issuetracker.google.com/201826021
@@ -6074,6 +6083,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Use VMA for image suballocation.
     ANGLE_FEATURE_CONDITION(&mFeatures, useVmaForImageSuballocation, true);
+
+    // Use larger size for DynamicBuffer objects used as streaming vertex buffers (currently limited
+    // to GLES1).
+    ANGLE_FEATURE_CONDITION(&mFeatures, useLargeSizeForDynamicBuffers,
+                            mPhysicalDeviceProperties.limits.maxMemoryAllocationCount <=
+                                kAllocationCountThresholdForDynamicVertexDataSize);
 
     // Some platforms perform better using BGR565 than RGB565.
     bool isBGR565Renderable = hasImageFormatFeatureBits(angle::FormatID::B5G6R5_UNORM,
@@ -6588,7 +6603,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Disable for Samsung, details here -> http://anglebug.com/386749841#comment21
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsDynamicRenderingLocalRead,
-        mDynamicRenderingLocalReadFeatures.dynamicRenderingLocalRead == VK_TRUE &&
+        mFeatures.supportsDynamicRendering.enabled &&
+            mDynamicRenderingLocalReadFeatures.dynamicRenderingLocalRead == VK_TRUE &&
             !(isNvidia || isSamsung));
 
     // Using dynamic rendering when VK_KHR_dynamic_rendering_local_read is available, because that's

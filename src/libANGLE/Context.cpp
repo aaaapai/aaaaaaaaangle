@@ -194,19 +194,22 @@ egl::ContextMutex *AllocateOrUseContextMutex(egl::ContextMutex *sharedContextMut
 }
 
 template <typename T>
-angle::Result GetQueryObjectParameter(const Context *context, Query *query, GLenum pname, T *params)
+angle::Result GetQueryObjectParameter(const Context *context,
+                                      Query *query,
+                                      QueryObjectParameter pnamePacked,
+                                      T *params)
 {
-    if (!query)
+    if (ANGLE_UNLIKELY(query == nullptr))
     {
         // Some applications call into glGetQueryObjectuiv(...) prior to calling glBeginQuery(...)
         // This wouldn't be an issue since the validation layer will handle such a usecases but when
         // the app enables EGL_KHR_create_context_no_error extension, we skip the validation layer.
-        switch (pname)
+        switch (pnamePacked)
         {
-            case GL_QUERY_RESULT_EXT:
+            case QueryObjectParameter::QueryResult:
                 *params = 0;
                 break;
-            case GL_QUERY_RESULT_AVAILABLE_EXT:
+            case QueryObjectParameter::QueryResultAvailable:
                 *params = GL_FALSE;
                 if (context->isContextLost())
                 {
@@ -221,11 +224,11 @@ angle::Result GetQueryObjectParameter(const Context *context, Query *query, GLen
         return angle::Result::Continue;
     }
 
-    switch (pname)
+    switch (pnamePacked)
     {
-        case GL_QUERY_RESULT_EXT:
+        case QueryObjectParameter::QueryResult:
             return query->getResult(context, params);
-        case GL_QUERY_RESULT_AVAILABLE_EXT:
+        case QueryObjectParameter::QueryResultAvailable:
         {
             bool available = false;
             if (context->isContextLost())
@@ -237,7 +240,7 @@ angle::Result GetQueryObjectParameter(const Context *context, Query *query, GLen
             {
                 ANGLE_TRY(query->isResultAvailable(context, &available));
             }
-            *params = CastFromStateValue<T>(pname, static_cast<GLuint>(available));
+            *params = static_cast<T>(available);
             return angle::Result::Continue;
         }
         default:
@@ -1719,49 +1722,53 @@ void Context::queryCounter(QueryID id, QueryType target)
     ANGLE_CONTEXT_TRY(queryObject->queryCounter(this));
 }
 
-void Context::getQueryiv(QueryType target, GLenum pname, GLint *params)
+void Context::getQueryiv(QueryType targetPacked, QueryParameter pnamePacked, GLint *params)
 {
-    switch (pname)
+    switch (pnamePacked)
     {
-        case GL_CURRENT_QUERY_EXT:
-            params[0] = mState.getActiveQueryId(target).value;
+        case QueryParameter::CurrentQuery:
+            *params = mState.getActiveQueryId(targetPacked).value;
             break;
-        case GL_QUERY_COUNTER_BITS_EXT:
-            switch (target)
+        case QueryParameter::QueryCounterBits:
+            switch (targetPacked)
             {
                 case QueryType::AnySamples:
                 case QueryType::AnySamplesConservative:
-                    params[0] = 1;
+                    *params = 1;
                     break;
                 case QueryType::PrimitivesGenerated:
                 case QueryType::TransformFeedbackPrimitivesWritten:
-                    params[0] = 32;
+                    *params = 32;
                     break;
                 case QueryType::TimeElapsed:
-                    params[0] = getCaps().queryCounterBitsTimeElapsed;
+                    *params = getCaps().queryCounterBitsTimeElapsed;
                     break;
                 case QueryType::Timestamp:
-                    params[0] = getCaps().queryCounterBitsTimestamp;
+                    *params = getCaps().queryCounterBitsTimestamp;
                     break;
                 default:
                     UNREACHABLE();
-                    params[0] = 0;
                     break;
             }
             break;
         default:
             UNREACHABLE();
-            return;
+            break;
     }
 }
 
-void Context::getQueryivRobust(QueryType target,
-                               GLenum pname,
+void Context::getQueryivRobust(QueryType targetPacked,
+                               QueryParameter pnamePacked,
                                GLsizei paramCount,
                                GLsizei *length,
                                GLint *params)
 {
-    getQueryiv(target, pname, params);
+    getQueryiv(targetPacked, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::getUnsignedBytev(GLenum pname, GLubyte *data)
@@ -1774,60 +1781,84 @@ void Context::getUnsignedBytei_v(GLenum target, GLuint index, GLubyte *data)
     UNIMPLEMENTED();
 }
 
-void Context::getQueryObjectiv(QueryID id, GLenum pname, GLint *params)
+void Context::getQueryObjectiv(QueryID idPacked, QueryObjectParameter pnamePacked, GLint *params)
 {
-    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(id), pname, params));
+    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(idPacked), pnamePacked, params));
 }
 
-void Context::getQueryObjectivRobust(QueryID id,
-                                     GLenum pname,
+void Context::getQueryObjectivRobust(QueryID idPacked,
+                                     QueryObjectParameter pnamePacked,
                                      GLsizei paramCount,
                                      GLsizei *length,
                                      GLint *params)
 {
-    getQueryObjectiv(id, pname, params);
+    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(idPacked), pnamePacked, params));
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
-void Context::getQueryObjectuiv(QueryID id, GLenum pname, GLuint *params)
+void Context::getQueryObjectuiv(QueryID idPacked, QueryObjectParameter pnamePacked, GLuint *params)
 {
-    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(id), pname, params));
+    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(idPacked), pnamePacked, params));
 }
 
-void Context::getQueryObjectuivRobust(QueryID id,
-                                      GLenum pname,
+void Context::getQueryObjectuivRobust(QueryID idPacked,
+                                      QueryObjectParameter pnamePacked,
                                       GLsizei paramCount,
                                       GLsizei *length,
                                       GLuint *params)
 {
-    getQueryObjectuiv(id, pname, params);
+    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(idPacked), pnamePacked, params));
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
-void Context::getQueryObjecti64v(QueryID id, GLenum pname, GLint64 *params)
+void Context::getQueryObjecti64v(QueryID idPacked,
+                                 QueryObjectParameter pnamePacked,
+                                 GLint64 *params)
 {
-    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(id), pname, params));
+    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(idPacked), pnamePacked, params));
 }
 
-void Context::getQueryObjecti64vRobust(QueryID id,
-                                       GLenum pname,
+void Context::getQueryObjecti64vRobust(QueryID idPacked,
+                                       QueryObjectParameter pnamePacked,
                                        GLsizei paramCount,
                                        GLsizei *length,
                                        GLint64 *params)
 {
-    getQueryObjecti64v(id, pname, params);
+    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(idPacked), pnamePacked, params));
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
-void Context::getQueryObjectui64v(QueryID id, GLenum pname, GLuint64 *params)
+void Context::getQueryObjectui64v(QueryID idPacked,
+                                  QueryObjectParameter pnamePacked,
+                                  GLuint64 *params)
 {
-    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(id), pname, params));
+    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(idPacked), pnamePacked, params));
 }
 
-void Context::getQueryObjectui64vRobust(QueryID id,
-                                        GLenum pname,
+void Context::getQueryObjectui64vRobust(QueryID idPacked,
+                                        QueryObjectParameter pnamePacked,
                                         GLsizei paramCount,
                                         GLsizei *length,
                                         GLuint64 *params)
 {
-    getQueryObjectui64v(id, pname, params);
+    ANGLE_CONTEXT_TRY(GetQueryObjectParameter(this, getQuery(idPacked), pnamePacked, params));
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 Framebuffer *Context::getFramebuffer(FramebufferID handle) const
@@ -2710,6 +2741,11 @@ void Context::getFramebufferAttachmentParameterivRobust(GLenum target,
                                                         GLint *params)
 {
     getFramebufferAttachmentParameteriv(target, attachment, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::getRenderbufferParameteriv(GLenum target, GLenum pname, GLint *params)
@@ -2725,6 +2761,11 @@ void Context::getRenderbufferParameterivRobust(GLenum target,
                                                GLint *params)
 {
     getRenderbufferParameteriv(target, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::texBuffer(TextureType target, GLenum internalformat, BufferID buffer)
@@ -3337,108 +3378,136 @@ void Context::detachProgramPipeline(ProgramPipelineID pipeline)
     mState.detachProgramPipeline(this, pipeline);
 }
 
-void Context::samplerParameteri(SamplerID sampler, GLenum pname, GLint param)
+void Context::samplerParameteri(SamplerID samplerPacked, SamplerParameter pnamePacked, GLint param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameteri(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameteriv(this, samplerObject, pnamePacked, &param);
 }
 
-void Context::samplerParameteriv(SamplerID sampler, GLenum pname, const GLint *param)
+void Context::samplerParameteriv(SamplerID samplerPacked,
+                                 SamplerParameter pnamePacked,
+                                 const GLint *param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameteriv(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameteriv(this, samplerObject, pnamePacked, param);
 }
 
-void Context::samplerParameterIiv(SamplerID sampler, GLenum pname, const GLint *param)
+void Context::samplerParameterIiv(SamplerID samplerPacked,
+                                  SamplerParameter pnamePacked,
+                                  const GLint *param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameterIiv(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameterIiv(this, samplerObject, pnamePacked, param);
 }
 
-void Context::samplerParameterIuiv(SamplerID sampler, GLenum pname, const GLuint *param)
+void Context::samplerParameterIuiv(SamplerID samplerPacked,
+                                   SamplerParameter pnamePacked,
+                                   const GLuint *param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameterIuiv(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameterIuiv(this, samplerObject, pnamePacked, param);
 }
 
-void Context::samplerParameterivRobust(SamplerID sampler,
-                                       GLenum pname,
+void Context::samplerParameterivRobust(SamplerID samplerPacked,
+                                       SamplerParameter pnamePacked,
                                        GLsizei paramCount,
                                        const GLint *param)
 {
-    samplerParameteriv(sampler, pname, param);
+    samplerParameteriv(samplerPacked, pnamePacked, param);
 }
 
-void Context::samplerParameterf(SamplerID sampler, GLenum pname, GLfloat param)
+void Context::samplerParameterf(SamplerID samplerPacked,
+                                SamplerParameter pnamePacked,
+                                GLfloat param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameterf(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameterfv(this, samplerObject, pnamePacked, &param);
 }
 
-void Context::samplerParameterfv(SamplerID sampler, GLenum pname, const GLfloat *param)
+void Context::samplerParameterfv(SamplerID samplerPacked,
+                                 SamplerParameter pnamePacked,
+                                 const GLfloat *param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameterfv(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameterfv(this, samplerObject, pnamePacked, param);
 }
 
-void Context::samplerParameterfvRobust(SamplerID sampler,
-                                       GLenum pname,
+void Context::samplerParameterfvRobust(SamplerID samplerPacked,
+                                       SamplerParameter pnamePacked,
                                        GLsizei paramCount,
                                        const GLfloat *param)
 {
-    samplerParameterfv(sampler, pname, param);
+    samplerParameterfv(samplerPacked, pnamePacked, param);
 }
 
-void Context::getSamplerParameteriv(SamplerID sampler, GLenum pname, GLint *params)
+void Context::getSamplerParameteriv(SamplerID samplerPacked,
+                                    SamplerParameter pnamePacked,
+                                    GLint *params)
 {
     const Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    QuerySamplerParameteriv(samplerObject, pname, params);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    QuerySamplerParameteriv(samplerObject, pnamePacked, params);
 }
 
-void Context::getSamplerParameterIiv(SamplerID sampler, GLenum pname, GLint *params)
+void Context::getSamplerParameterIiv(SamplerID samplerPacked,
+                                     SamplerParameter pnamePacked,
+                                     GLint *params)
 {
     const Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    QuerySamplerParameterIiv(samplerObject, pname, params);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    QuerySamplerParameterIiv(samplerObject, pnamePacked, params);
 }
 
-void Context::getSamplerParameterIuiv(SamplerID sampler, GLenum pname, GLuint *params)
+void Context::getSamplerParameterIuiv(SamplerID samplerPacked,
+                                      SamplerParameter pnamePacked,
+                                      GLuint *params)
 {
     const Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    QuerySamplerParameterIuiv(samplerObject, pname, params);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    QuerySamplerParameterIuiv(samplerObject, pnamePacked, params);
 }
 
-void Context::getSamplerParameterivRobust(SamplerID sampler,
-                                          GLenum pname,
+void Context::getSamplerParameterivRobust(SamplerID samplerPacked,
+                                          SamplerParameter pnamePacked,
                                           GLsizei paramCount,
                                           GLsizei *length,
                                           GLint *params)
 {
-    getSamplerParameteriv(sampler, pname, params);
+    getSamplerParameteriv(samplerPacked, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = (pnamePacked == SamplerParameter::BorderColor) ? 4 : 1;
+    }
 }
 
-void Context::getSamplerParameterfv(SamplerID sampler, GLenum pname, GLfloat *params)
+void Context::getSamplerParameterfv(SamplerID samplerPacked,
+                                    SamplerParameter pnamePacked,
+                                    GLfloat *params)
 {
     const Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    QuerySamplerParameterfv(samplerObject, pname, params);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    QuerySamplerParameterfv(samplerObject, pnamePacked, params);
 }
 
-void Context::getSamplerParameterfvRobust(SamplerID sampler,
-                                          GLenum pname,
+void Context::getSamplerParameterfvRobust(SamplerID samplerPacked,
+                                          SamplerParameter pnamePacked,
                                           GLsizei paramCount,
                                           GLsizei *length,
                                           GLfloat *params)
 {
-    getSamplerParameterfv(sampler, pname, params);
+    getSamplerParameterfv(samplerPacked, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = (pnamePacked == SamplerParameter::BorderColor) ? 4 : 1;
+    }
 }
 
 void Context::programParameteri(ShaderProgramID program, GLenum pname, GLint value)
@@ -3794,26 +3863,26 @@ Extensions Context::generateSupportedExtensions() const
     if (getClientVersion() < ES_3_0)
     {
         // Disable ES3+ extensions
-        supportedExtensions.colorBufferFloatEXT          = false;
-        supportedExtensions.EGLImageExternalEssl3OES     = false;
-        supportedExtensions.multiviewOVR                 = false;
-        supportedExtensions.multiview2OVR                = false;
-        supportedExtensions.multiviewMultisampleANGLE    = false;
+        supportedExtensions.colorBufferFloatEXT                     = false;
+        supportedExtensions.EGLImageExternalEssl3OES                = false;
+        supportedExtensions.multiviewOVR                            = false;
+        supportedExtensions.multiview2OVR                           = false;
+        supportedExtensions.multiviewMultisampleANGLE               = false;
         supportedExtensions.multiviewMultisampledRenderToTextureOVR = false;
-        supportedExtensions.copyTexture3dANGLE           = false;
-        supportedExtensions.textureMultisampleANGLE      = false;
-        supportedExtensions.textureQueryLodEXT           = false;
-        supportedExtensions.textureShadowLodEXT          = false;
-        supportedExtensions.textureStorageCompressionEXT = false;
-        supportedExtensions.textureStencil8OES           = false;
-        supportedExtensions.conservativeDepthEXT         = false;
-        supportedExtensions.drawBuffersIndexedEXT        = false;
-        supportedExtensions.drawBuffersIndexedOES        = false;
-        supportedExtensions.EGLImageArrayEXT             = false;
-        supportedExtensions.stencilTexturingANGLE        = false;
-        supportedExtensions.textureFormatSRGBOverrideEXT = false;
-        supportedExtensions.renderSharedExponentQCOM     = false;
-        supportedExtensions.renderSnormEXT               = false;
+        supportedExtensions.copyTexture3dANGLE                      = false;
+        supportedExtensions.textureMultisampleANGLE                 = false;
+        supportedExtensions.textureQueryLodEXT                      = false;
+        supportedExtensions.textureShadowLodEXT                     = false;
+        supportedExtensions.textureStorageCompressionEXT            = false;
+        supportedExtensions.textureStencil8OES                      = false;
+        supportedExtensions.conservativeDepthEXT                    = false;
+        supportedExtensions.drawBuffersIndexedEXT                   = false;
+        supportedExtensions.drawBuffersIndexedOES                   = false;
+        supportedExtensions.EGLImageArrayEXT                        = false;
+        supportedExtensions.stencilTexturingANGLE                   = false;
+        supportedExtensions.textureFormatSRGBOverrideEXT            = false;
+        supportedExtensions.renderSharedExponentQCOM                = false;
+        supportedExtensions.renderSnormEXT                          = false;
 
         // Support GL_EXT_texture_norm16 on non-WebGL ES2 contexts. This is needed for R16/RG16
         // texturing for HDR video playback in Chromium which uses ES2 for compositor contexts.
@@ -4942,7 +5011,7 @@ void Context::clearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *valu
     {
         clampedDepth = clamp01(values[0]);
         values       = &clampedDepth;
-        attachment = framebufferObject->getDepthAttachment();
+        attachment   = framebufferObject->getDepthAttachment();
     }
     else if (buffer == GL_COLOR &&
              static_cast<size_t>(drawbuffer) < framebufferObject->getNumColorAttachments())
@@ -6097,6 +6166,11 @@ void Context::getVertexAttribivRobust(GLuint index,
                                       GLint *params)
 {
     getVertexAttribiv(index, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = (pname == GL_CURRENT_VERTEX_ATTRIB) ? 4 : 1;
+    }
 }
 
 void Context::getVertexAttribfv(GLuint index, GLenum pname, GLfloat *params)
@@ -6116,6 +6190,11 @@ void Context::getVertexAttribfvRobust(GLuint index,
                                       GLfloat *params)
 {
     getVertexAttribfv(index, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = (pname == GL_CURRENT_VERTEX_ATTRIB) ? 4 : 1;
+    }
 }
 
 void Context::getVertexAttribIiv(GLuint index, GLenum pname, GLint *params)
@@ -6135,6 +6214,11 @@ void Context::getVertexAttribIivRobust(GLuint index,
                                        GLint *params)
 {
     getVertexAttribIiv(index, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = (pname == GL_CURRENT_VERTEX_ATTRIB) ? 4 : 1;
+    }
 }
 
 void Context::getVertexAttribIuiv(GLuint index, GLenum pname, GLuint *params)
@@ -6154,12 +6238,18 @@ void Context::getVertexAttribIuivRobust(GLuint index,
                                         GLuint *params)
 {
     getVertexAttribIuiv(index, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = (pname == GL_CURRENT_VERTEX_ATTRIB) ? 4 : 1;
+    }
 }
 
 void Context::getVertexAttribPointerv(GLuint index, GLenum pname, void **pointer)
 {
+    ASSERT(pname == GL_VERTEX_ATTRIB_ARRAY_POINTER);
     const VertexAttribute &attrib = getState().getVertexArray()->getVertexAttribute(index);
-    QueryVertexAttribPointerv(attrib, pname, pointer);
+    *pointer                      = const_cast<void *>(attrib.pointer);
 }
 
 void Context::getVertexAttribPointervRobust(GLuint index,
@@ -7208,25 +7298,30 @@ void Context::getIntegervRobust(GLenum pname, GLsizei paramCount, GLsizei *lengt
     }
 }
 
-void Context::getProgramiv(ShaderProgramID program, GLenum pname, GLint *params)
+void Context::getProgramiv(ShaderProgramID programPacked, GLenum pname, GLint *params)
 {
     // Don't resolve link if checking the link completion status.
-    Program *programObject = getProgramNoResolveLink(program);
+    Program *programObject = getProgramNoResolveLink(programPacked);
     if (!isContextLost() && pname != GL_COMPLETION_STATUS_KHR)
     {
-        programObject = getProgramResolveLink(program);
+        programObject = getProgramResolveLink(programPacked);
     }
-    ASSERT(programObject);
+    ASSERT(programObject != nullptr);
     QueryProgramiv(this, programObject, pname, params);
 }
 
-void Context::getProgramivRobust(ShaderProgramID program,
+void Context::getProgramivRobust(ShaderProgramID programPacked,
                                  GLenum pname,
                                  GLsizei paramCount,
                                  GLsizei *length,
                                  GLint *params)
 {
-    getProgramiv(program, pname, params);
+    getProgramiv(programPacked, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = (pname == GL_COMPUTE_WORK_GROUP_SIZE) ? 3 : 1;
+    }
 }
 
 void Context::getProgramPipelineiv(ProgramPipelineID pipeline, GLenum pname, GLint *params)
@@ -7283,24 +7378,29 @@ void Context::getProgramPipelineInfoLog(ProgramPipelineID pipeline,
     }
 }
 
-void Context::getShaderiv(ShaderProgramID shader, GLenum pname, GLint *params)
+void Context::getShaderiv(ShaderProgramID shaderPacked, ShaderParameter pnamePacked, GLint *params)
 {
     Shader *shaderObject = nullptr;
     if (!isContextLost())
     {
-        shaderObject = getShaderNoResolveCompile(shader);
-        ASSERT(shaderObject);
+        shaderObject = getShaderNoResolveCompile(shaderPacked);
+        ASSERT(shaderObject != nullptr);
     }
-    QueryShaderiv(this, shaderObject, pname, params);
+    QueryShaderiv(this, shaderObject, pnamePacked, params);
 }
 
-void Context::getShaderivRobust(ShaderProgramID shader,
-                                GLenum pname,
+void Context::getShaderivRobust(ShaderProgramID shaderPacked,
+                                ShaderParameter pnamePacked,
                                 GLsizei paramCount,
                                 GLsizei *length,
                                 GLint *params)
 {
-    getShaderiv(shader, pname, params);
+    getShaderiv(shaderPacked, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::getShaderInfoLog(ShaderProgramID shader,
@@ -7918,23 +8018,24 @@ GLuint Context::getUniformBlockIndex(ShaderProgramID program, const GLchar *unif
     return programObject->getExecutable().getUniformBlockIndex(uniformBlockName);
 }
 
-void Context::getActiveUniformBlockiv(ShaderProgramID program,
-                                      UniformBlockIndex uniformBlockIndex,
-                                      GLenum pname,
+void Context::getActiveUniformBlockiv(ShaderProgramID programPacked,
+                                      UniformBlockIndex uniformBlockIndexPacked,
+                                      UniformBlockParameter pnamePacked,
                                       GLint *params)
 {
-    const Program *programObject = getProgramResolveLink(program);
-    QueryActiveUniformBlockiv(programObject, uniformBlockIndex, pname, params);
+    const Program *programObject = getProgramResolveLink(programPacked);
+    QueryActiveUniformBlockiv(programObject, uniformBlockIndexPacked, pnamePacked, nullptr, params);
 }
 
-void Context::getActiveUniformBlockivRobust(ShaderProgramID program,
-                                            UniformBlockIndex uniformBlockIndex,
-                                            GLenum pname,
+void Context::getActiveUniformBlockivRobust(ShaderProgramID programPacked,
+                                            UniformBlockIndex uniformBlockIndexPacked,
+                                            UniformBlockParameter pnamePacked,
                                             GLsizei paramCount,
                                             GLsizei *length,
                                             GLint *params)
 {
-    getActiveUniformBlockiv(program, uniformBlockIndex, pname, params);
+    const Program *programObject = getProgramResolveLink(programPacked);
+    QueryActiveUniformBlockiv(programObject, uniformBlockIndexPacked, pnamePacked, length, params);
 }
 
 void Context::getActiveUniformBlockName(ShaderProgramID program,
@@ -7965,7 +8066,7 @@ GLsync Context::fenceSync(GLenum condition, GLbitfield flags)
         return nullptr;
     }
 
-    Sync *syncObject  = getSync(syncHandle);
+    Sync *syncObject = getSync(syncHandle);
     if (syncObject->set(this, condition, flags) == angle::Result::Stop)
     {
         deleteSync(syncHandle);
@@ -8099,6 +8200,19 @@ void Context::getInternalformativRobust(GLenum target,
                                         GLint *params)
 {
     getInternalformativ(target, internalformat, pname, paramCount, params);
+
+    if (length != nullptr)
+    {
+        if (pname == GL_SAMPLES)
+        {
+            *length = clampCast<GLsizei>(mState.getTextureCap(internalformat).sampleCounts.size());
+        }
+        else
+        {
+            ASSERT(pname != GL_SURFACE_COMPRESSION_EXT);
+            *length = 1;
+        }
+    }
 }
 
 void Context::programUniform1i(ShaderProgramID program, UniformLocation location, GLint v0)
@@ -8916,7 +9030,9 @@ void Context::importSemaphoreZirconHandle(SemaphoreID semaphore,
     ANGLE_CONTEXT_TRY(semaphoreObject->importZirconHandle(this, handleType, handle));
 }
 
-void Context::framebufferMemorylessPixelLocalStorage(GLint plane, GLenum internalformat)
+void Context::framebufferMemorylessPixelLocalStorage(GLint plane,
+                                                     GLenum internalformat,
+                                                     GLbitfield usage)
 {
     Framebuffer *framebuffer = mState.getDrawFramebuffer();
     ASSERT(framebuffer);
@@ -8929,14 +9045,15 @@ void Context::framebufferMemorylessPixelLocalStorage(GLint plane, GLenum interna
     }
     else
     {
-        pls.setMemoryless(this, plane, internalformat);
+        pls.setMemoryless(this, plane, internalformat, usage);
     }
 }
 
 void Context::framebufferTexturePixelLocalStorage(GLint plane,
                                                   TextureID backingtexture,
                                                   GLint level,
-                                                  GLint layer)
+                                                  GLint layer,
+                                                  GLbitfield usage)
 {
     Framebuffer *framebuffer = mState.getDrawFramebuffer();
     ASSERT(framebuffer);
@@ -8951,7 +9068,7 @@ void Context::framebufferTexturePixelLocalStorage(GLint plane,
     {
         Texture *tex = getTexture(backingtexture);
         ASSERT(tex);  // Validation guarantees this.
-        pls.setTextureBacked(this, plane, tex, level, layer);
+        pls.setTextureBacked(this, plane, tex, level, layer, usage);
     }
 }
 
@@ -9622,7 +9739,7 @@ void Context::getPerfMonitorCounterData(GLuint monitor,
                                         GLint *bytesWritten)
 {
     using namespace angle;
-    GLint byteCount                                   = 0;
+    GLint byteCount = 0;
     switch (pname)
     {
         case GL_PERFMON_RESULT_AVAILABLE_AMD:

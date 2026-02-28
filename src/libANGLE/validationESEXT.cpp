@@ -1524,8 +1524,8 @@ bool ValidateTexParameterIuivOES(const Context *context,
 
 bool ValidateGetSamplerParameterIivOES(const Context *context,
                                        angle::EntryPoint entryPoint,
-                                       SamplerID sampler,
-                                       GLenum pname,
+                                       SamplerID samplerPacked,
+                                       SamplerParameter pnamePacked,
                                        const GLint *params)
 {
     if (context->getClientVersion() < ES_3_0)
@@ -1534,13 +1534,14 @@ bool ValidateGetSamplerParameterIivOES(const Context *context,
         return false;
     }
 
-    return ValidateGetSamplerParameterBase(context, entryPoint, sampler, pname, nullptr, params);
+    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params,
+                                           nullptr);
 }
 
 bool ValidateGetSamplerParameterIuivOES(const Context *context,
                                         angle::EntryPoint entryPoint,
-                                        SamplerID sampler,
-                                        GLenum pname,
+                                        SamplerID samplerPacked,
+                                        SamplerParameter pnamePacked,
                                         const GLuint *params)
 {
     if (context->getClientVersion() < ES_3_0)
@@ -1549,13 +1550,14 @@ bool ValidateGetSamplerParameterIuivOES(const Context *context,
         return false;
     }
 
-    return ValidateGetSamplerParameterBase(context, entryPoint, sampler, pname, nullptr, params);
+    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params,
+                                           nullptr);
 }
 
 bool ValidateSamplerParameterIivOES(const Context *context,
                                     angle::EntryPoint entryPoint,
-                                    SamplerID sampler,
-                                    GLenum pname,
+                                    SamplerID samplerPacked,
+                                    SamplerParameter pnamePacked,
                                     const GLint *params)
 {
     if (context->getClientVersion() < ES_3_0)
@@ -1564,13 +1566,13 @@ bool ValidateSamplerParameterIivOES(const Context *context,
         return false;
     }
 
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, true, params);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params);
 }
 
 bool ValidateSamplerParameterIuivOES(const Context *context,
                                      angle::EntryPoint entryPoint,
-                                     SamplerID sampler,
-                                     GLenum pname,
+                                     SamplerID samplerPacked,
+                                     SamplerParameter pnamePacked,
                                      const GLuint *params)
 {
     if (context->getClientVersion() < ES_3_0)
@@ -1579,13 +1581,13 @@ bool ValidateSamplerParameterIuivOES(const Context *context,
         return false;
     }
 
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, true, params);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params);
 }
 
 bool ValidateGetSamplerParameterIivEXT(const Context *context,
                                        angle::EntryPoint entryPoint,
                                        SamplerID samplerPacked,
-                                       GLenum pname,
+                                       SamplerParameter pnamePacked,
                                        const GLint *params)
 {
     if (context->getClientVersion() < ES_3_0)
@@ -1594,14 +1596,14 @@ bool ValidateGetSamplerParameterIivEXT(const Context *context,
         return false;
     }
 
-    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pname, nullptr,
-                                           params);
+    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params,
+                                           nullptr);
 }
 
 bool ValidateGetSamplerParameterIuivEXT(const Context *context,
                                         angle::EntryPoint entryPoint,
                                         SamplerID samplerPacked,
-                                        GLenum pname,
+                                        SamplerParameter pnamePacked,
                                         const GLuint *params)
 {
     if (context->getClientVersion() < ES_3_0)
@@ -1610,8 +1612,8 @@ bool ValidateGetSamplerParameterIuivEXT(const Context *context,
         return false;
     }
 
-    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pname, nullptr,
-                                           params);
+    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params,
+                                           nullptr);
 }
 
 bool ValidateGetTexParameterIivEXT(const Context *context,
@@ -1647,7 +1649,7 @@ bool ValidateGetTexParameterIuivEXT(const Context *context,
 bool ValidateSamplerParameterIivEXT(const Context *context,
                                     angle::EntryPoint entryPoint,
                                     SamplerID samplerPacked,
-                                    GLenum pname,
+                                    SamplerParameter pnamePacked,
                                     const GLint *param)
 {
     if (context->getClientVersion() < ES_3_0)
@@ -1656,13 +1658,13 @@ bool ValidateSamplerParameterIivEXT(const Context *context,
         return false;
     }
 
-    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pname, -1, true, param);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, param);
 }
 
 bool ValidateSamplerParameterIuivEXT(const Context *context,
                                      angle::EntryPoint entryPoint,
                                      SamplerID samplerPacked,
-                                     GLenum pname,
+                                     SamplerParameter pnamePacked,
                                      const GLuint *param)
 {
     if (context->getClientVersion() < ES_3_0)
@@ -1671,7 +1673,7 @@ bool ValidateSamplerParameterIuivEXT(const Context *context,
         return false;
     }
 
-    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pname, -1, true, param);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, param);
 }
 
 bool ValidateTexParameterIivEXT(const Context *context,
@@ -1724,6 +1726,8 @@ bool ValidateImportSemaphoreZirconHandleANGLE(const Context *context,
 
 namespace
 {
+constexpr static GLbitfield kValidPLSUsages = GL_PIXEL_LOCAL_USAGE_ALWAYS_NONCOHERENT_BIT_ANGLE;
+
 enum class PLSExpectedStatus
 {
     Inactive,
@@ -1833,6 +1837,7 @@ bool ValidateGetFramebufferPixelLocalStorageParameterCommon(const Context *conte
         case GL_PIXEL_LOCAL_TEXTURE_NAME_ANGLE:
         case GL_PIXEL_LOCAL_TEXTURE_LEVEL_ANGLE:
         case GL_PIXEL_LOCAL_TEXTURE_LAYER_ANGLE:
+        case GL_PIXEL_LOCAL_USAGE_ANGLE:
         case GL_PIXEL_LOCAL_CLEAR_VALUE_FLOAT_ANGLE:
         case GL_PIXEL_LOCAL_CLEAR_VALUE_INT_ANGLE:
         case GL_PIXEL_LOCAL_CLEAR_VALUE_UNSIGNED_INT_ANGLE:
@@ -2021,7 +2026,8 @@ bool ValidatePLSStoreOperation(const Context *context, angle::EntryPoint entryPo
 bool ValidateFramebufferMemorylessPixelLocalStorageANGLE(const Context *context,
                                                          angle::EntryPoint entryPoint,
                                                          GLint plane,
-                                                         GLenum internalformat)
+                                                         GLenum internalformat,
+                                                         GLbitfield usage)
 {
     if (!ValidatePLSCommon(context, entryPoint, plane, PLSExpectedStatus::Any))
     {
@@ -2045,6 +2051,12 @@ bool ValidateFramebufferMemorylessPixelLocalStorageANGLE(const Context *context,
         }
     }
 
+    if ((usage & kValidPLSUsages) != usage)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kPLSInvalidUsage);
+        return false;
+    }
+
     return true;
 }
 
@@ -2053,7 +2065,8 @@ bool ValidateFramebufferTexturePixelLocalStorageANGLE(const Context *context,
                                                       GLint plane,
                                                       TextureID backingtexture,
                                                       GLint level,
-                                                      GLint layer)
+                                                      GLint layer,
+                                                      GLbitfield usage)
 {
     if (!ValidatePLSCommon(context, entryPoint, plane, PLSExpectedStatus::Any))
     {
@@ -2132,6 +2145,12 @@ bool ValidateFramebufferTexturePixelLocalStorageANGLE(const Context *context,
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kFormatNotRenderable);
             return false;
         }
+    }
+
+    if ((usage & kValidPLSUsages) != usage)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kPLSInvalidUsage);
+        return false;
     }
 
     return true;
