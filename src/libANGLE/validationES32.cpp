@@ -691,7 +691,7 @@ bool ValidateTexParameterIiv(const Context *context,
                              GLenum pname,
                              const GLint *params)
 {
-    return ValidateTexParameterBase(context, entryPoint, targetPacked, pname, -1, true, params);
+    return ValidateTexParameterBase(context, entryPoint, targetPacked, pname, params);
 }
 
 bool ValidateTexParameterIuiv(const Context *context,
@@ -700,7 +700,7 @@ bool ValidateTexParameterIuiv(const Context *context,
                               GLenum pname,
                               const GLuint *params)
 {
-    return ValidateTexParameterBase(context, entryPoint, targetPacked, pname, -1, true, params);
+    return ValidateTexParameterBase(context, entryPoint, targetPacked, pname, params);
 }
 
 bool ValidateTexStorage3DMultisample(const Context *context,

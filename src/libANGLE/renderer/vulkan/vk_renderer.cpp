@@ -167,6 +167,9 @@ constexpr size_t kAllocationCountThresholdForDynamicVertexDataSize = 4096;
 // value will use a dedicated VkDeviceMemory.
 constexpr size_t kImageSizeThresholdForDedicatedMemoryAllocation = 8 * 1024 * 1024;
 
+// Maximum size for an allocated memory for a single object.
+constexpr VkDeviceSize kMemoryAllocationSizeLimit = 1 * 1024 * 1024 * 1024;
+
 // Pipeline cache header version. It should be incremented any time there is an update to the cache
 // header or data structure.
 constexpr uint32_t kPipelineCacheVersion = 3;
@@ -2094,6 +2097,7 @@ Renderer::Renderer()
       mSupportedBufferWritePipelineStageMask(0),
       mSupportedVulkanShaderStageMask(0),
       mMemoryAllocationTracker(MemoryAllocationTracker(this)),
+      mMaxMemoryAllocationSize(0),
       mMaxBufferMemorySizeLimit(0),
       mNativeVectorWidthDouble(0),
       mNativeVectorWidthHalf(0),
@@ -5744,13 +5748,20 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                        mPhysicalDeviceProperties.limits.maxVertexInputBindingStride)
             : 0;
 
+    // Although the maximum memory allocation size for a single object can be derived from the
+    // Vulkan driver, it could still be too large for common use (e.g., ~4GB on some platforms) and
+    // increase the risk of overflow if the object dimensions used for size calculations are 32-bit.
+    // The limit can be restricted to a specific fixed value to reduce this risk.
+    mMaxMemoryAllocationSize =
+        std::min(mMaintenance3Properties.maxMemoryAllocationSize, kMemoryAllocationSizeLimit);
+
     // The limits related to buffer size should also take the max memory allocation size and padding
     // (if applicable) into account.
-    mMaxBufferMemorySizeLimit = getMaxMemoryAllocationSize() - mMaxVertexAttribStride;
+    mMaxBufferMemorySizeLimit = mMaxMemoryAllocationSize - mMaxVertexAttribStride;
 
     ANGLE_FEATURE_CONDITION(&mFeatures, forceD16TexFilter, IsAndroid() && isQualcommProprietary);
 
-    // Allocation sanitization disabled by default because of a heaveyweight implementation
+    // Allocation sanitization disabled by default because of a heavyweight implementation
     // that can cause OOM and timeouts.
     ANGLE_FEATURE_CONDITION(&mFeatures, allocateNonZeroMemory, false);
 
@@ -6312,10 +6323,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Some unacceptable performance degradation has been observed on device with ARM proprietary
     // driver when graphics pipeline is enabled, therefore it's recommended to disable it until the
     // problematic area gets addressed and fixed. http://anglebug.com/404581992
+    //
+    // PowerVR graphics pipeline support is in development and not yet tested with ANGLE.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsGraphicsPipelineLibrary,
                             mGraphicsPipelineLibraryFeatures.graphicsPipelineLibrary == VK_TRUE &&
                                 (!isNvidia || driverVersion >= angle::VersionTriple(531, 0, 0)) &&
-                                !isRADV && !isARMProprietary);
+                                !isRADV && !isARMProprietary && !isPowerVR);
 
     // When VK_EXT_graphics_pipeline_library is not used:
     //
@@ -6796,9 +6809,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // In this case, we can't drop the clears that we've deferred.
     ANGLE_FEATURE_CONDITION(&mFeatures, dropDepthStencilClearOnInvalidate, false);
 
-    // VK_QCOM_tile_memory_heap is available
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsTileMemoryHeap,
-                            /*mTileMemoryHeapFeatures.tileMemoryHeap == VK_TRUE*/ false);
+    // VK_QCOM_tile_memory_heap is available. Earlier qualcomm driver has a bug with copying stencil
+    // data from tile memory.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsTileMemoryHeap,
+        mTileMemoryHeapFeatures.tileMemoryHeap == VK_TRUE &&
+            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 868, 1)));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstc3d,
                             mTextureCompressionASTC3DFeatures.textureCompressionASTC_3D == VK_TRUE);
@@ -6920,6 +6936,20 @@ void Renderer::initOpenCLFeatures(const vk::ExtensionNameList &deviceExtensionNa
         mNativeVectorWidthHalf    = 2;
         mPreferredVectorWidthHalf = 8;
     }
+
+    // The OpenCL extension cl_khr_subgroups needs support for
+    // Basic - for subgroup size and related ops and barrier ops
+    // Vote - for subgroup all/any ops
+    // Arithmetic - for subgroup reduce and scan ops
+    constexpr VkSubgroupFeatureFlags kRequiredSubgroupBits = VK_SUBGROUP_FEATURE_BASIC_BIT |
+                                                             VK_SUBGROUP_FEATURE_VOTE_BIT |
+                                                             VK_SUBGROUP_FEATURE_ARITHMETIC_BIT;
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsClKhrSubgroups,
+        (mSubgroupProperties.supportedStages & VK_SHADER_STAGE_COMPUTE_BIT) != 0 &&
+            (mSubgroupProperties.supportedOperations & kRequiredSubgroupBits) ==
+                kRequiredSubgroupBits);
 }
 
 void Renderer::appBasedFeatureOverrides(const vk::ExtensionNameList &extensions) {}
@@ -7898,6 +7928,15 @@ void Renderer::addSamplerYcbcrConversionToOrphanList(VkSamplerYcbcrConversion co
 {
     std::unique_lock<angle::SimpleMutex> lock(mOrphanedSamplerMutex);
     mOrphanedSamplerYcbcrConversions.push_back(conversion);
+}
+
+void Renderer::logFeatures() const
+{
+    INFO() << "List of all Renderer.mFeatures:";
+    for (const auto &featureInfo : mFeatures.getFeatures())
+    {
+        INFO() << "\tmFeatures." << featureInfo.second->name << ": " << featureInfo.second->enabled;
+    }
 }
 
 // static

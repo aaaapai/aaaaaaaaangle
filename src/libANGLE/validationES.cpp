@@ -6058,90 +6058,82 @@ bool ValidateGetShaderivRobustANGLE(const Context *context,
 
 bool ValidateGetTexParameterfvRobustANGLE(const Context *context,
                                           angle::EntryPoint entryPoint,
-                                          TextureType target,
+                                          TextureType targetPacked,
                                           GLenum pname,
-                                          GLsizei bufSize,
+                                          GLsizei paramCount,
                                           const GLsizei *length,
                                           const GLfloat *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetTexParameterBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetTexParameterBase(context, entryPoint, targetPacked, pname, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei numParams = 0;
-
-    if (!ValidateGetTexParameterBase(context, entryPoint, target, pname, &numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, numParams);
 
     return true;
 }
 
 bool ValidateGetTexParameterivRobustANGLE(const Context *context,
                                           angle::EntryPoint entryPoint,
-                                          TextureType target,
+                                          TextureType targetPacked,
                                           GLenum pname,
-                                          GLsizei bufSize,
+                                          GLsizei paramCount,
                                           const GLsizei *length,
                                           const GLint *params)
 {
-
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetTexParameterBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetTexParameterBase(context, entryPoint, targetPacked, pname, &numParams))
     {
         return false;
     }
-    GLsizei numParams = 0;
-    if (!ValidateGetTexParameterBase(context, entryPoint, target, pname, &numParams))
-    {
-        return false;
-    }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
 
-    SetRobustLengthParam(length, numParams);
     return true;
 }
 
 bool ValidateTexParameterfvRobustANGLE(const Context *context,
                                        angle::EntryPoint entryPoint,
-                                       TextureType target,
+                                       TextureType targetPacked,
                                        GLenum pname,
-                                       GLsizei bufSize,
+                                       GLsizei paramCount,
                                        const GLfloat *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    const GLsizei numParams = (pname == GL_TEXTURE_BORDER_COLOR) ? 4 : 1;
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
 
-    return ValidateTexParameterBase(context, entryPoint, target, pname, bufSize, true, params);
+    return ValidateTexParameterBase(context, entryPoint, targetPacked, pname, params);
 }
 
 bool ValidateTexParameterivRobustANGLE(const Context *context,
                                        angle::EntryPoint entryPoint,
-                                       TextureType target,
+                                       TextureType targetPacked,
                                        GLenum pname,
-                                       GLsizei bufSize,
+                                       GLsizei paramCount,
                                        const GLint *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    const GLsizei numParams = (pname == GL_TEXTURE_BORDER_COLOR) ? 4 : 1;
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
 
-    return ValidateTexParameterBase(context, entryPoint, target, pname, bufSize, true, params);
+    return ValidateTexParameterBase(context, entryPoint, targetPacked, pname, params);
 }
 
 bool ValidateGetSamplerParameterfvRobustANGLE(const Context *context,
@@ -6658,23 +6650,19 @@ bool ValidateGetShaderivBase(const Context *context,
 
 bool ValidateGetTexParameterBase(const Context *context,
                                  angle::EntryPoint entryPoint,
-                                 TextureType target,
+                                 TextureType targetPacked,
                                  GLenum pname,
-                                 GLsizei *length)
+                                 GLsizei *outNumParams)
 {
-    if (length)
-    {
-        *length = 0;
-    }
-
-    if ((!ValidTextureTarget(context, target) && !ValidTextureExternalTarget(context, target)) ||
-        target == TextureType::Buffer)
+    if ((!ValidTextureTarget(context, targetPacked) &&
+         !ValidTextureExternalTarget(context, targetPacked)) ||
+        targetPacked == TextureType::Buffer)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
         return false;
     }
 
-    if (context->getTextureByType(target) == nullptr)
+    if (context->getTextureByType(targetPacked) == nullptr)
     {
         // Should only be possible for external textures
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTextureNotBound);
@@ -6872,10 +6860,11 @@ bool ValidateGetTexParameterBase(const Context *context,
             return false;
     }
 
-    if (length)
+    if (outNumParams != nullptr)
     {
-        *length = GetTexParameterCount(pname);
+        *outNumParams = (pname == GL_TEXTURE_BORDER_COLOR) ? 4 : 1;
     }
+
     return true;
 }
 
@@ -7290,20 +7279,19 @@ bool ValidateReadPixelsBase(const Context *context,
 template <typename ParamType>
 bool ValidateTexParameterBase(const Context *context,
                               angle::EntryPoint entryPoint,
-                              TextureType target,
+                              TextureType targetPacked,
                               GLenum pname,
-                              GLsizei bufSize,
-                              bool vectorParams,
                               const ParamType *params)
 {
-    if ((!ValidTextureTarget(context, target) && !ValidTextureExternalTarget(context, target)) ||
-        target == TextureType::Buffer)
+    if ((!ValidTextureTarget(context, targetPacked) &&
+         !ValidTextureExternalTarget(context, targetPacked)) ||
+        targetPacked == TextureType::Buffer)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
         return false;
     }
 
-    Texture *texture = context->getTextureByType(target);
+    Texture *texture = context->getTextureByType(targetPacked);
     if (texture == nullptr)
     {
         // Should only be possible for external textures
@@ -7314,13 +7302,6 @@ bool ValidateTexParameterBase(const Context *context,
     if (context->getState().isTextureBoundToActivePLS(texture->id()))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kActivePLSBackingTexture);
-        return false;
-    }
-
-    const GLsizei minBufSize = GetTexParameterCount(pname);
-    if (bufSize >= 0 && bufSize < minBufSize)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInsufficientBufferSize);
         return false;
     }
 
@@ -7349,7 +7330,8 @@ bool ValidateTexParameterBase(const Context *context,
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kES3Required);
                 return false;
             }
-            if (target == TextureType::VideoImage && !context->getExtensions().videoTextureWEBGL)
+            if (targetPacked == TextureType::VideoImage &&
+                !context->getExtensions().videoTextureWEBGL)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
@@ -7369,7 +7351,8 @@ bool ValidateTexParameterBase(const Context *context,
             break;
     }
 
-    if (target == TextureType::_2DMultisample || target == TextureType::_2DMultisampleArray)
+    if (targetPacked == TextureType::_2DMultisample ||
+        targetPacked == TextureType::_2DMultisampleArray)
     {
         switch (pname)
         {
@@ -7394,9 +7377,9 @@ bool ValidateTexParameterBase(const Context *context,
         case GL_TEXTURE_WRAP_T:
         case GL_TEXTURE_WRAP_R:
         {
-            bool restrictedWrapModes = ((target == TextureType::External &&
+            bool restrictedWrapModes = ((targetPacked == TextureType::External &&
                                          !context->getExtensions().EGLImageExternalWrapModesEXT) ||
-                                        target == TextureType::Rectangle);
+                                        targetPacked == TextureType::Rectangle);
             if (!ValidateTextureWrapModeValue(context, entryPoint, params, restrictedWrapModes))
             {
                 return false;
@@ -7407,7 +7390,7 @@ bool ValidateTexParameterBase(const Context *context,
         case GL_TEXTURE_MIN_FILTER:
         {
             bool restrictedMinFilter =
-                target == TextureType::External || target == TextureType::Rectangle;
+                targetPacked == TextureType::External || targetPacked == TextureType::Rectangle;
             if (!ValidateTextureMinFilterValue(context, entryPoint, params, restrictedMinFilter))
             {
                 return false;
@@ -7497,19 +7480,19 @@ bool ValidateTexParameterBase(const Context *context,
                 ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kBaseLevelNegative);
                 return false;
             }
-            if (target == TextureType::External && static_cast<GLuint>(params[0]) != 0)
+            if (targetPacked == TextureType::External && static_cast<GLuint>(params[0]) != 0)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kBaseLevelNonZero);
                 return false;
             }
-            if ((target == TextureType::_2DMultisample ||
-                 target == TextureType::_2DMultisampleArray) &&
+            if ((targetPacked == TextureType::_2DMultisample ||
+                 targetPacked == TextureType::_2DMultisampleArray) &&
                 static_cast<GLuint>(params[0]) != 0)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kBaseLevelNonZero);
                 return false;
             }
-            if (target == TextureType::Rectangle && static_cast<GLuint>(params[0]) != 0)
+            if (targetPacked == TextureType::Rectangle && static_cast<GLuint>(params[0]) != 0)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kBaseLevelNonZero);
                 return false;
@@ -7571,9 +7554,11 @@ bool ValidateTexParameterBase(const Context *context,
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
                 return false;
             }
-            if (!vectorParams)
+            if (entryPoint == angle::EntryPoint::GLTexParameterf ||
+                entryPoint == angle::EntryPoint::GLTexParameteri ||
+                entryPoint == angle::EntryPoint::GLTexParameterx)
             {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInsufficientBufferSize);
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kEnumInvalid);
                 return false;
             }
             break;
@@ -7585,9 +7570,10 @@ bool ValidateTexParameterBase(const Context *context,
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kExtensionNotEnabled);
                 return false;
             }
-            if (!vectorParams)
+            if (entryPoint == angle::EntryPoint::GLTexParameterf ||
+                entryPoint == angle::EntryPoint::GLTexParameteri)
             {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInsufficientBufferSize);
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kEnumInvalid);
                 return false;
             }
             break;
@@ -7657,7 +7643,7 @@ bool ValidateTexParameterBase(const Context *context,
                     ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kFoveatedTextureInvalidParameters);
                     return false;
                 }
-                if ((context->getTextureByType(target)->getFoveatedFeatureBits() &
+                if ((context->getTextureByType(targetPacked)->getFoveatedFeatureBits() &
                      GL_FOVEATION_ENABLE_BIT_QCOM) &&
                     (features & GL_FOVEATION_ENABLE_BIT_QCOM) == 0)
                 {
@@ -7719,22 +7705,16 @@ template bool ValidateTexParameterBase(const Context *,
                                        angle::EntryPoint,
                                        TextureType,
                                        GLenum,
-                                       GLsizei,
-                                       bool,
                                        const GLfloat *);
 template bool ValidateTexParameterBase(const Context *,
                                        angle::EntryPoint,
                                        TextureType,
                                        GLenum,
-                                       GLsizei,
-                                       bool,
                                        const GLint *);
 template bool ValidateTexParameterBase(const Context *,
                                        angle::EntryPoint,
                                        TextureType,
                                        GLenum,
-                                       GLsizei,
-                                       bool,
                                        const GLuint *);
 
 bool ValidateGetActiveUniformBlockivBase(const Context *context,
@@ -8206,20 +8186,14 @@ bool ValidateTexStorage3DMultisampleBase(const Context *context,
 
 bool ValidateGetTexLevelParameterBase(const Context *context,
                                       angle::EntryPoint entryPoint,
-                                      TextureTarget target,
+                                      TextureTarget targetPacked,
                                       GLint level,
-                                      GLenum pname,
-                                      GLsizei *length)
+                                      TextureImageParameter pnamePacked,
+                                      GLsizei *outNumParams)
 {
+    const TextureType type = TextureTargetToType(targetPacked);
 
-    if (length)
-    {
-        *length = 0;
-    }
-
-    TextureType type = TextureTargetToType(target);
-
-    if (!ValidTexLevelDestinationTarget(context, type))
+    if (ANGLE_UNLIKELY(!ValidTexLevelDestinationTarget(context, type)))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
         return false;
@@ -8228,87 +8202,64 @@ bool ValidateGetTexLevelParameterBase(const Context *context,
     // If type is valid, the texture object must exist
     ASSERT(context->getTextureByType(type) != nullptr);
 
-    if (!ValidMipLevel(context, type, level))
+    if (ANGLE_UNLIKELY(!ValidMipLevel(context, type, level)))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidMipLevel);
         return false;
     }
 
-    switch (pname)
+    bool isPnameSupported = false;
+    switch (pnamePacked)
     {
-        case GL_TEXTURE_RED_TYPE:
-        case GL_TEXTURE_GREEN_TYPE:
-        case GL_TEXTURE_BLUE_TYPE:
-        case GL_TEXTURE_ALPHA_TYPE:
-        case GL_TEXTURE_DEPTH_TYPE:
-        case GL_TEXTURE_RED_SIZE:
-        case GL_TEXTURE_GREEN_SIZE:
-        case GL_TEXTURE_BLUE_SIZE:
-        case GL_TEXTURE_ALPHA_SIZE:
-        case GL_TEXTURE_DEPTH_SIZE:
-        case GL_TEXTURE_STENCIL_SIZE:
-        case GL_TEXTURE_SHARED_SIZE:
-        case GL_TEXTURE_INTERNAL_FORMAT:
-        case GL_TEXTURE_WIDTH:
-        case GL_TEXTURE_HEIGHT:
-        case GL_TEXTURE_COMPRESSED:
+        case TextureImageParameter::Width:
+        case TextureImageParameter::Height:
+        case TextureImageParameter::Depth:
+        case TextureImageParameter::InternalFormat:
+        case TextureImageParameter::RedSize:
+        case TextureImageParameter::GreenSize:
+        case TextureImageParameter::BlueSize:
+        case TextureImageParameter::AlphaSize:
+        case TextureImageParameter::DepthSize:
+        case TextureImageParameter::StencilSize:
+        case TextureImageParameter::SharedSize:
+        case TextureImageParameter::RedType:
+        case TextureImageParameter::GreenType:
+        case TextureImageParameter::BlueType:
+        case TextureImageParameter::AlphaType:
+        case TextureImageParameter::DepthType:
+        case TextureImageParameter::Compressed:
+        case TextureImageParameter::Samples:
+        case TextureImageParameter::FixedSampleLocations:
+            isPnameSupported = true;
             break;
-
-        case GL_MEMORY_SIZE_ANGLE:
-            if (!context->getExtensions().memorySizeANGLE)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kEnumNotSupported);
-                return false;
-            }
+        case TextureImageParameter::BufferDataStoreBinding:
+        case TextureImageParameter::BufferOffset:
+        case TextureImageParameter::BufferSize:
+            isPnameSupported = context->getClientVersion() >= ES_3_2 ||
+                               context->getExtensions().textureBufferAny();
             break;
-
-        case GL_TEXTURE_DEPTH:
-            if (context->getClientVersion() < ES_3_0 && !context->getExtensions().texture3DOES)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kEnumNotSupported);
-                return false;
-            }
+        case TextureImageParameter::MemorySize:
+            isPnameSupported = context->getExtensions().memorySizeANGLE;
             break;
-
-        case GL_TEXTURE_SAMPLES:
-        case GL_TEXTURE_FIXED_SAMPLE_LOCATIONS:
-            if (context->getClientVersion() < ES_3_1 &&
-                !context->getExtensions().textureMultisampleANGLE)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kMultisampleTextureExtensionOrES31Required);
-                return false;
-            }
+        case TextureImageParameter::ResourceInitialized:
+            isPnameSupported = context->getExtensions().robustResourceInitializationANGLE;
             break;
-
-        case GL_RESOURCE_INITIALIZED_ANGLE:
-            if (!context->getExtensions().robustResourceInitializationANGLE)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM,
-                                       kRobustResourceInitializationExtensionRequired);
-                return false;
-            }
-            break;
-
-        case GL_TEXTURE_BUFFER_DATA_STORE_BINDING:
-        case GL_TEXTURE_BUFFER_OFFSET:
-        case GL_TEXTURE_BUFFER_SIZE:
-            if (context->getClientVersion() < Version(3, 2) &&
-                !context->getExtensions().textureBufferAny())
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTextureBufferExtensionNotAvailable);
-                return false;
-            }
-            break;
-
         default:
-            ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPname);
+            ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kParameterNameUnknown);
             return false;
     }
 
-    if (length)
+    if (ANGLE_UNLIKELY(!isPnameSupported))
     {
-        *length = 1;
+        ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kParameterNameUnsupported, ToGLenum(pnamePacked));
+        return false;
     }
+
+    if (outNumParams != nullptr)
+    {
+        *outNumParams = 1;
+    }
+
     return true;
 }
 
