@@ -128,4 +128,3 @@ angle_standalone = false
 angle_has_frame_capture = false
 
 enable_stripping = true
-angle_use_vulkan_display = true
