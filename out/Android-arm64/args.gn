@@ -38,12 +38,10 @@ build_angle_deqp_tests = false
 arm_use_neon = true
 arm_version = 8
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
-angle_enable_custom_vulkan_cmd_buffers = true
 angle_enable_vulkan_validation_layers = false
 angle_enable_trace = false
 
 angle_build_tests = false
-use_thin_lto = true
 
 cflags_c = [
   "-Wno-unused-variable",
@@ -81,7 +79,7 @@ cflags_cc = [
   "-Wno-error",
   "-O3",
   "-mllvm -polly",
-  "-march=armv8-a+simd+crc+fp16+dotprod+lse",
+  "-march=armv8-a+simd",
   "-fomit-frame-pointer",
   "-fno-semantic-interposition",
   "-mllvm -hot-cold-split=true",
@@ -103,23 +101,22 @@ cflags_cc = [
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
   "-fwhole-program-vtables",
+  "-flto",
 ]
 ldflags = [
   "-fuse-ld=lld",
-  "-Wl,-z,max-page-size=16384",
   "-Wl,--gc-sections",
 ]
 
 treat_warnings_as_errors = false
 libcxx_abi_unstable = true
 angle_vulkan_display_mode = "simple"
-use_cxx23 = true
 android_ndk_root = "/usr/local/lib/android/sdk/ndk/29.0.14206865"
 android_ndk_version = "r29"
 
 # Whether the ANGLE translator should be built with IR instead
 # THIS IS CURRENTLY EXPERIMENTAL.
-angle_ir = true
+angle_ir = false
 
 angle_enable_perf_counter_output = false
 
