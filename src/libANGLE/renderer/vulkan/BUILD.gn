@@ -90,7 +90,7 @@ if (is_android) {
     defines = [
       "ANGLE_ANDROID_DMA_BUF",
       "ANGLE_USE_VULKAN_DISPLAY",
-      "ANGLE_VULKAN_DISPLAY_MODE_SIMPLE",
+      "ANGLE_VULKAN_DISPLAY_MODE_OFFSCREEN",
     ]
     if (angle_use_gbm) {
       deps += [ "//third_party/minigbm" ]
