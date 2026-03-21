@@ -620,13 +620,6 @@ void CaptureRequestExtensionANGLE_name(const State &glState,
     CaptureString(name, paramCapture);
 }
 
-void CaptureDisableExtensionANGLE_name(const State &glState,
-                                       const GLchar *name,
-                                       ParamCapture *paramCapture)
-{
-    CaptureString(name, paramCapture);
-}
-
 // GL_ANGLE_robust_client_memory
 void CaptureGetBooleanvRobustANGLE_length(const State &glState,
                                           GLenum pname,
@@ -1154,76 +1147,6 @@ void CaptureTexSubImage3DRobustANGLE_pixels(const State &glState,
 {
     CaptureTexSubImage3D_pixels(glState, targetPacked, level, xoffset, yoffset, zoffset, width,
                                 height, depth, format, type, pixels, paramCapture);
-}
-
-void CaptureCompressedTexImage2DRobustANGLE_data(const State &glState,
-                                                 TextureTarget targetPacked,
-                                                 GLint level,
-                                                 GLenum internalformat,
-                                                 GLsizei width,
-                                                 GLsizei height,
-                                                 GLint border,
-                                                 GLsizei imageSize,
-                                                 GLsizei bufSize,
-                                                 const GLvoid *data,
-                                                 ParamCapture *paramCapture)
-{
-    CaptureCompressedTexImage2D_data(glState, targetPacked, level, internalformat, width, height,
-                                     border, imageSize, data, paramCapture);
-}
-
-void CaptureCompressedTexSubImage2DRobustANGLE_data(const State &glState,
-                                                    TextureTarget targetPacked,
-                                                    GLint level,
-                                                    GLsizei xoffset,
-                                                    GLsizei yoffset,
-                                                    GLsizei width,
-                                                    GLsizei height,
-                                                    GLenum format,
-                                                    GLsizei imageSize,
-                                                    GLsizei bufSize,
-                                                    const GLvoid *data,
-                                                    ParamCapture *paramCapture)
-{
-    CaptureCompressedTexSubImage2D_data(glState, targetPacked, level, xoffset, yoffset, width,
-                                        height, format, imageSize, data, paramCapture);
-}
-
-void CaptureCompressedTexImage3DRobustANGLE_data(const State &glState,
-                                                 TextureTarget targetPacked,
-                                                 GLint level,
-                                                 GLenum internalformat,
-                                                 GLsizei width,
-                                                 GLsizei height,
-                                                 GLsizei depth,
-                                                 GLint border,
-                                                 GLsizei imageSize,
-                                                 GLsizei bufSize,
-                                                 const GLvoid *data,
-                                                 ParamCapture *paramCapture)
-{
-    CaptureCompressedTexImage3D_data(glState, targetPacked, level, internalformat, width, height,
-                                     depth, border, imageSize, data, paramCapture);
-}
-
-void CaptureCompressedTexSubImage3DRobustANGLE_data(const State &glState,
-                                                    TextureTarget targetPacked,
-                                                    GLint level,
-                                                    GLint xoffset,
-                                                    GLint yoffset,
-                                                    GLint zoffset,
-                                                    GLsizei width,
-                                                    GLsizei height,
-                                                    GLsizei depth,
-                                                    GLenum format,
-                                                    GLsizei imageSize,
-                                                    GLsizei bufSize,
-                                                    const GLvoid *data,
-                                                    ParamCapture *paramCapture)
-{
-    CaptureCompressedTexSubImage3D_data(glState, targetPacked, level, xoffset, yoffset, zoffset,
-                                        width, height, depth, format, imageSize, data,
-                                        paramCapture);
 }
 
 void CaptureGetQueryivRobustANGLE_length(const State &glState,

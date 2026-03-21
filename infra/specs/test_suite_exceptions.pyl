@@ -20,7 +20,7 @@
   'angle_deqp_gles2_d3d11_tests': {
     'modifications': {
       # anglebug.com/352528974 suspecting OOM caused by multiprocess
-      'win10-x64-exp-intel': {
+      'angle-win-x64-intel-uhd770-rel': {
         'args': [
           '--max-processes=2',
         ],
@@ -39,21 +39,12 @@
         },
       },
       # anglebug.com/352528974 suspecting OOM caused by multiprocess
-      'win10-x64-exp-intel': {
+      'angle-win-x64-intel-uhd770-rel': {
         'args': [
           '--max-processes=2',
         ],
         'swarming': {
           'shards': 5,
-        },
-      },
-      # anglebug.com/40644897 suspecting device lost caused by multiprocess
-      'win10-x64-intel': {
-        'args': [
-          '--max-processes=1',
-        ],
-        'swarming': {
-          'shards': 10,
         },
       },
       # anglebug.com/40644897 suspecting device lost caused by multiprocess
@@ -69,12 +60,6 @@
     'replacements': {
       # anglebug.com/408276172 suspecting WebGPU backend flakiness caused by multiprocess
       'angle-linux-x64-intel-uhd630-rel': {
-        'args': {
-          '--max-processes': '1',
-        },
-      },
-      # anglebug.com/408276172 suspecting WebGPU backend flakiness caused by multiprocess
-      'linux-intel': {
         'args': {
           '--max-processes': '1',
         },
@@ -108,18 +93,9 @@
           'shards': 5,
         },
       },
-      'win10-x64-exp-intel': {
+      'angle-win-x64-intel-uhd770-rel': {
         'swarming': {
           'shards': 4,
-        },
-      },
-      'win10-x64-intel': {
-        # anglebug.com/42263955 flaky 4x8 pixel artifacts on Win Intel
-        'args': [
-          '--flaky-retries=1',
-        ],
-        'swarming': {
-          'shards': 5,
         },
       },
       'win10-x64-ir-intel': {
@@ -156,14 +132,9 @@
           'shards': 3,
         },
       },
-      'win10-x64-exp-intel': {
+      'angle-win-x64-intel-uhd770-rel': {
         'swarming': {
           'shards': 4,
-        },
-      },
-      'win10-x64-intel': {
-        'swarming': {
-          'shards': 3,
         },
       },
       'win10-x64-ir-intel': {
@@ -177,12 +148,6 @@
     'modifications': {
       # anglebug.com/40644897 suspecting device lost caused by multiprocess
       'angle-win-x64-intel-uhd630-rel': {
-        'args': [
-          '--max-processes=1',
-        ],
-      },
-      # anglebug.com/40644897 suspecting device lost caused by multiprocess
-      'win10-x64-intel': {
         'args': [
           '--max-processes=1',
         ],
