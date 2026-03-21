@@ -210,17 +210,10 @@ std::ostream &FmtHex(std::ostream &os, T value)
 #    define ANGLE_ENABLE_ASSERTS
 #endif
 
-#if defined(ANGLE_ASSERT_ALWAYS_ON)
-#define INFO() FATAL()
-#define WARN() FATAL()
-#define ERR() FATAL()
-#define FATAL() ANGLE_LOG(FATAL)
-#else
 #define INFO() ANGLE_LOG(INFO)
 #define WARN() ANGLE_LOG(WARN)
 #define ERR() ANGLE_LOG(ERR)
 #define FATAL() ANGLE_LOG(FATAL)
-#endif
 
 // A macro to log a performance event around a scope.
 #if defined(ANGLE_TRACE_ENABLED)
