@@ -3088,6 +3088,10 @@ angle::Result UtilsVk::colorBlitResolve(ContextVk *contextVk,
 
     // All deferred clear must have been flushed, otherwise it will conflict with
     // params.blitArea.
+    if (framebuffer->hasDeferredClears())
+    {
+        ANGLE_TRY(framebuffer->flushDeferredClears(contextVk));
+    }
     ASSERT(!framebuffer->hasDeferredClears());
     vk::RenderPassCommandBuffer *commandBuffer;
     ANGLE_TRY(framebuffer->startNewRenderPass(contextVk, params.blitArea, &commandBuffer, nullptr));
