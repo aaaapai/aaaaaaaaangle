@@ -4260,7 +4260,7 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
         {
             if (!executable->validateSamplers(context->getCaps()))
             {
-                return kTextureTypeConflict;
+                //return kTextureTypeConflict;
             }
 
             if (ANGLE_UNLIKELY(executable->hasLinkedTessellationShader()))
