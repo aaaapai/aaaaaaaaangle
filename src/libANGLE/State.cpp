@@ -486,10 +486,7 @@ void PrivateState::initialize(Context *context)
     mNoUnclampedBlendColor = context->getLimitations().noUnclampedBlendColor;
 
     // GLES1 emulation: Initialize state for GLES1 if version applies
-    if (context->getClientVersion() < Version(2, 0) || std::getenv("ANGLE_USE_EGL_OPENGL_API"))
-    {
-        mGLES1State.initialize(context, this);
-    }
+    mGLES1State.initialize(context, this);
 }
 
 void PrivateState::initializeForCapture(const Context *context)
