@@ -2239,7 +2239,7 @@ bool ValidateClearBufferiv(const Context *context,
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
             if (static_cast<size_t>(drawbuffer) >=
                 context->getState().getDrawFramebuffer()->getDrawbufferStateCount())
@@ -2294,7 +2294,7 @@ bool ValidateClearBufferuiv(const Context *context,
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
             if (static_cast<size_t>(drawbuffer) >=
                 context->getState().getDrawFramebuffer()->getDrawbufferStateCount())
