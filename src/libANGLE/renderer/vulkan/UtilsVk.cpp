@@ -2596,10 +2596,6 @@ angle::Result UtilsVk::clearFramebuffer(ContextVk *contextVk,
     else
     {
         // Deferred clears should be handled already.
-        if (framebuffer->hasDeferredClears())
-        {
-           framebuffer->flushDeferredClears(contextVk);
-        }
         ASSERT(!framebuffer->hasDeferredClears());
         ANGLE_TRY(contextVk->startRenderPass(scissoredRenderArea, &commandBuffer, nullptr));
     }
@@ -3088,10 +3084,6 @@ angle::Result UtilsVk::colorBlitResolve(ContextVk *contextVk,
 
     // All deferred clear must have been flushed, otherwise it will conflict with
     // params.blitArea.
-    if (framebuffer->hasDeferredClears())
-    {
-        framebuffer->flushDeferredClears(contextVk);
-    }
     ASSERT(!framebuffer->hasDeferredClears());
     vk::RenderPassCommandBuffer *commandBuffer;
     ANGLE_TRY(framebuffer->startNewRenderPass(contextVk, params.blitArea, &commandBuffer, nullptr));
