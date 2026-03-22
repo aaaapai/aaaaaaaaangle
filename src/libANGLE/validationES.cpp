@@ -2943,7 +2943,7 @@ bool ValidateStateQuery(const Context *context,
         if (colorAttachment >= caps.maxDrawBuffers)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kIndexExceedsMaxDrawBuffer);
-            return false;
+            return true;
         }
     }
 
