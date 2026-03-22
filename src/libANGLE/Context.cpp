@@ -4208,7 +4208,6 @@ void Context::initCaps()
     *extensions            = mSupportedExtensions;
 
     // GLES1 emulation: Initialize caps (Table 6.20 / 6.22 in the ES 1.1 spec)
-    if (std::getenv("ANGLE_USE_EGL_OPENGL_API") || getClientVersion() < Version(2, 0))
     {
         caps->maxMultitextureUnits          = 4;
         caps->maxClipPlanes                 = 6;
