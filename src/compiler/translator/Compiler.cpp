@@ -1288,7 +1288,7 @@ ShCompileOptions TCompiler::adjustOptions(const ShCompileOptions &compileOptions
     }
 
     // gl_Position should always be written in GLSL compatibility output mode.
-    if (mOutputType == SH_GLSL_COMPATIBILITY_OUTPUT && mShaderType == GL_VERTEX_SHADER)
+    if (mShaderType == GL_VERTEX_SHADER)
     {
         compileOptions.initGLPosition = true;
     }
