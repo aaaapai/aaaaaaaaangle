@@ -81,14 +81,14 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
     {
         /*return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                                              err::kFramebufferIncompleteAttachmentZeroSize);*/
-        fprintf("CheckAttachmentCompleteness: Attachment has zero size.");
+        printf("CheckAttachmentCompleteness: Attachment has zero size.\n");
     }
 
     if (!attachment.isRenderable(context))
     {
         /*return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                                              err::kFramebufferIncompleteAttachmentNotRenderable);*/
-        fprintf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentNotRenderable");
+        printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentNotRenderable\n");
     }
 
     if (attachment.type() == GL_TEXTURE)
@@ -104,7 +104,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentLayerGreaterThanDepth);
-                fprintf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLayerGreaterThanDepth");
+                printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLayerGreaterThanDepth\n");
             }
         }
         // If <image> is a three-dimensional texture or a two-dimensional array texture and the
@@ -117,7 +117,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 /*return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers);*/
-                fprintf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers");
+                printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers\n");
             }
         }
 
@@ -133,7 +133,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
             /*return FramebufferStatus::Incomplete(
                 GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                 err::kFramebufferIncompleteAttachmentNotCubeComplete);*/
-            fprintf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentNotCubeComplete");
+            printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentNotCubeComplete\n");
         }
 
         if (!texture->getImmutableFormat())
@@ -156,7 +156,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 /*return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentLevelOutOfBaseMaxLevelRange);*/
-                fprintf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLevelOutOfBaseMaxLevelRange");
+                printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLevelOutOfBaseMaxLevelRange\n");
             }
 
             // Form the ES 3.0 spec, pg 213/214:
@@ -170,7 +170,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 /*return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentLevelNotBaseLevelForIncompleteMipTexture);*/
-                fprintf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLevelNotBaseLevelForIncompleteMipTexture");
+                printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLevelNotBaseLevelForIncompleteMipTexture\n");
             }
         }
     }
