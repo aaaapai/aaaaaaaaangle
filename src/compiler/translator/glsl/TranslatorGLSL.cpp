@@ -266,8 +266,6 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
             continue;
         }
 
-        if (getOutputType() == SH_GLSL_COMPATIBILITY_OUTPUT)
-        {
             // For GLSL output, we don't need to emit most extensions explicitly,
             // but some we need to translate in GL compatibility profile.
             if (iter.first == TExtension::EXT_shader_texture_lod)
@@ -288,7 +286,6 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
                 sink << "#extension GL_ARB_geometry_shader4 : " << GetBehaviorString(iter.second)
                      << "\n";
             }
-        }
 
         const bool isMultiview =
             (iter.first == TExtension::OVR_multiview) || (iter.first == TExtension::OVR_multiview2);
