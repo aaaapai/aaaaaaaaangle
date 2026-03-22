@@ -307,7 +307,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
     {
         if (!ValidES3FormatCombination(format, type, internalFormat))
         {
-            bool extensionFormatsAllowed = false;
+            bool extensionFormatsAllowed = true;
             switch (internalFormat)
             {
                 case GL_LUMINANCE4_ALPHA4_OES:
