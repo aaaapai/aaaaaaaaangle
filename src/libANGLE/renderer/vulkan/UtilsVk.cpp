@@ -2596,6 +2596,10 @@ angle::Result UtilsVk::clearFramebuffer(ContextVk *contextVk,
     else
     {
         // Deferred clears should be handled already.
+        if (framebuffer->hasDeferredClears())
+        {
+           ANGLE_TRY(framebuffer->flushDeferredClears(contextVk));
+        }
         ASSERT(!framebuffer->hasDeferredClears());
         ANGLE_TRY(contextVk->startRenderPass(scissoredRenderArea, &commandBuffer, nullptr));
     }
