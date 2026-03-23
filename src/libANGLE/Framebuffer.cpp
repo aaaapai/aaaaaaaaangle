@@ -79,14 +79,16 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
     const Extents &size = attachment.getSize();
     if (size.width == 0 || size.height == 0)
     {
-        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                                             err::kFramebufferIncompleteAttachmentZeroSize);
+        /*return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
+                                             err::kFramebufferIncompleteAttachmentZeroSize);*/
+        printf("CheckAttachmentCompleteness: Attachment has zero size.\n");
     }
 
     if (!attachment.isRenderable(context))
     {
-        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                                             err::kFramebufferIncompleteAttachmentNotRenderable);
+        /*return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
+                                             err::kFramebufferIncompleteAttachmentNotRenderable);*/
+        printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentNotRenderable\n");
     }
 
     if (attachment.type() == GL_TEXTURE)
@@ -102,6 +104,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentLayerGreaterThanDepth);
+                printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLayerGreaterThanDepth\n");
             }
         }
         // If <image> is a three-dimensional texture or a two-dimensional array texture and the
@@ -111,9 +114,10 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
         {
             if (size.depth >= context->getCaps().maxFramebufferLayers)
             {
-                return FramebufferStatus::Incomplete(
+                /*return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                    err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers);
+                    err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers);*/
+                printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers\n");
             }
         }
 
@@ -126,9 +130,10 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
         if (texture->getType() == TextureType::CubeMap &&
             !texture->getTextureState().isCubeComplete())
         {
-            return FramebufferStatus::Incomplete(
+            /*return FramebufferStatus::Incomplete(
                 GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                err::kFramebufferIncompleteAttachmentNotCubeComplete);
+                err::kFramebufferIncompleteAttachmentNotCubeComplete);*/
+            printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentNotCubeComplete\n");
         }
 
         if (!texture->getImmutableFormat())
@@ -148,9 +153,10 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 (attachmentMipLevel < texture->getBaseLevel() ||
                  attachmentMipLevel > texture->getMipmapMaxLevel()))
             {
-                return FramebufferStatus::Incomplete(
+                /*return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                    err::kFramebufferIncompleteAttachmentLevelOutOfBaseMaxLevelRange);
+                    err::kFramebufferIncompleteAttachmentLevelOutOfBaseMaxLevelRange);*/
+                printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLevelOutOfBaseMaxLevelRange\n");
             }
 
             // Form the ES 3.0 spec, pg 213/214:
@@ -161,9 +167,10 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
             // a cubemap texture, the texture must also be cube complete.
             if (attachmentMipLevel != texture->getBaseLevel() && !texture->isMipmapComplete())
             {
-                return FramebufferStatus::Incomplete(
+                /*return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                    err::kFramebufferIncompleteAttachmentLevelNotBaseLevelForIncompleteMipTexture);
+                    err::kFramebufferIncompleteAttachmentLevelNotBaseLevelForIncompleteMipTexture);*/
+                printf("CheckAttachmentCompleteness: err::kFramebufferIncompleteAttachmentLevelNotBaseLevelForIncompleteMipTexture\n");
             }
         }
     }

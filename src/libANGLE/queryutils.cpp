@@ -13,6 +13,7 @@
 #include "libANGLE/queryutils.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 #include "common/utilities.h"
 

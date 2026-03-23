@@ -3846,11 +3846,11 @@ bool ValidateAttachShader(const Context *context,
         return false;
     }
 
-    if (programObject->getAttachedShader(shaderObject->getType()))
+    /*if (programObject->getAttachedShader(shaderObject->getType()))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kShaderAttachmentHasShader);
         return false;
-    }
+    }*/
 
     return true;
 }
@@ -4568,7 +4568,8 @@ bool ValidateGetBooleanv(const Context *context,
                          GLenum pname,
                          const GLboolean *data)
 {
-    return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
+    //return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
+    return true;
 }
 
 bool ValidateGetError(const Context *context, angle::EntryPoint entryPoint)

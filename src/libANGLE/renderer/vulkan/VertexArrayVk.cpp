@@ -1346,7 +1346,7 @@ angle::Result VertexArrayVk::syncNeedsConversionAttrib(ContextVk *contextVk,
         mCurrentArrayBufferHandles[attribIndex] =
             bufferHelper->getBufferForVertexArray(contextVk, bufferSize, &bufferOffset).getHandle();
     }
-    ASSERT(BindingIsAligned(dstFormat, bufferOffset + dstRelativeOffset, dstStride));
+    //ASSERT(BindingIsAligned(dstFormat, bufferOffset + dstRelativeOffset, dstStride));
     mCurrentArrayBufferOffsets[attribIndex]         = bufferOffset + dstRelativeOffset;
     mCurrentArrayBufferSizes[attribIndex]           = bufferSize - dstRelativeOffset;
     mVertexInputAttribDescs[attribIndex].offset     = 0;

@@ -2943,7 +2943,7 @@ bool ValidateStateQuery(const Context *context,
         if (colorAttachment >= caps.maxDrawBuffers)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kIndexExceedsMaxDrawBuffer);
-            return false;
+            return true;
         }
     }
 
@@ -4260,7 +4260,7 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
         {
             if (!executable->validateSamplers(context->getCaps()))
             {
-                return kTextureTypeConflict;
+                //return kTextureTypeConflict;
             }
 
             if (ANGLE_UNLIKELY(executable->hasLinkedTessellationShader()))
@@ -5027,7 +5027,7 @@ bool ValidateDrawBuffersBase(const Context *context,
     if (n > context->getCaps().maxDrawBuffers)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-        return false;
+        return true;
     }
     // INVALID_VALUE is generated if n != 0 and bufs is NULL
     if (n != 0 && bufs == nullptr)

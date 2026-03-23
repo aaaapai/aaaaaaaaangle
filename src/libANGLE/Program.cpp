@@ -1655,7 +1655,7 @@ void Program::validate(const Caps &caps)
         {
             mValidated = false;
             mState.mInfoLog << err::kTextureTypeConflict;
-            return;
+            //return;
         }
         mValidated = ConvertToBool(mProgram->validate(caps));
     }

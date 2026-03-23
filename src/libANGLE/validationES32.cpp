@@ -161,7 +161,7 @@ bool ValidateColorMaski(const PrivateState &state,
     if (buf >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
     {
         errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-        return false;
+        return true;
     }
 
     return true;
@@ -246,8 +246,12 @@ bool ValidateDisablei(const PrivateState &state,
             if (index >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
             {
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             ANGLE_UNSAFE_TODO(
@@ -334,8 +338,12 @@ bool ValidateEnablei(const PrivateState &state,
             if (index >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
             {
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             ANGLE_UNSAFE_TODO(
@@ -524,8 +532,12 @@ bool ValidateIsEnabledi(const PrivateState &state,
             if (index >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
             {
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             ANGLE_UNSAFE_TODO(

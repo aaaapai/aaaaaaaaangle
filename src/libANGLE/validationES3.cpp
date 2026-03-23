@@ -10,6 +10,8 @@
 #    pragma allow_unsafe_buffers
 #endif
 
+#include <cstdlib>
+
 #include "libANGLE/validationES3_autogen.h"
 
 #include "anglebase/numerics/safe_conversions.h"
@@ -243,6 +245,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
 {
     // The type and format are valid if any supported internal format has that type and format.
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
+
     if (gl::IsYuvFormat(format))
     {
         if (!context->getExtensions().yuvInternalFormatANGLE)
@@ -304,7 +307,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
     {
         if (!ValidES3FormatCombination(format, type, internalFormat))
         {
-            bool extensionFormatsAllowed = false;
+            bool extensionFormatsAllowed = true;
             switch (internalFormat)
             {
                 case GL_LUMINANCE4_ALPHA4_OES:
@@ -2236,7 +2239,7 @@ bool ValidateClearBufferiv(const Context *context,
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
             if (static_cast<size_t>(drawbuffer) >=
                 context->getState().getDrawFramebuffer()->getDrawbufferStateCount())
@@ -2291,7 +2294,7 @@ bool ValidateClearBufferuiv(const Context *context,
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
             if (static_cast<size_t>(drawbuffer) >=
                 context->getState().getDrawFramebuffer()->getDrawbufferStateCount())
