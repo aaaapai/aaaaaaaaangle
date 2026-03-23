@@ -2341,7 +2341,7 @@ void TParseContext::declarationQualifierErrorCheck(const sh::TQualifier qualifie
     // parsing steps. So it needs to be checked here.
     if (anyMultiviewExtensionAvailable() && mShaderVersion < 300 && qualifier == EvqVertexIn)
     {
-        error(location, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
+        //error(location, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
     }
 
     bool canHaveLocation = qualifier == EvqVertexIn || qualifier == EvqFragmentOut;
