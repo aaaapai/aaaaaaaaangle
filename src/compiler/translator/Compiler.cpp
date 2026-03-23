@@ -794,6 +794,8 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
 {
     mValidateASTOptions = {};
 
+    mValidateASTOptions.validatePrecision = false;
+
     const bool useIR = compileOptions.useIR;
 
     // Disallow expressions deemed too complex.
