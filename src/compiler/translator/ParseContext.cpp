@@ -7892,7 +7892,7 @@ TStorageQualifierWrapper *TParseContext::parseInQualifier(const TSourceLoc &loc)
         {
             if (mShaderVersion < 300 && !anyMultiviewExtensionAvailable())
             {
-                error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
+                //error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
             }
             return new TStorageQualifierWrapper(EvqVertexIn, loc);
         }
@@ -7900,7 +7900,7 @@ TStorageQualifierWrapper *TParseContext::parseInQualifier(const TSourceLoc &loc)
         {
             if (mShaderVersion < 300)
             {
-                error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
+                //error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
             }
             return new TStorageQualifierWrapper(EvqFragmentIn, loc);
         }
@@ -7940,7 +7940,7 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
         {
             if (mShaderVersion < 300)
             {
-                error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
+                //error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
             }
             return new TStorageQualifierWrapper(EvqVertexOut, loc);
         }
@@ -7948,7 +7948,7 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
         {
             if (mShaderVersion < 300)
             {
-                error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
+                //error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
             }
             return new TStorageQualifierWrapper(EvqFragmentOut, loc);
         }
@@ -8668,10 +8668,10 @@ bool TParseContext::binaryOpCommonCheck(TOperator op,
     }
 
     // Implicit type casting is not allowed in ESSL.
-    if (!isBitShift && left->getBasicType() != right->getBasicType())
+    /*if (!isBitShift && left->getBasicType() != right->getBasicType())
     {
         return false;
-    }
+    }*/
 
     // Check that:
     // 1. Type sizes match exactly on ops that require that.
