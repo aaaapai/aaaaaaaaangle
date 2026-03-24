@@ -337,6 +337,30 @@ const TSymbol *TSymbolTable::findGlobal(const ImmutableString &name) const
     return mTable[0]->find(name);
 }
 
+const TSymbol *TSymbolTable::findGlobalWithConversion(
+    const std::vector<ImmutableString> &names) const
+{
+    for (const ImmutableString &name : names)
+    {
+        const TSymbol *target = findGlobal(name);
+        if (target != nullptr)
+            return target;
+    }
+    return nullptr;
+}
+
+const TSymbol *TSymbolTable::findBuiltInWithConversion(const std::vector<ImmutableString> &names,
+                                                       int shaderVersion) const
+{
+    for (const ImmutableString &name : names)
+    {
+        const TSymbol *target = findBuiltIn(name, shaderVersion);
+        if (target != nullptr)
+            return target;
+    }
+    return nullptr;
+}
+
 bool TSymbolTable::declare(TSymbol *symbol)
 {
     ASSERT(!mTable.empty());
