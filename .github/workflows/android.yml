@@ -93,8 +93,12 @@ jobs:
       - name: Build ANGLE
         shell: bash
         run: |
+          COMMIT_COUNT=$(git ls-remote origin | wc -l)
+          echo "ANGLE_COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_ENV
+          echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
+          gn gen out/Android-${{matrix.arch}} --threads=$(nproc)
           gn args out/Android-${{ matrix.arch }} --list --short
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
 
