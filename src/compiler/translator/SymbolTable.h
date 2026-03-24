@@ -256,6 +256,11 @@ class TSymbolTable : angle::NonCopyable, TSymbolTableBase
 
     const TSymbol *findGlobal(const ImmutableString &name) const;
 
+    const TSymbol *findGlobalWithConversion(const std::vector<ImmutableString> &names) const;
+
+    const TSymbol *findBuiltInWithConversion(const std::vector<ImmutableString> &names,
+                                             int shaderVersion) const;
+
     const TSymbol *findBuiltIn(const ImmutableString &name, int shaderVersion) const;
 
     void setDefaultPrecision(TBasicType type, TPrecision prec);
