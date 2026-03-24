@@ -46,8 +46,6 @@ jobs:
           sudo rm -rf /usr/share/miniconda
           sudo rm -rf /usr/local/share/vcpkg
           sudo rm -rf /usr/local/lib/android/sdk/ndk/27.3.13750724
-          sudo apt-get clean
-          sudo rm -rf /var/lib/apt/lists/*
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
       # ---------- 缓存其他依赖：sysroot、工具链、二进制工具 ----------
