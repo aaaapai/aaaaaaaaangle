@@ -14,15 +14,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
- 
       - name: Checkout
         uses: actions/checkout@main
         with:
-           fetch-depth: 1
-          
+          fetch-depth: 1
+
+      # ---------- 缓存 depot_tools ----------
+      - name: Cache depot_tools
+        id: cache-depot-tools
+        uses: actions/cache@v3
+        with:
+          path: depot_tools
+          key: depot-tools-${{ runner.os }}-${{ hashFiles('.gclient') }}
+          restore-keys: |
+            depot-tools-${{ runner.os }}-
+
       - name: Setup depot_tools
+        if: steps.cache-depot-tools.outputs.cache-hit != 'true'
         shell: bash
         run: |
+          # 清理磁盘空间（原有）
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/share/boost
@@ -39,26 +50,59 @@ jobs:
           sudo rm -rf /var/lib/apt/lists/*
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
+      # ---------- 缓存其他依赖：sysroot、工具链、二进制工具 ----------
+      - name: Cache ANGLE dependencies
+        id: cache-deps
+        uses: actions/cache@v3
+        with:
+          # 根据 ANGLE 实际存放位置调整，常见路径如下：
+          path: |
+            build/linux
+            third_party/llvm-build
+            third_party/rust-toolchain
+            tools/glslang
+            tools/flex-bison
+          key: deps-${{ runner.os }}-${{ hashFiles('DEPS') }}
+          restore-keys: |
+            deps-${{ runner.os }}-
+
       - name: Run gclient sync
         shell: bash
-        run:  |
-           COMMIT_COUNT=$(git ls-remote origin | wc -l)
-           echo "ANGLE_COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_ENV
-           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
-           export PATH=`pwd`/depot_tools:$PATH
-           echo $PATH
-           vpython3 scripts/bootstrap.py
-           gclient sync --no-history --shallow --reset --force
-        
-      - name: Build ANGLE
-        shell: bash
         run: |
+          # 确保 PATH 包含 depot_tools
+          export PATH=`pwd`/depot_tools:$PATH
+
+          # 如果 .gclient 不存在，则先运行 bootstrap 创建（缓存恢复后可能缺失）
+          if [ ! -f .gclient ]; then
+            vpython3 scripts/bootstrap.py
+          fi
+
           COMMIT_COUNT=$(git ls-remote origin | wc -l)
           echo "ANGLE_COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_ENV
           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
+          echo $PATH
+
+          # 执行同步，注意 --no-history --shallow 可减少数据量
+          gclient sync --no-history --shallow --reset --force
+
+      # ---------- 使用 ccache-action 自动管理 ccache ----------
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.arch }}
+          max-size: 2G
+
+      - name: Build ANGLE
+        shell: bash
+        run: |
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
-          gn gen out/Android-${{matrix.arch}} --threads=$(nproc)
+
+          # 通过 cc_wrapper 启用 ccache
+          gn gen out/Android-${{matrix.arch}} \
+            --threads=$(nproc) \
+            --args='cc_wrapper="ccache"'
+
           gn args out/Android-${{ matrix.arch }} --list --short
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
 
