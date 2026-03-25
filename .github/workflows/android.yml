@@ -78,11 +78,7 @@ jobs:
           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
           echo $PATH
 
-          if [ "${{ steps.cache-deps.outputs.cache-hit }}" = "true" ]; then
-            gclient sync --fast-local --reset --force
-          else
-            gclient sync --no-history --shallow --reset --force
-          fi
+          gclient sync --no-history --shallow --reset --force
 
       - name: ccache
         uses: hendrikmuhs/ccache-action@main
