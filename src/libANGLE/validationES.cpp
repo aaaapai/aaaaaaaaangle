@@ -1598,7 +1598,7 @@ bool ValidateAttachmentTarget(const Context *context,
         if (colorAttachment >= context->getCaps().maxColorAttachments)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-            return false;
+            //return false;
         }
     }
     else
@@ -1620,7 +1620,7 @@ bool ValidateAttachmentTarget(const Context *context,
 
             default:
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-                return false;
+                return true;
         }
     }
 
