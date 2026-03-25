@@ -1620,7 +1620,7 @@ bool ValidateAttachmentTarget(const Context *context,
 
             default:
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-                return true;
+                return false;
         }
     }
 
