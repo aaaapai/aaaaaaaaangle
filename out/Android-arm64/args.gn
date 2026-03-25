@@ -159,3 +159,4 @@ use_clang_coverage = false
 angle_force_context_check_every_call = false
 use_lld = true
 
+angle_use_android_tls_slot = true
