@@ -1287,7 +1287,7 @@ ShCompileOptions TCompiler::adjustOptions(const ShCompileOptions &compileOptions
         compileOptions.retainInactiveFragmentOutputs = false;
     }
 
-    compileOptions.initGLPosition = true;
+    //compileOptions.initGLPosition = true;
 
 #if !defined(ANGLE_IR)
     compileOptions.useIR = false;
