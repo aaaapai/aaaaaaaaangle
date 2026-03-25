@@ -3,12 +3,6 @@ target_cpu = "arm64"
 is_component_build = false
 is_debug = true
 angle_build_all = false
-angle_enable_gl = false
-angle_enable_vulkan = true
-angle_enable_d3d9 = false
-angle_enable_d3d11 = false
-angle_enable_null = false
-angle_enable_metal = false
 angle_expose_non_conformant_extensions_and_versions = true
 jobs = 6
 enable_iterator_debugging = false
@@ -41,6 +35,8 @@ angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
 angle_enable_vulkan_validation_layers = false
 angle_enable_trace = false
 
+use_lto = true
+
 angle_build_tests = false
 
 cflags_c = [
@@ -48,7 +44,8 @@ cflags_c = [
   "-Wno-error=unused-variable",
   "-Wno-error",
   "-O3",
-  "-mllvm -polly",
+  "-mllvm",
+  "-polly",
   "-march=armv8-a+simd",
   "-fomit-frame-pointer",
   "-fno-semantic-interposition",
@@ -61,50 +58,76 @@ cflags_c = [
   "-fslp-vectorize",
   "-pipe",
   "-integrated-as",
-  "-mllvm -polly-vectorizer=stripmine",
-  "-mllvm -polly-invariant-load-hoisting",
-  "-mllvm -polly-run-inliner",
-  "-mllvm -polly-run-dce",
-  "-mllvm -polly-detect-keep-going",
-  "-mllvm -polly-ast-use-context",
-  "-mllvm -polly-parallel",
+  "-mllvm",
+  "-polly-vectorizer=stripmine",
+  "-mllvm",
+  "-polly-invariant-load-hoisting",
+  "-mllvm",
+  "-polly-run-inliner",
+  "-mllvm",
+  "-polly-run-dce",
+  "-mllvm",
+  "-polly-detect-keep-going",
+  "-mllvm",
+  "-polly-ast-use-context",
+  "-mllvm",
+  "-polly-parallel",
+  "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
-  "-DUNSAFE_BUFFERS_BUILD",
   "-fwhole-program-vtables",
   "-flto",
+  "-fno-emulated-tls",
 ]
+
 cflags_cc = [
   "-Wno-unused-variable",
   "-Wno-error=unused-variable",
   "-Wno-error",
   "-O3",
-  "-mllvm -polly",
+  "-mllvm",
+  "-polly",
   "-march=armv8-a+simd",
   "-fomit-frame-pointer",
   "-fno-semantic-interposition",
-  "-mllvm -hot-cold-split=true",
+  "-mllvm",
+  "-hot-cold-split=true",
   "-fdata-sections",
   "-ffunction-sections",
   "-fmerge-all-constants",
   "-ftree-vectorize",
   "-fvectorize",
   "-fslp-vectorize",
-  "-pipe -integrated-as",
-  "-mllvm -polly-vectorizer=stripmine",
-  "-mllvm -polly-invariant-load-hoisting",
-  "-mllvm -polly-run-inliner",
-  "-mllvm -polly-run-dce",
-  "-mllvm -polly-detect-keep-going",
-  "-mllvm -polly-ast-use-context",
-  "-mllvm -polly-parallel",
+  "-pipe",
+  "-integrated-as",
+  "-mllvm",
+  "-polly-vectorizer=stripmine",
+  "-mllvm",
+  "-polly-invariant-load-hoisting",
+  "-mllvm",
+  "-polly-run-inliner",
+  "-mllvm",
+  "-polly-run-dce",
+  "-mllvm",
+  "-polly-detect-keep-going",
+  "-mllvm",
+  "-polly-ast-use-context",
+  "-mllvm",
+  "-polly-parallel",
   "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-fwhole-program-vtables",
   "-flto",
+  "-fno-emulated-tls",
 ]
+
 ldflags = [
   "-fuse-ld=lld",
   "-Wl,--gc-sections",
+  "-flto",
+  "-Wl,--lto-O3",
+  "-Wl,-plugin-opt=-emulated-tls=0",
+  "-Wl,-O3",
+  "-Wl,--as-needed",
 ]
 
 treat_warnings_as_errors = false
@@ -128,3 +151,11 @@ use_cxx23 = true
 
 c_wrapper="ccache"
 cc_wrapper="ccache"
+
+enable_unused_resource_stripping = true
+exclude_unwind_tables = true
+use_clang_coverage = false
+angle_force_context_check_every_call = false
+use_lld = true
+
+angle_use_android_tls_slot = true
