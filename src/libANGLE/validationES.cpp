@@ -5501,7 +5501,7 @@ bool ValidateGetFramebufferAttachmentParameterivBase(const Context *context,
                     static_cast<GLuint>(context->getCaps().maxColorAttachments))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-                return false;
+                //return false;
             }
             [[fallthrough]];
 
@@ -5605,7 +5605,7 @@ bool ValidateGetFramebufferAttachmentParameterivBase(const Context *context,
                 if (attachment == GL_DEPTH_STENCIL_ATTACHMENT)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-                    return false;
+                    //return false;
                 }
                 break;
 
