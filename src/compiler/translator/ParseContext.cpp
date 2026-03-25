@@ -10179,7 +10179,8 @@ void TParseContext::postParseValidateFragmentOutputLocations()
             strstr << (elementCount > 1 ? "output array locations would exceed "
                                         : "output location must be < ")
                    << "MAX_" << (mFragmentOutputIndex1Used ? "DUAL_SOURCE_" : "") << "DRAW_BUFFERS";
-            error(variable.line, strstr.str().c_str(), variable.variable->name());
+            //error(variable.line, strstr.str().c_str(), variable.variable->name());
+            printf("error: output location must be < MAX_DRAW_BUFFERS or output array locations would exceed\n");
         }
     }
 
