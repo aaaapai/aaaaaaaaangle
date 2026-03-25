@@ -1882,7 +1882,7 @@ bool ValidateReadBuffer(const Context *context, angle::EntryPoint entryPoint, GL
         if (drawBuffer >= static_cast<GLuint>(context->getCaps().maxColorAttachments))
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-            return false;
+            //return false;
         }
     }
 
