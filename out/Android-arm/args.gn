@@ -1,5 +1,5 @@
 target_os = "android"
-target_cpu = "arm64"
+target_cpu = "arm"
 is_component_build = false
 is_debug = false
 angle_build_all = false
@@ -30,7 +30,6 @@ angle_enable_glsl = true
 angle_expose_non_conformant_extensions_and_versions = true
 build_angle_deqp_tests = false
 arm_use_neon = true
-arm_version = 8
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
 angle_enable_vulkan_validation_layers = false
 angle_enable_trace = false
