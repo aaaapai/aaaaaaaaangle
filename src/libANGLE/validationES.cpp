@@ -4741,7 +4741,7 @@ bool ValidateDiscardFramebufferBase(const Context *context,
                 GL_COLOR_ATTACHMENT0 + static_cast<GLuint>(context->getCaps().maxColorAttachments))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-                return false;
+                //return false;
             }
         }
         else
@@ -5062,7 +5062,7 @@ bool ValidateDrawBuffersBase(const Context *context,
         else if (bufs[colorAttachment] >= maxColorAttachment)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-            return false;
+            //return false;
         }
         else if (bufs[colorAttachment] != GL_NONE && bufs[colorAttachment] != attachment &&
                  frameBufferId.value != 0)
