@@ -10356,23 +10356,20 @@ angle::Result ImageHelper::flushStagedUpdates(ContextVk *contextVk,
     // the clear.
     if (mCurrentSingleClearValue.valid())
     {
-        // Only attempt optimization for single-level clears
-        if (levelGLStart + 1 == levelGLEnd)
+        SubresourceUpdates *levelUpdates =
+            getLevelUpdates(gl::LevelIndex(mCurrentSingleClearValue.value().levelIndex));
+        if (levelUpdates && levelUpdates->size() == 1)
         {
-            SubresourceUpdates *levelUpdates =
-                getLevelUpdates(gl::LevelIndex(mCurrentSingleClearValue.value().levelIndex));
-            if (levelUpdates && levelUpdates->size() == 1)
+            SubresourceUpdate &update = (*levelUpdates)[0];
+            if (IsClearOfAllChannels(update.updateSource) &&
+                mCurrentSingleClearValue.value() == update.data.clear)
             {
-                SubresourceUpdate &update = (*levelUpdates)[0];
-                if (IsClearOfAllChannels(update.updateSource) &&
-                    mCurrentSingleClearValue.value() == update.data.clear)
-                {
-                    ANGLE_VK_PERF_WARNING(contextVk, GL_DEBUG_SEVERITY_LOW,
-                                          "Repeated Clear on framebuffer attachment dropped");
-                    update.release(renderer);
-                    levelUpdates->clear();
-                    return angle::Result::Continue;
-                }
+                ASSERT(levelGLStart + 1 == levelGLEnd);
+                ANGLE_VK_PERF_WARNING(contextVk, GL_DEBUG_SEVERITY_LOW,
+                                      "Repeated Clear on framebuffer attachment dropped");
+                update.release(renderer);
+                levelUpdates->clear();
+                return angle::Result::Continue;
             }
         }
     }
