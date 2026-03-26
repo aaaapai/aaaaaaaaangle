@@ -12893,6 +12893,71 @@ void main()
     EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(127, 127, 0, 255), 1);
 }
 
+// Test that dead code elimination can handle ternary
+TEST_P(GLSLTest_ES31, DeadCodeTernary)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+uniform int zero;
+uniform int inactive1;
+uniform int inactive2;
+uniform int inactive3[3];
+uniform struct Inactive {
+    int v[5];
+} inactive4;
+
+void main()
+{
+    inactive1 == 0 ? inactive2 : inactive3[inactive2];
+
+    inactive4.v[0] == 0
+        ? inactive2 == 0
+            ? float(inactive3[1]) + vec4(inactive4.v[1]).y
+            : float(inactive1) * 3.0
+        : inactive1 == 0
+            ? inactive2 == 0
+                ? sin(float(inactive1)) * faceforward(mat2(inactive2)[0], vec2(1), vec2(-1)).x
+                : clamp(float(inactive3[1]), 0., 1.)
+            : 1.;
+
+    // The condition of a ternary is a ternary itself
+    (inactive1 == 0 ? inactive2 == 0 : inactive3[0] == 0) ? inactive1 : 0;
+
+    zero == 0 ? 1.0 : 0.0;
+
+    color = zero != 0 ? vec4(1, 0, 0, 1) : vec4(0, 1, 0, 1);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    GLint activeUniforms = 0;
+    glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &activeUniforms);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(activeUniforms, 1);
+
+    GLuint index = glGetProgramResourceIndex(program, GL_UNIFORM, "zero");
+    EXPECT_NE(index, GL_INVALID_INDEX);
+
+    index = glGetProgramResourceIndex(program, GL_UNIFORM, "inactive1");
+    EXPECT_EQ(index, GL_INVALID_INDEX);
+
+    index = glGetProgramResourceIndex(program, GL_UNIFORM, "inactive2");
+    EXPECT_EQ(index, GL_INVALID_INDEX);
+
+    index = glGetProgramResourceIndex(program, GL_UNIFORM, "inactive3");
+    EXPECT_EQ(index, GL_INVALID_INDEX);
+
+    index = glGetProgramResourceIndex(program, GL_UNIFORM, "inactive4");
+    EXPECT_EQ(index, GL_INVALID_INDEX);
+}
+
 // Regression test based on fuzzer issue.  If a case has statements that are pruned, and those
 // pruned statements in turn have branches, and another case follows, a prior implementation of
 // dead-code elimination doubly pruned some statements.
@@ -22439,9 +22504,6 @@ void main()
 // it is no-op.
 TEST_P(GLSLTest_ES3, EmptyLastCaseInSwitch)
 {
-    // Incorrect translation before IR.
-    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::UseIr));
-
     constexpr char kFS[] = R"(#version 300 es
 uniform int ui;
 out mediump vec4 color;
@@ -22466,6 +22528,36 @@ void main(void)
     ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
     drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Regression test for codegen errors when the last case of a switch is dead-code-eliminated.
+TEST_P(GLSLTest_ES3, EmptyLastCaseInSwitch2)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+uniform int a, b;
+out vec4 color;
+void main() {
+    float r = 0.25;
+    switch(a) {
+        case 0:
+            switch(b) {
+                default:
+                    r = 0.75;
+                case 0:
+                    switch(b) { }
+            }
+            break;
+        default:
+            r = 0.5;
+    }
+    color = vec4(r, 0, 0, 1);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(63, 0, 0, 255), 1);
     ASSERT_GL_NO_ERROR();
 }
 
