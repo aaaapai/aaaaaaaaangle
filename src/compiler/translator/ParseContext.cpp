@@ -839,14 +839,12 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                                             TBasicType type)
 {
 
-    return;
-
     if (precision != EbpUndefined && !SupportsPrecision(type))
     {
         error(line, "illegal type for precision qualifier", getBasicString(type));
     }
 
-    if (precision == EbpUndefined)
+    /*if (precision == EbpUndefined)
     {
         switch (type)
         {
@@ -865,7 +863,7 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                     return;
                 }
         }
-    }
+    }*/
 }
 
 void TParseContext::markStaticUseIfSymbol(TIntermNode *node)
