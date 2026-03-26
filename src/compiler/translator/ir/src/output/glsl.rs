@@ -202,7 +202,7 @@ impl Generator {
             Decoration::Interpolant => qualifiers.push("interpolant".to_string()),
             Decoration::Smooth => qualifiers.push("smooth".to_string()),
             Decoration::Flat => qualifiers.push("flat".to_string()),
-            Decoration::NoPerspective => qualifiers.push("noperspective".to_string()),
+            Decoration::NoPerspective => qualifiers.push("smooth".to_string()),
             Decoration::Centroid => qualifiers.push("centroid".to_string()),
             Decoration::Sample => qualifiers.push("sample".to_string()),
             Decoration::Patch => qualifiers.push("patch".to_string()),
