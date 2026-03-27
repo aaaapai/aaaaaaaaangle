@@ -51,7 +51,7 @@ FramebufferStatus CheckMultiviewStateMatchesForCompleteness(
     ASSERT(firstAttachment && checkAttachment);
     ASSERT(firstAttachment->isAttached() && checkAttachment->isAttached());
 
-    /*if (firstAttachment->isMultiview() != checkAttachment->isMultiview())
+    if (firstAttachment->isMultiview() != checkAttachment->isMultiview())
     {
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR,
                                              err::kFramebufferIncompleteMultiviewMismatch);
@@ -66,7 +66,7 @@ FramebufferStatus CheckMultiviewStateMatchesForCompleteness(
     {
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                                              err::kFramebufferIncompleteMultiviewBaseViewMismatch);
-    }*/
+    }
 
     return FramebufferStatus::Complete();
 }
