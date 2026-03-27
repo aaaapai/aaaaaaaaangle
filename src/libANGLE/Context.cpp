@@ -9255,6 +9255,10 @@ GLenum Context::getConvertedRenderbufferFormat(GLenum internalformat) const
     {
         return GL_DEPTH24_STENCIL8;
     }
+    if (internalformat == GL_DEPTH_COMPONENT)
+    {
+        return GL_DEPTH_COMPONENT32;
+    }
     return internalformat;
 }
 
