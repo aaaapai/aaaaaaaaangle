@@ -839,10 +839,10 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                                             TBasicType type)
 {
 
-    if (precision != EbpUndefined && !SupportsPrecision(type))
+    /*if (precision != EbpUndefined && !SupportsPrecision(type))
     {
         error(line, "illegal type for precision qualifier", getBasicString(type));
-    }
+    }*/
 
     /*if (precision == EbpUndefined)
     {
