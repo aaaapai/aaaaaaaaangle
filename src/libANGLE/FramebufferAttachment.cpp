@@ -147,6 +147,51 @@ void FramebufferAttachment::attach(const Context *context,
     }
 
     mResource = resource;
+
+    if (mResource != nullptr && mType == GL_TEXTURE)
+    {
+        Extents size = getSize();
+        // Clamp negative baseViewIndex
+        if (mBaseViewIndex < 0)
+        {
+            WARN() << "FramebufferAttachment::attach: negative baseViewIndex (" << mBaseViewIndex
+                   << "), clamping to 0 for texture id " << id();
+            mBaseViewIndex = 0;
+        }
+
+        // If baseViewIndex is beyond resource depth -> this attachment references nothing: detach
+        if (static_cast<uint32_t>(mBaseViewIndex) >= size.depth)
+        {
+            WARN() << "FramebufferAttachment::attach: baseViewIndex (" << mBaseViewIndex
+                   << ") >= texture depth (" << size.depth << ") for texture id " << id()
+                   << ". Detaching attachment to avoid out-of-bounds.";
+            detach(context, framebufferSerial);
+            return;
+        }
+
+        // Ensure num views is at least 1
+        if (mNumViews <= 0)
+        {
+            WARN() << "FramebufferAttachment::attach: numViews <= 0, setting to 1 for texture id " << id();
+            mNumViews = 1;
+            mIsMultiview = false;
+        }
+
+        // Clamp numViews so base + numViews <= depth
+        if (mBaseViewIndex + mNumViews > static_cast<GLsizei>(size.depth))
+        {
+            GLsizei clampedNumViews = static_cast<GLsizei>(size.depth) - mBaseViewIndex;
+            WARN() << "FramebufferAttachment::attach: baseViewIndex + numViews (" << mBaseViewIndex << " + "
+                   << mNumViews << ") exceeds depth (" << size.depth << ") for texture id " << id()
+                   << ". Clamping numViews to " << clampedNumViews;
+            mNumViews = std::max<GLsizei>(1, clampedNumViews);
+            if (mNumViews == 1)
+            {
+                mIsMultiview = false;
+            }
+        }
+    }
+
 }
 
 GLuint FramebufferAttachment::getRedSize() const
