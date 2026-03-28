@@ -1264,6 +1264,11 @@ bool TParseContext::checkConstructorArguments(const TSourceLoc &line,
             error(line, "cannot convert a void", "constructor");
             return false;
         }
+        else if (argTyped->getBasicType() == EbtYuvCscStandardEXT)
+        {
+            error(line, "cannot convert a yuvCscStandardEXT", "constructor");
+            return false;
+        }
     }
 
     if (type.isArray())
