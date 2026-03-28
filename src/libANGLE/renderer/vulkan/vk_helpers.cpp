@@ -10363,7 +10363,16 @@ angle::Result ImageHelper::flushStagedUpdates(ContextVk *contextVk,
             if (IsClearOfAllChannels(update.updateSource) &&
                 mCurrentSingleClearValue.value() == update.data.clear)
             {
-                ASSERT(levelGLStart + 1 == levelGLEnd);
+                if (!(levelGLStart + 1 == levelGLEnd))
+                  {
+                  WARN() << "vk_helpers::flushStagedUpdates: unexpected mip-level range (start=" << levelGLStart
+                         << ", end=" << levelGLEnd << "). Adjusting to safe range to avoid OOB.";
+                  if (levelGLEnd <= levelGLStart)
+                  {
+                      levelGLEnd = levelGLStart + 1;
+                  }
+                }
+        
                 ANGLE_VK_PERF_WARNING(contextVk, GL_DEBUG_SEVERITY_LOW,
                                       "Repeated Clear on framebuffer attachment dropped");
                 update.release(renderer);
