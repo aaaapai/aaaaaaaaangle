@@ -1658,7 +1658,7 @@ const InternalFormat &GetInternalFormatInfo(GLenum internalFormat, GLenum type)
     auto internalFormatIter = formatMap.find(internalFormat);
     if (internalFormatIter == formatMap.end())
     {
-        if (internalFormat == GL_RGB16F_SNORM)
+        if (internalFormat == 0x8F9A)
         {
             internalFormatIter = formatMap.find(GL_RGB16F);
             if (internalFormatIter == formatMap.end())
