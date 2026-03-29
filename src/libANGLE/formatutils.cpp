@@ -1659,19 +1659,12 @@ const InternalFormat &GetInternalFormatInfo(GLenum internalFormat, GLenum type)
     auto internalFormatIter = formatMap.find(internalFormat);
     if (internalFormatIter == formatMap.end())
     {
-        if (internalFormat == 0x8F9A)
-        {
-            internalFormatIter = formatMap.find(GL_RGB16F);
-            if (internalFormatIter == formatMap.end())
-            {
-                return defaultInternalFormat;
-            }
-        }
-        else
-        {
-            return defaultInternalFormat;
-        }
-        //return defaultInternalFormat;
+       if (internalFormat == GL_RGB16F_SNORM) {
+           internalFormatIter = formatMap.find(GL_RGB16F);
+       }
+       if (internalFormatIter == formatMap.end()) {
+           return defaultInternalFormat;
+       }
     }
 
     // If the internal format is sized, simply return it without the type check.
