@@ -9,6 +9,7 @@
 
 #include "libANGLE/FramebufferAttachment.h"
 
+#include "common/debug.h"
 #include "common/utilities.h"
 #include "libANGLE/Config.h"
 #include "libANGLE/Context.h"
