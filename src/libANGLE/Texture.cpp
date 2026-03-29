@@ -1404,7 +1404,7 @@ angle::Result Texture::setImage(Context *context,
 
     std::vector<float> normalized;
 
-    if (internalFormat == GL_RGB16F_SNORM)
+    if (internalFormat == 0x8F9A)
     {
         size_t pxCount = size.width * size.height * (size.depth > 0 ? size.depth : 1);
         normalized.resize(pxCount * 3);
