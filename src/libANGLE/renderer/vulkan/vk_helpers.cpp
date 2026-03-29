@@ -10365,8 +10365,7 @@ angle::Result ImageHelper::flushStagedUpdates(ContextVk *contextVk,
             {
                 if (!(levelGLStart + 1 == levelGLEnd))
                   {
-                  WARN() << "vk_helpers::flushStagedUpdates: unexpected mip-level range (start=" << levelGLStart
-                         << ", end=" << levelGLEnd << "). Adjusting to safe range to avoid OOB.";
+                  WARN() << "vk_helpers::flushStagedUpdates: unexpected mip-level range. Adjusting to safe range to avoid OOB.";
                   if (levelGLEnd <= levelGLStart)
                   {
                       levelGLEnd = levelGLStart + 1;
