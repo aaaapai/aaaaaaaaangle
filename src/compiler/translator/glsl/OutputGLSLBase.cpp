@@ -375,11 +375,11 @@ const char *TOutputGLSLBase::mapQualifierToString(TQualifier qualifier)
             case EvqCentroidOut:
                 return "smooth out";
             case EvqNoPerspectiveCentroid:
-                return "smooth";
+                return "noperspective";
             case EvqNoPerspectiveCentroidIn:
-                return "smooth in";
+                return "noperspective in";
             case EvqNoPerspectiveCentroidOut:
-                return "smooth out";
+                return "noperspective out";
             default:
                 break;
         }
