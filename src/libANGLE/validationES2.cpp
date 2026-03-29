@@ -720,10 +720,10 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
     }
 
     // GLES1 emulation: GLES1-specific caps after this point
-    if (state.getClientVersion() >= ES_2_0)
+    /*if (state.getClientVersion() >= ES_2_0)
     {
         return false;
-    }
+    }*/
 
     switch (cap)
     {
@@ -754,15 +754,13 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
         case GL_FOG:
         case GL_POINT_SMOOTH:
         case GL_LINE_SMOOTH:
-            return state.getClientVersion() < Version(2, 0);
+            return true;
         case GL_POINT_SIZE_ARRAY_OES:
-            return state.getClientVersion() < Version(2, 0) &&
-                   state.getExtensions().pointSizeArrayOES;
+            return state.getExtensions().pointSizeArrayOES;
         case GL_TEXTURE_CUBE_MAP:
-            return state.getClientVersion() < Version(2, 0) &&
-                   state.getExtensions().textureCubeMapOES;
+            return state.getExtensions().textureCubeMapOES;
         case GL_POINT_SPRITE_OES:
-            return state.getClientVersion() < Version(2, 0) && state.getExtensions().pointSpriteOES;
+            return state.getExtensions().pointSpriteOES;
         default:
             return false;
     }
@@ -4774,11 +4772,11 @@ bool ValidateHint(const PrivateState &state,
         case GL_POINT_SMOOTH_HINT:
         case GL_LINE_SMOOTH_HINT:
         case GL_FOG_HINT:
-            if (state.getClientVersion() >= ES_2_0)
+            /*if (state.getClientVersion() >= ES_2_0)
             {
                 errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
                 return false;
-            }
+            }*/
             break;
 
         default:
