@@ -2621,7 +2621,7 @@ bool ValidateTexBufferBase(const Context *context,
             if (!context->getExtensions().textureNorm16EXT)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTextureBufferInternalFormat);
-                return false;
+                return true;
             }
             break;
         }
