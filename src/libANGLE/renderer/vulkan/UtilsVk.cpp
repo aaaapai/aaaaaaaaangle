@@ -11,6 +11,8 @@
 #    pragma allow_unsafe_buffers
 #endif
 
+#include "common/debug.h"
+
 #include "libANGLE/renderer/vulkan/UtilsVk.h"
 
 #include "common/spirv/spirv_instruction_builder_autogen.h"
