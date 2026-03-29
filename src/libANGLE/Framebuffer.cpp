@@ -1524,13 +1524,13 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
     }
 
     // Starting from ES 3.0 stencil and depth, if present, should be the same image
-    /*if (state.getClientVersion() >= ES_3_0 && depthAttachment.isAttached() &&
+    if (state.getClientVersion() >= ES_3_0 && depthAttachment.isAttached() &&
         stencilAttachment.isAttached() && stencilAttachment != depthAttachment)
     {
         return FramebufferStatus::Incomplete(
             GL_FRAMEBUFFER_UNSUPPORTED,
             err::kFramebufferIncompleteDepthAndStencilBuffersNotTheSame);
-    }*/
+    }
 
     // [QCOM_texture_foveated] - Additions to Chapter 9.4 (Framebuffer Completeness) -
     // - More than one color attachment is foveated.

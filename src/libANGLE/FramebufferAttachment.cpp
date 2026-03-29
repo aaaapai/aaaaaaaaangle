@@ -131,22 +131,20 @@ void FramebufferAttachment::attach(const Context *context,
     mBaseViewIndex          = baseViewIndex;
     mIsMultiview            = isMultiview;
     mRenderToTextureSamples = type == GL_RENDERBUFFER ? kDefaultRenderToTextureSamples : samples;
-    if (mIsMultiview)
-    {
-        // Multiview framebuffer attachments can only be created through:
-        // 1) glFramebufferTextureMultiviewOVR
-        // 2) glNamedFramebufferTextureMultiviewOVR
-        // 3) glFramebufferTextureMultisampleMultiviewOVR
-        // All of the above method require the attachment to be texture, not renderbuffer.
-        ASSERT(type != GL_RENDERBUFFER);
-    }
-    resource->onAttach(context, framebufferSerial);
 
+    if (type == GL_RENDERBUFFER && mIsMultiview)
+    {
+        WARN() << "FramebufferAttachment::attach: renderbuffer cannot be multiview, forcing isMultiview=false";
+        mIsMultiview = false;
+        mNumViews = 1;
+        mBaseViewIndex = 0;
+    }
+
+    resource->onAttach(context, framebufferSerial);
     if (mResource != nullptr)
     {
         mResource->onDetach(context, framebufferSerial);
     }
-
     mResource = resource;
 
     if (mResource != nullptr && mType == GL_TEXTURE)
@@ -155,16 +153,9 @@ void FramebufferAttachment::attach(const Context *context,
         if (res == angle::Result::Stop)
         {
             WARN() << "FramebufferAttachment::attach: ensureSizeResolved failed for texture id "
-                   << id() << ". Forcing safe defaults to avoid crash.";
-            if (mBaseViewIndex < 0)
-            {
-                mBaseViewIndex = 0;
-            }
-            if (mNumViews <= 0)
-            {
-                mNumViews = 1;
-            }
-            mIsMultiview = false;
+                   << id() << ". Detaching attachment to avoid crash.";
+            detach(context, framebufferSerial);
+            return;
         }
 
         Extents size = getSize();
@@ -178,8 +169,8 @@ void FramebufferAttachment::attach(const Context *context,
 
         if (size.depth == 0)
         {
-            WARN() << "FramebufferAttachment::attach: texture depth is 0 (or unresolved) for texture id "
-                   << id() << ". Forcing single view at layer 0 to avoid out-of-range.";
+            WARN() << "FramebufferAttachment::attach: texture depth is 0 for texture id "
+                   << id() << ". Forcing single view at layer 0.";
             mBaseViewIndex = 0;
             mNumViews = 1;
             mIsMultiview = false;
@@ -189,14 +180,13 @@ void FramebufferAttachment::attach(const Context *context,
             if (static_cast<uint32_t>(mBaseViewIndex) >= size.depth)
             {
                 WARN() << "FramebufferAttachment::attach: baseViewIndex (" << mBaseViewIndex
-                       << ") >= texture depth (" << size.depth << ") for texture id " << id()
+                       << ") >= depth (" << size.depth << ") for texture id " << id()
                        << ". Clamping to last layer and forcing single view.";
                 mBaseViewIndex = static_cast<GLint>(size.depth - 1);
                 mNumViews = 1;
                 mIsMultiview = false;
             }
 
-            // Ensure numViews is at least 1
             if (mNumViews <= 0)
             {
                 WARN() << "FramebufferAttachment::attach: numViews <= 0, setting to 1 for texture id " << id();
@@ -207,9 +197,8 @@ void FramebufferAttachment::attach(const Context *context,
             if (mBaseViewIndex + mNumViews > static_cast<GLsizei>(size.depth))
             {
                 GLsizei clampedNumViews = static_cast<GLsizei>(size.depth) - mBaseViewIndex;
-                WARN() << "FramebufferAttachment::attach: baseViewIndex + numViews (" << mBaseViewIndex << " + "
-                       << mNumViews << ") exceeds depth (" << size.depth << ") for texture id " << id()
-                       << ". Clamping numViews to " << clampedNumViews << " and forcing single/multi view accordingly.";
+                WARN() << "FramebufferAttachment::attach: view range exceeds depth, clamping numViews to "
+                       << clampedNumViews << " for texture id " << id();
                 mNumViews = std::max<GLsizei>(1, clampedNumViews);
                 if (mNumViews == 1)
                 {
@@ -217,8 +206,12 @@ void FramebufferAttachment::attach(const Context *context,
                 }
             }
         }
-     }
 
+        if (mNumViews <= 1)
+        {
+            mIsMultiview = false;
+        }
+    }
 }
 
 GLuint FramebufferAttachment::getRedSize() const
