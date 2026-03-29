@@ -2153,7 +2153,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
 
     // Check if the driver clamps constant blend color
-    if (IsQualcomm(GetVendorID(functions)))
+    /*if (IsQualcomm(GetVendorID(functions)))
     {
         // Backup current state
         float oldColor[4];
@@ -2163,11 +2163,12 @@ void GenerateCaps(const FunctionsGL *functions,
         float color[4];
         functions->blendColor(2.0, 0.0, 0.0, 0.0);
         functions->getFloatv(GL_BLEND_COLOR, color);
-        limitations->noUnclampedBlendColor = color[0] == 1.0;
+        limitations-> noUnclampedBlendColor = color[0] == 1.0;
 
         // Restore previous state
         functions->blendColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
-    }
+    }*/
+    limitations-> noUnclampedBlendColor = false;
 
     if (features.limitMaxBufferSizeTo1gb.enabled)
     {
