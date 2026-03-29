@@ -1673,10 +1673,10 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
             // All deferred clear must have been flushed, otherwise it will conflict with
             // params.blitArea.
             //ASSERT(!hasDeferredClears());
-            if (!hasDeferredClears())
+            /*if (!hasDeferredClears())
             {
                WARN() << "Expected deferred clears but none present. Continuing with safe fallback. (file/line ...)";
-            }
+            }*/
             // If we have to use standalone renderPass for stencil, then no need for depth to use
             // midRenderPass.
             ASSERT(!blitStencilBuffer || hasShaderStencilExport);
@@ -1772,10 +1772,10 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
             // All deferred clear must have been flushed, otherwise it will conflict with
             // params.blitArea.
             //ASSERT(!hasDeferredClears());
-            if (!hasDeferredClears())
+            /*if (!hasDeferredClears())
             {
                WARN() << "Expected deferred clears but none present. Continuing with safe fallback. (file/line ...)";
-            }
+            }*/
 
             ANGLE_TRY(utilsVk.depthStencilBlitResolve(
                 contextVk, nullptr, dstImage, *dstDepthStencilView, dstLevelIndex, dstLayerIndex,
