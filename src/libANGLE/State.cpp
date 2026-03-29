@@ -1561,11 +1561,11 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
         case GL_CLIP_DISTANCE7_EXT:
             // NOTE(hqle): These enums are conflicted with GLES1's enums, need
             // to do additional check here:
-            if (mClientVersion >= ES_2_0)
+            /*if (mClientVersion >= ES_2_0)
             {
                 setClipDistanceEnable(feature - GL_CLIP_DISTANCE0_EXT, enabled);
                 return;
-            }
+            }*/
             break;
         case GL_SHADING_RATE_PRESERVE_ASPECT_RATIO_QCOM:
             mShadingRatePreserveAspectRatio = enabled;
