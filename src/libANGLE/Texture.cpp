@@ -1402,6 +1402,75 @@ angle::Result Texture::setImage(Context *context,
 {
     ASSERT(TextureTargetToType(target) == mState.mType);
 
+    std::vector<float> normalized;
+
+    if (internalFormat == GL_RGB16F_SNORM)
+    {
+        size_t pxCount = size.width * size.height * (size.depth > 0 ? size.depth : 1);
+        normalized.resize(pxCount * 3);
+
+        #define CLAMP_SNORM(_v) (std::min(1.0f, std::max(-1.0f, (_v))))
+        for (size_t i = 0; i < pxCount * 3; ++i)
+        {
+            float val = 0.0f;
+            switch (type)
+            {
+                case GL_BYTE:
+                {
+                    int8_t v = ((const int8_t *)pixels)[i];
+                    val = (v <= -128) ? -1.0f : (float)v / 127.0f;
+                    break;
+                }
+                case GL_SHORT:
+                {
+                    int16_t v = ((const int16_t *)pixels)[i];
+                    val = (v <= -32768) ? -1.0f : (float)v / 32767.0f;
+                    break;
+                }
+                case GL_UNSIGNED_BYTE:
+                {
+                    uint8_t v = ((const uint8_t *)pixels)[i];
+                    val = (float(v) / 255.0f) * 2.0f - 1.0f;
+                    break;
+                }
+                case GL_UNSIGNED_SHORT:
+                {
+                    uint16_t v = ((const uint16_t *)pixels)[i];
+                    val = (float(v) / 65535.0f) * 2.0f - 1.0f;
+                    break;
+                }
+                case GL_FLOAT:
+                {
+                    float v = ((const float *)pixels)[i];
+                    val = CLAMP_SNORM(v);
+                    break;
+                }
+                case GL_INT:
+                {
+                    int32_t v = ((const int32_t *)pixels)[i];
+                    val = (v <= INT32_MIN) ? -1.0f : (float)v / float(INT32_MAX);
+                    val = CLAMP_SNORM(val);
+                    break;
+                }
+                case GL_UNSIGNED_INT:
+                {
+                    uint32_t v = ((const uint32_t *)pixels)[i];
+                    val = (float(v) / float(UINT32_MAX)) * 2.0f - 1.0f;
+                    val = CLAMP_SNORM(val);
+                    break;
+                }
+                default:
+                    break;
+            }
+            normalized[i] = CLAMP_SNORM(val);
+        }
+
+        internalFormat = GL_RGB16F;
+        format         = GL_RGB;
+        type           = GL_FLOAT;
+        pixels         = reinterpret_cast<const uint8_t *>(normalized.data());
+    }
+
     // Release from previous calls to eglBindTexImage, to avoid calling the Impl after
     ANGLE_TRY(releaseTexImageInternal(context));
 
