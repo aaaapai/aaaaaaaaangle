@@ -151,8 +151,24 @@ void FramebufferAttachment::attach(const Context *context,
 
     if (mResource != nullptr && mType == GL_TEXTURE)
     {
+        angle::Result res = mResource->ensureSizeResolved(context);
+        if (res == angle::Result::Stop)
+        {
+            WARN() << "FramebufferAttachment::attach: ensureSizeResolved failed for texture id "
+                   << id() << ". Forcing safe defaults to avoid crash.";
+            if (mBaseViewIndex < 0)
+            {
+                mBaseViewIndex = 0;
+            }
+            if (mNumViews <= 0)
+            {
+                mNumViews = 1;
+            }
+            mIsMultiview = false;
+        }
+
         Extents size = getSize();
-        // Clamp negative baseViewIndex
+
         if (mBaseViewIndex < 0)
         {
             WARN() << "FramebufferAttachment::attach: negative baseViewIndex (" << mBaseViewIndex
@@ -160,38 +176,48 @@ void FramebufferAttachment::attach(const Context *context,
             mBaseViewIndex = 0;
         }
 
-        // If baseViewIndex is beyond resource depth -> this attachment references nothing: detach
-        if (static_cast<uint32_t>(mBaseViewIndex) >= size.depth)
+        if (size.depth == 0)
         {
-            WARN() << "FramebufferAttachment::attach: baseViewIndex (" << mBaseViewIndex
-                   << ") >= texture depth (" << size.depth << ") for texture id " << id()
-                   << ". Detaching attachment to avoid out-of-bounds.";
-            detach(context, framebufferSerial);
-            return;
-        }
-
-        // Ensure num views is at least 1
-        if (mNumViews <= 0)
-        {
-            WARN() << "FramebufferAttachment::attach: numViews <= 0, setting to 1 for texture id " << id();
+            WARN() << "FramebufferAttachment::attach: texture depth is 0 (or unresolved) for texture id "
+                   << id() << ". Forcing single view at layer 0 to avoid out-of-range.";
+            mBaseViewIndex = 0;
             mNumViews = 1;
             mIsMultiview = false;
         }
-
-        // Clamp numViews so base + numViews <= depth
-        if (mBaseViewIndex + mNumViews > static_cast<GLsizei>(size.depth))
+        else
         {
-            GLsizei clampedNumViews = static_cast<GLsizei>(size.depth) - mBaseViewIndex;
-            WARN() << "FramebufferAttachment::attach: baseViewIndex + numViews (" << mBaseViewIndex << " + "
-                   << mNumViews << ") exceeds depth (" << size.depth << ") for texture id " << id()
-                   << ". Clamping numViews to " << clampedNumViews;
-            mNumViews = std::max<GLsizei>(1, clampedNumViews);
-            if (mNumViews == 1)
+            if (static_cast<uint32_t>(mBaseViewIndex) >= size.depth)
             {
+                WARN() << "FramebufferAttachment::attach: baseViewIndex (" << mBaseViewIndex
+                       << ") >= texture depth (" << size.depth << ") for texture id " << id()
+                       << ". Clamping to last layer and forcing single view.";
+                mBaseViewIndex = static_cast<GLint>(size.depth - 1);
+                mNumViews = 1;
                 mIsMultiview = false;
             }
+
+            // Ensure numViews is at least 1
+            if (mNumViews <= 0)
+            {
+                WARN() << "FramebufferAttachment::attach: numViews <= 0, setting to 1 for texture id " << id();
+                mNumViews = 1;
+                mIsMultiview = false;
+            }
+
+            if (mBaseViewIndex + mNumViews > static_cast<GLsizei>(size.depth))
+            {
+                GLsizei clampedNumViews = static_cast<GLsizei>(size.depth) - mBaseViewIndex;
+                WARN() << "FramebufferAttachment::attach: baseViewIndex + numViews (" << mBaseViewIndex << " + "
+                       << mNumViews << ") exceeds depth (" << size.depth << ") for texture id " << id()
+                       << ". Clamping numViews to " << clampedNumViews << " and forcing single/multi view accordingly.";
+                mNumViews = std::max<GLsizei>(1, clampedNumViews);
+                if (mNumViews == 1)
+                {
+                    mIsMultiview = false;
+                }
+            }
         }
-    }
+     }
 
 }
 
