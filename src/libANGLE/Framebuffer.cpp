@@ -16,6 +16,7 @@
 #include "common/Optional.h"
 #include "common/bitset_utils.h"
 #include "common/utilities.h"
+#include "common/debug.h"
 #include "libANGLE/Config.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Display.h"
