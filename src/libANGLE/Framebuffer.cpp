@@ -62,12 +62,12 @@ FramebufferStatus CheckMultiviewStateMatchesForCompleteness(
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR,
                                              err::kFramebufferIncompleteMultiviewViewsMismatch);
     }
-    if (checkAttachment->getBaseViewIndex() + checkAttachment->getNumViews() >
+    /*if (checkAttachment->getBaseViewIndex() + checkAttachment->getNumViews() >
         checkAttachment->getSize().depth)
     {
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                                              err::kFramebufferIncompleteMultiviewBaseViewMismatch);
-    }
+    }*/
 
     return FramebufferStatus::Complete();
 }
