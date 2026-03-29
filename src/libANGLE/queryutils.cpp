@@ -3456,11 +3456,11 @@ bool GetQueryParameterInfo(const State &glState,
         }
         case GL_COLOR_LOGIC_OP:
         {
-            if (clientVersion < ES_2_0)
+            /*if (clientVersion < ES_2_0)
             {
                 // Handle logicOp in GLES1 through GLES1 state management.
                 break;
-            }
+            }*/
 
             if (!extensions.logicOpANGLE)
             {
