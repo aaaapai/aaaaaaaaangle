@@ -134,10 +134,15 @@ void FramebufferAttachment::attach(const Context *context,
 
     if (type == GL_RENDERBUFFER && mIsMultiview)
     {
+        // Multiview framebuffer attachments can only be created through:
+        // 1) glFramebufferTextureMultiviewOVR
+        // 2) glNamedFramebufferTextureMultiviewOVR
+        // 3) glFramebufferTextureMultisampleMultiviewOVR
+        // All of the above method require the attachment to be texture, not renderbuffer.
         WARN() << "FramebufferAttachment::attach: renderbuffer cannot be multiview, forcing isMultiview=false";
-        mIsMultiview = false;
+        /*mIsMultiview = false;
         mNumViews = 1;
-        mBaseViewIndex = 0;
+        mBaseViewIndex = 0;*/
     }
 
     resource->onAttach(context, framebufferSerial);
@@ -147,7 +152,7 @@ void FramebufferAttachment::attach(const Context *context,
     }
     mResource = resource;
 
-    if (mResource != nullptr && mType == GL_TEXTURE)
+    /*if (mResource != nullptr && mType == GL_TEXTURE)
     {
         angle::Result res = mResource->ensureSizeResolved(context);
         if (res == angle::Result::Stop)
@@ -211,7 +216,7 @@ void FramebufferAttachment::attach(const Context *context,
         {
             mIsMultiview = false;
         }
-    }
+    }*/
 }
 
 GLuint FramebufferAttachment::getRedSize() const
