@@ -3360,7 +3360,7 @@ bool ValidateCopyMixedFormatCompatible(const Context *context,
                     return true;
                 case GL_RGBA16_EXT:
                 case GL_RGBA16_SNORM_EXT:
-                    return context->getExtensions().textureNorm16EXT;
+                    return true;
                 default:
                     return false;
             }
