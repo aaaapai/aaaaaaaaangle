@@ -1524,13 +1524,13 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
     }
 
     // Starting from ES 3.0 stencil and depth, if present, should be the same image
-    if (state.getClientVersion() >= ES_3_0 && depthAttachment.isAttached() &&
+    /*if (state.getClientVersion() >= ES_3_0 && depthAttachment.isAttached() &&
         stencilAttachment.isAttached() && stencilAttachment != depthAttachment)
     {
         return FramebufferStatus::Incomplete(
             GL_FRAMEBUFFER_UNSUPPORTED,
             err::kFramebufferIncompleteDepthAndStencilBuffersNotTheSame);
-    }
+    }*/
 
     // [QCOM_texture_foveated] - Additions to Chapter 9.4 (Framebuffer Completeness) -
     // - More than one color attachment is foveated.
@@ -1604,10 +1604,10 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
     GLint defaultWidth  = mState.getDefaultWidth();
     GLint defaultHeight = mState.getDefaultHeight();
     if (!hasAttachments && (defaultWidth == 0 || defaultHeight == 0))
-    {
+    /*{
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT,
                                              err::kFramebufferIncompleteDefaultZeroSize);
-    }
+    }*/
 
     // In ES 2.0 and WebGL, all color attachments must have the same width and height.
     // In ES 3.0, there is no such restriction.
@@ -1621,12 +1621,12 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
 
     // ES3.1(section 9.4) requires that if the attached images are a mix of renderbuffers and
     // textures, the value of TEXTURE_FIXED_SAMPLE_LOCATIONS must be TRUE for all attached textures.
-    if (fixedSampleLocations.valid() && hasRenderbuffer && !fixedSampleLocations.value())
+    /*if (fixedSampleLocations.valid() && hasRenderbuffer && !fixedSampleLocations.value())
     {
         return FramebufferStatus::Incomplete(
             GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE,
             err::kFramebufferIncompleteMultisampleNonFixedSamplesWithRenderbuffers);
-    }
+    }*/
 
     // The WebGL conformance tests implicitly define that all framebuffer
     // attachments must be unique. For example, the same level of a texture can
