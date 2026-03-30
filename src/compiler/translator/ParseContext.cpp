@@ -2573,6 +2573,21 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 error(identifierLocation, "layout qualifier", "unrecognized token");
                 return;
         }
+
+        // GLSL ES 3.10 Revision 4, 4.9 Memory Access Qualifiers
+        switch (layoutQualifier.imageInternalFormat)
+        {
+            case EiifR32F:
+            case EiifR32I:
+            case EiifR32UI:
+                break;
+            default:
+                if (!publicType.memoryQualifier.readonly && !publicType.memoryQualifier.writeonly && !std::getenv("ANGLE_FORCE_NO_READONLY_ERROR")) {
+                  error(identifierLocation, "layout qualifier",
+                          "Except for images with the r32f, r32i and r32ui format qualifiers, "
+                          "image variables must be qualified readonly and/or writeonly");
+                  return;
+                }
     }
     else if (IsPixelLocal(publicType.getBasicType()))
     {
