@@ -2558,7 +2558,7 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
         }
 
         // GLSL ES 3.10 Revision 4, 4.9 Memory Access Qualifiers
-        switch (layoutQualifier.imageInternalFormat)
+        /*switch (layoutQualifier.imageInternalFormat)
         {
             case EiifR32F:
             case EiifR32I:
@@ -2573,7 +2573,7 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                     return;
                 }
                 break;
-        }
+        }*/
     }
     else if (IsPixelLocal(publicType.getBasicType()))
     {
