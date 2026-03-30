@@ -7373,12 +7373,6 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
         checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
         qualifier.imageInternalFormat = EiifRGBA32F;
     }
-    else if (qualifierType == "image_format_default")
-    {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
-        qualifier.imageInternalFormat = EiifRGBA32F;
-        warning(qualifierTypeLine, "Using default image format", qualifierType);
-    }
     else if (qualifierType == "rgba16f")
     {
         checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
