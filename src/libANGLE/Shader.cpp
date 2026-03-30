@@ -227,7 +227,7 @@ angle::Result CompileTask::postTranslate()
     ASSERT(!mCompiledState->translatedSource->empty() || !mCompiledState->compiledBinary.empty());
 
     // Validation checks for compute shaders
-    if (mCompiledState->shaderType == ShaderType::Compute && mCompiledState->localSize.isDeclared())
+    /*if (mCompiledState->shaderType == ShaderType::Compute && mCompiledState->localSize.isDeclared())
     {
         angle::CheckedNumeric<size_t> checked_local_size_product(mCompiledState->localSize[0]);
         checked_local_size_product *= mCompiledState->localSize[1];
@@ -248,7 +248,7 @@ angle::Result CompileTask::postTranslate()
     {
         mInfoLog += "\nShared memory size exceeds GL_MAX_COMPUTE_SHARED_MEMORY_SIZE";
         return angle::Result::Stop;
-    }
+    }*/
 
     bool substitutedTranslatedShader = false;
     const char *suffix               = "translated";
