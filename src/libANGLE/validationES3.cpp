@@ -198,6 +198,7 @@ bool ValidateCopyTexture3DCommon(const Context *context,
         case GL_RGB10_A2:
         case GL_RGBA16F:
         case GL_RGBA32F:
+        case 0x8F9B:
         case GL_RGBA8UI:
         case GL_RGBA8I:
         case GL_RGB10_A2UI:
@@ -273,11 +274,11 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // GLint instead of a GLenum. Therefor an invalid internal format gives a GL_INVALID_VALUE
     // error instead of a GL_INVALID_ENUM error. As this validation function is only called in
     // the validation codepaths for glTexImage2D/3D, we record a GL_INVALID_VALUE error.
-    if (!ValidES3InternalFormat(internalFormat))
+    /*if (!ValidES3InternalFormat(internalFormat))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_VALUE, kInvalidInternalFormat, internalFormat);
         return false;
-    }
+    }*/
 
     // From the ES 3.0 spec section 3.8.3:
     // Textures with a base internal format of DEPTH_COMPONENT or DEPTH_STENCIL are supported by
@@ -346,12 +347,12 @@ bool ValidateTexImageFormatCombination(const Context *context,
         }
     }
 
-    const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
+    /*const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
     if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
         return false;
-    }
+    }*/
 
     return true;
 }
