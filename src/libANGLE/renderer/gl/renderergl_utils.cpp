@@ -2122,7 +2122,7 @@ void GenerateCaps(const FunctionsGL *functions,
                                             functions->maxShaderCompilerThreadsARB != nullptr);
 
     // GL_ANGLE_logic_op
-    extensions->logicOpANGLE = functions->standard == STANDARD_GL_DESKTOP;
+    extensions->logicOpANGLE = true;
 
     // GL_EXT_clear_texture
     extensions->clearTextureEXT = functions->isAtLeastGL(gl::Version(3, 2)) ||
@@ -2168,7 +2168,7 @@ void GenerateCaps(const FunctionsGL *functions,
         // Restore previous state
         functions->blendColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
     }*/
-    limitations-> noUnclampedBlendColor = false;
+    if (std::getenv("ANGLE_DISABLED_NO_CLAMPED_BLEND_COLOR")) limitations->noUnclampedBlendColor = false;
 
     if (features.limitMaxBufferSizeTo1gb.enabled)
     {
