@@ -2509,7 +2509,6 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
 
     if (IsImage(publicType.getBasicType()))
     {
-
         switch (layoutQualifier.imageInternalFormat)
         {
             case EiifRGBA32F:
@@ -2550,30 +2549,30 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-                error(identifierLocation, "layout qualifier", "No image internal format specified");
-                return;
+                warning(identifierLocation, 
+                    "No image internal format specified, using default format",
+                    getBasicString(publicType.getBasicType()));
+                if (IsFloatImage(publicType.getBasicType()))
+                {
+                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32F;
+                }
+                else if (IsIntegerImage(publicType.getBasicType()))
+                {
+                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32I;
+                }
+                else if (IsUnsignedImage(publicType.getBasicType()))
+                {
+                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32UI;
+                }
+                else
+                {
+                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32F;
+                }
+                break;
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
                 return;
         }
-
-        // GLSL ES 3.10 Revision 4, 4.9 Memory Access Qualifiers
-        /*switch (layoutQualifier.imageInternalFormat)
-        {
-            case EiifR32F:
-            case EiifR32I:
-            case EiifR32UI:
-                break;
-            default:
-                if (!publicType.memoryQualifier.readonly && !publicType.memoryQualifier.writeonly)
-                {
-                    error(identifierLocation, "layout qualifier",
-                          "Except for images with the r32f, r32i and r32ui format qualifiers, "
-                          "image variables must be qualified readonly and/or writeonly");
-                    return;
-                }
-                break;
-        }*/
     }
     else if (IsPixelLocal(publicType.getBasicType()))
     {
@@ -7373,6 +7372,12 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     {
         checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
         qualifier.imageInternalFormat = EiifRGBA32F;
+    }
+    else if (qualifierType == "image_format_default")
+    {
+        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        qualifier.imageInternalFormat = EiifRGBA32F;
+        warning(qualifierTypeLine, "Using default image format", qualifierType);
     }
     else if (qualifierType == "rgba16f")
     {
