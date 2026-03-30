@@ -5091,25 +5091,6 @@ void GL_APIENTRY GL_Uniform1i(GLint location, GLint v0)
     {
         UniformLocation locationPacked = PackParam<UniformLocation>(location);
         SCOPED_SHARE_CONTEXT_LOCK(context);
-        
-        Program *program = context->getState().getProgram();
-        if (program && location >= 0)
-        {
-            GLenum uniformType = program->getUniformType(locationPacked);
-            
-            if (uniformType == GL_FLOAT)
-            {
-                GLfloat floatValue = static_cast<GLfloat>(v0);
-                GL_Uniform1f(location, floatValue);
-                return;
-            }
-            else if (uniformType == GL_UNSIGNED_INT)
-            {
-                GLuint uintValue = static_cast<GLuint>(std::max(0, v0));
-                GL_Uniform1ui(location, uintValue);
-                return;
-            }
-        }
 
         bool isCallValid = context->skipValidation();
         if (!isCallValid)
