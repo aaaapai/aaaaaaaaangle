@@ -2588,6 +2588,8 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                           "image variables must be qualified readonly and/or writeonly");
                   return;
                 }
+        }
+  
     }
     else if (IsPixelLocal(publicType.getBasicType()))
     {
