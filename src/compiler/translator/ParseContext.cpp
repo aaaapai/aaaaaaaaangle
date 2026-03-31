@@ -2549,10 +2549,11 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-                warning(identifierLocation, 
-                    "No image internal format specified, using default format",
+                error(identifierLocation, 
+                    "No image internal format specified.",
                     getBasicString(publicType.getBasicType()));
-                if (IsFloatImage(publicType.getBasicType()))
+                return;
+                /*if (IsFloatImage(publicType.getBasicType()))
                 {
                     const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32F;
                 }
@@ -2568,14 +2569,14 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 {
                     const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32F;
                 }
-                break;
+                break;*/
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
                 return;
         }
 
         // GLSL ES 3.10 Revision 4, 4.9 Memory Access Qualifiers
-        switch (layoutQualifier.imageInternalFormat)
+        /*switch (layoutQualifier.imageInternalFormat)
         {
             case EiifR32F:
             case EiifR32I:
@@ -2588,7 +2589,7 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                           "image variables must be qualified readonly and/or writeonly");
                   return;
                 }
-        }
+        }*/
   
     }
     else if (IsPixelLocal(publicType.getBasicType()))
