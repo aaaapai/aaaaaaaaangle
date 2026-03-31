@@ -1402,8 +1402,6 @@ angle::Result Texture::setImage(Context *context,
 {
     ASSERT(TextureTargetToType(target) == mState.mType);
 
-    std::vector<float> normalized;
-
     // Release from previous calls to eglBindTexImage, to avoid calling the Impl after
     ANGLE_TRY(releaseTexImageInternal(context));
 
