@@ -1161,7 +1161,6 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     AddRGBAFormat(&map, GL_R16F,          true, 16,  0,  0,  0, 0, GL_RED,  GL_HALF_FLOAT,     GL_FLOAT,        false, SizedHalfFloatRGSupport,    SizedHalfFloatFilterSupport,                    SizedHalfFloatRGTextureAttachmentSupport,     SizedHalfFloatRGRenderbufferSupport,       SizedHalfFloatRGRenderbufferSupport);
     AddRGBAFormat(&map, GL_RG16F,         true, 16, 16,  0,  0, 0, GL_RG,   GL_HALF_FLOAT,     GL_FLOAT,        false, SizedHalfFloatRGSupport,    SizedHalfFloatFilterSupport,                    SizedHalfFloatRGTextureAttachmentSupport,     SizedHalfFloatRGRenderbufferSupport,       SizedHalfFloatRGRenderbufferSupport);
     AddRGBAFormat(&map, GL_RGB16F,        true, 16, 16, 16,  0, 0, GL_RGB,  GL_HALF_FLOAT,     GL_FLOAT,        false, SizedHalfFloatSupport,      SizedHalfFloatFilterSupport,                    SizedHalfFloatRGBTextureAttachmentSupport,    SizedHalfFloatRGBRenderbufferSupport,      SizedHalfFloatRGBRenderbufferSupport);
-    AddRGBAFormat(&map, 0x8F9A,           true, 16, 16, 16,  0, 0, GL_RGB,  GL_HALF_FLOAT,     GL_FLOAT,        false, SizedHalfFloatSupport,      SizedHalfFloatFilterSupport,                    SizedHalfFloatRGBTextureAttachmentSupport,    SizedHalfFloatRGBRenderbufferSupport,      SizedHalfFloatRGBRenderbufferSupport);
     AddRGBAFormat(&map, GL_RGBA16F,       true, 16, 16, 16, 16, 0, GL_RGBA, GL_HALF_FLOAT,     GL_FLOAT,        false, SizedHalfFloatSupport,      SizedHalfFloatFilterSupport,                    SizedHalfFloatRGBATextureAttachmentSupport,   SizedHalfFloatRGBARenderbufferSupport,     SizedHalfFloatRGBARenderbufferSupport);
     AddRGBAFormat(&map, GL_R32F,          true, 32,  0,  0,  0, 0, GL_RED,  GL_FLOAT,          GL_FLOAT,        false, SizedFloatRGSupport,        RequireExt<&Extensions::textureFloatLinearOES>, RequireExt<&Extensions::colorBufferFloatEXT>,    RequireExt<&Extensions::colorBufferFloatEXT>, Float32BlendableSupport);
     AddRGBAFormat(&map, GL_RG32F,         true, 32, 32,  0,  0, 0, GL_RG,   GL_FLOAT,          GL_FLOAT,        false, SizedFloatRGSupport,        RequireExt<&Extensions::textureFloatLinearOES>, RequireExt<&Extensions::colorBufferFloatEXT>,    RequireExt<&Extensions::colorBufferFloatEXT>, Float32BlendableSupport);
@@ -1657,14 +1656,8 @@ const InternalFormat &GetInternalFormatInfo(GLenum internalFormat, GLenum type)
     const InternalFormatInfoMap &formatMap = GetInternalFormatMap();
 
     auto internalFormatIter = formatMap.find(internalFormat);
-    if (internalFormatIter == formatMap.end())
-    {
-       if (internalFormat == 0x8F9A) {
-           internalFormatIter = formatMap.find(GL_RGB16F);
-       }
-       if (internalFormatIter == formatMap.end()) {
-           return defaultInternalFormat;
-       }
+    if (internalFormatIter == formatMap.end()) {
+       return defaultInternalFormat;
     }
 
     // If the internal format is sized, simply return it without the type check.
