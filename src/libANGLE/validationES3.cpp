@@ -822,10 +822,6 @@ bool ValidateES3TexImage2DParameters(const Context *context,
                                      const void *pixels)
 {
 
-    if (internalformat == 0x8F9A) { //GL_RGB16F_SNORM
-        return true;
-    }
-
     if (!ValidTexture2DDestinationTarget(context, target))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
