@@ -765,12 +765,12 @@ void DirectiveParser::parseVersion(Token *token)
                 }
                 break;
             case VERSION_PROFILE_ES:
-                if (token->type != Token::IDENTIFIER || token->text != "es")
+                /*if (token->type != Token::IDENTIFIER || token->text != "es")
                 {
                     mDiagnostics->report(Diagnostics::PP_INVALID_VERSION_DIRECTIVE, token->location,
                                          token->text);
                     valid = false;
-                }
+                }*/
                 state = VERSION_ENDLINE;
                 break;
             default:
