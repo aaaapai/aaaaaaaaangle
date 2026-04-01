@@ -71,7 +71,7 @@ mod const_fold {
         int_op: IntOp,
         uint_op: UintOp,
         bool_op: BoolOp,
-    ) -> Option<ConstantId>  // 改为返回 Option
+    ) -> ConstantId
     where
         FloatOp: Fn(f32, f32) -> f32 + Copy,
         IntOp: Fn(i32, i32) -> i32 + Copy,
@@ -83,24 +83,24 @@ mod const_fold {
 
         match (&lhs.value, &rhs.value) {
             (&ConstantValue::Float(f1), &ConstantValue::Float(f2)) => {
-                Some(ir_meta.get_constant_float(float_op(f1, f2)))
+                ir_meta.get_constant_float(float_op(f1, f2))
             }
             (&ConstantValue::Int(i1), &ConstantValue::Int(i2)) => {
-                Some(ir_meta.get_constant_int(int_op(i1, i2)))
+                ir_meta.get_constant_int(int_op(i1, i2))
             }
             (&ConstantValue::Uint(u1), &ConstantValue::Uint(u2)) => {
-                Some(ir_meta.get_constant_uint(uint_op(u1, u2)))
+                ir_meta.get_constant_uint(uint_op(u1, u2))
             }
             (&ConstantValue::Bool(b1), &ConstantValue::Bool(b2)) => {
-                Some(ir_meta.get_constant_bool(bool_op(b1, b2)))
+                ir_meta.get_constant_bool(bool_op(b1, b2))
             }
             (&ConstantValue::YuvCsc(_), &ConstantValue::YuvCsc(_)) => {
-                eprintln!("Warning: Ops not allowed on YUV CSC constants");
-                None
+                eprintln!("Error: Binary operation not allowed on YUV CSC constants");
+                ir_meta.get_constant_int(0)  // 返回默认值 0
             }
             _ => {
-                eprintln!("Warning: Expected scalars when constant folding a binary op");
-                None
+                eprintln!("Error: Expected scalars when constant folding a binary op");
+                ir_meta.get_constant_int(0)  // 返回默认值 0
             }
         }
     }
