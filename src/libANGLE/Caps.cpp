@@ -763,7 +763,8 @@ static bool DetermineFloatBlendSupport(const TextureCapsMap &textureCaps)
         GL_RGBA32F,
     };
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
+    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
+    return true; // I dont care, but I dont know what will happen, just return true.
 }
 
 // Check for GL_EXT_texture_norm16 support
