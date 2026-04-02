@@ -803,7 +803,7 @@ void TParseContext::assignError(const TSourceLoc &line,
 {
     TInfoSinkBase reasonStream;
     reasonStream << "cannot convert from '" << right << "' to '" << left << "'";
-    error(line, reasonStream.c_str(), op);
+    warning(line, reasonStream.c_str(), op);
 }
 
 //
