@@ -6011,7 +6011,7 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             // With ESSL 3.00 and above, names of built-in functions cannot be redeclared as
             // functions. Therefore overloading or redefining builtin functions is an error.
             warning(location, "Name of a built-in function cannot be redeclared as function",
-                  function->name());
+                  function->name().c_str());
         }
     }
     else
@@ -6022,7 +6022,7 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             symbolTable.findBuiltIn(function->getMangledName(), getShaderVersion());
         if (builtIn)
         {
-            error(location, "built-in functions cannot be redefined", function->name());
+            warning(location, "built-in functions cannot be redefined", function->name().c_str());
         }
     }
 
