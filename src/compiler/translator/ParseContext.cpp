@@ -9168,7 +9168,7 @@ TIntermBranch *TParseContext::addBranch(TOperator op,
         }
         else if (mCurrentFunction->getReturnType() != expression->getType())
         {
-            error(loc, "function return is not matching type:", "return");
+            warning(loc, "function return is not matching type:", "return");
         }
         if (!mControlFlow.empty())
         {
