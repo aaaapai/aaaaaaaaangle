@@ -1773,7 +1773,7 @@ bool Program::linkValidateShaders()
         // If the work group size is not specified, a link time error should occur.
         if (!shaders[ShaderType::Compute]->localSize.isDeclared())
         {
-            mState.mExecutable->mPod.computeShaderLocalSize.set(1, 1, 1);
+            mState.mExecutable->mPod.computeShaderLocalSize.fill(1);
             mState.mInfoLog << "Work group size is not specified. Using default work group size (1,1,1)";
         }
 
