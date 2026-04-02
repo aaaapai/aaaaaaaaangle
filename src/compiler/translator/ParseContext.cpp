@@ -6010,7 +6010,7 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
         {
             // With ESSL 3.00 and above, names of built-in functions cannot be redeclared as
             // functions. Therefore overloading or redefining builtin functions is an error.
-            error(location, "Name of a built-in function cannot be redeclared as function",
+            warning(location, "Name of a built-in function cannot be redeclared as function",
                   function->name());
         }
     }
