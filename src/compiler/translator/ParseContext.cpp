@@ -3583,9 +3583,9 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     // identifier must be of type constant, a global, or a temporary
     if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst))
     {
-        error(line, " cannot initialize this type of qualifier ",
+        warning(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
-        return false;
+        //return false;
     }
 
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
