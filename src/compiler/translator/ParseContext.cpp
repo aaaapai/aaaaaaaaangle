@@ -3569,8 +3569,7 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     {
         // Error message does not completely match behavior with ESSL 1.00, but
         // we want to steer developers towards only using constant expressions.
-        error(line, "global variable initializers must be constant expressions", "=");
-        return false;
+        warning(line, "global variable initializers must be constant expressions", "=");
     }
     if (globalInitWarning)
     {
