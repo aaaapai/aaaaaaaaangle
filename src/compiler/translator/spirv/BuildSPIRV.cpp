@@ -1242,7 +1242,8 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
 
         getImageTypeParameters(type.type, &sampledType, &dim, &depth, &arrayed, &multisampled,
                                &sampled);
-        const spv::ImageFormat imageFormat = getImageFormat(type.imageInternalFormat);
+        const TType &fieldTypeForimageFormat = *field->type();
+        const spv::ImageFormat imageFormat = getImageFormat(type.imageInternalFormat, fieldTypeForimageFormat);
 
         typeId = getNewId({});
         spirv::WriteTypeImage(&mSpirvTypeAndConstantDecls, typeId, sampledType, dim, depth, arrayed,
@@ -1587,12 +1588,12 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
     }
 }
 
-spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageInternalFormat)
+spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageInternalFormat, const TType &fieldType)
 {
     switch (imageInternalFormat)
     {
-        case EiifUnspecified:
-            return spv::ImageFormatUnknown;
+        /*case EiifUnspecified:
+            return spv::ImageFormatUnknown;*/
         case EiifRGBA32F:
             return spv::ImageFormatRgba32f;
         case EiifRGBA16F:
@@ -1619,6 +1620,41 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
             return spv::ImageFormatRgba8;
         case EiifRGBA8_SNORM:
             return spv::ImageFormatRgba8Snorm;
+        case EiifUnspecified:
+            switch (fieldType.getBasicType())
+            {
+               case EbtFloat:
+                    if (fieldType.getPrecision() == EbpMedium || fieldType.getPrecision() == EbpLow)
+                        return spv::ImageFormatRgba16f;
+                    return spv::ImageFormatRgba32f;
+            
+               case EbtInt:
+                  if (fieldType.getPrecision() == EbpHigh || fieldType.getPrecision() == EbpUndefined)
+                      return spv::ImageFormatRgba32i;
+                   return spv::ImageFormatRgba16i;
+            
+               case EbtUInt:
+                   if (fieldType.getPrecision() == EbpHigh || fieldType.getPrecision() == EbpUndefined)
+                       return spv::ImageFormatRgba32ui;
+                   return spv::ImageFormatRgba16ui;
+      
+               case EbtSampler2D:
+               case EbtSamplerExternalOES:
+               case EbtSampler2DArray:
+               case EbtSamplerCube:
+                   return spv::ImageFormatRgba32f;
+            
+               case EbtISampler2D:
+               case EbtISampler2DArray:
+               case EbtISamplerCube:
+                   return spv::ImageFormatRgba32i;
+            
+               case EbtUSampler2D:
+               case EbtUSampler2DArray:
+               case EbtUSamplerCube:
+                   return spv::ImageFormatRgba32ui;
+            }
+
         default:
             UNREACHABLE();
             return spv::ImageFormatUnknown;
