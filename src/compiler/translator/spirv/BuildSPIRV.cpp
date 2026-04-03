@@ -1242,8 +1242,7 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
 
         getImageTypeParameters(type.type, &sampledType, &dim, &depth, &arrayed, &multisampled,
                                &sampled);
-        const TType &fieldTypeForimageFormat = *field->type();
-        const spv::ImageFormat imageFormat = getImageFormat(type.imageInternalFormat, fieldTypeForimageFormat);
+        const spv::ImageFormat imageFormat = getImageFormat(type.imageInternalFormat, type);
 
         typeId = getNewId({});
         spirv::WriteTypeImage(&mSpirvTypeAndConstantDecls, typeId, sampledType, dim, depth, arrayed,
