@@ -3844,11 +3844,11 @@ bool ValidateAttachShader(const Context *context,
         return false;
     }
 
-    /*if (programObject->getAttachedShader(shaderObject->getType()))
+    if (programObject->getAttachedShader(shaderObject->getType()) && (!std::getenv("ANGLE_APLABEDIT")))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kShaderAttachmentHasShader);
         return false;
-    }*/
+    }
 
     return true;
 }
