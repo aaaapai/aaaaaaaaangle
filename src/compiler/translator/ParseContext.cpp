@@ -839,12 +839,12 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                                             TBasicType type)
 {
 
-    /*if (precision != EbpUndefined && !SupportsPrecision(type))
+    if ((precision != EbpUndefined && !SupportsPrecision(type)) && !(std::getenv("ANGLE_APLABEDIT")))
     {
         error(line, "illegal type for precision qualifier", getBasicString(type));
-    }*/
+    }
 
-    /*if (precision == EbpUndefined)
+    if (precision == EbpUndefined && !(std::getenv("ANGLE_APLABEDIT")))
     {
         switch (type)
         {
@@ -863,7 +863,7 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                     return;
                 }
         }
-    }*/
+    }
 }
 
 void TParseContext::markStaticUseIfSymbol(TIntermNode *node)
