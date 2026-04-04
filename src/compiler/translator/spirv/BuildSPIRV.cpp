@@ -1652,6 +1652,8 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
                case EbtUSampler2DArray:
                case EbtUSamplerCube:
                    return spv::ImageFormatRgba32ui;
+               default:
+                   return spv::ImageFormatRgba32f;
             }
 
         default:
