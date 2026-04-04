@@ -2549,7 +2549,7 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-                error(identifierLocation, 
+                warning(identifierLocation, 
                     "No image internal format specified.",
                     getBasicString(publicType.getBasicType()));
                 return;
@@ -2642,7 +2642,7 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                       getImageInternalFormatString(layoutQualifier.imageInternalFormat));
                 break;
             case EiifUnspecified:
-                error(identifierLocation, "pixel local storage requires a format specifier",
+                warning(identifierLocation, "pixel local storage requires a format specifier",
                       "layout qualifier");
                 break;
         }
