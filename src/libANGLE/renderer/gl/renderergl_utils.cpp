@@ -825,14 +825,10 @@ void GenerateCaps(const FunctionsGL *functions,
         //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
-    if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
     {
         caps->maxLODBias = QuerySingleGLFloat(functions, GL_MAX_TEXTURE_LOD_BIAS);
     }
-    else
-    {
-        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
-    }
+
 
     if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
     {
