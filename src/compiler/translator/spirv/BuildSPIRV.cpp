@@ -1623,19 +1623,17 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
             switch (spirvType.type)
             {
                case EbtFloat:
-                    if (spirvType.typeSpec.precision == EbpMedium || spirvType.typeSpec.precision == EbpLow)
+                    if (spirvType.typeSpec.precision == SPIRVPrecisionChoice::UseFP16)
                         return spv::ImageFormatRgba16f;
                     return spv::ImageFormatRgba32f;
             
                case EbtInt:
-                  if (spirvType.typeSpec.precision == EbpHigh || spirvType.typeSpec.precision == EbpUndefined)
-                      return spv::ImageFormatRgba32i;
-                   return spv::ImageFormatRgba16i;
+                   return spv::ImageFormatRgba32i;
             
                case EbtUInt:
-                   if (spirvType.typeSpec.precision == EbpHigh || spirvType.typeSpec.precision == EbpUndefined)
-                       return spv::ImageFormatRgba32ui;
-                   return spv::ImageFormatRgba16ui;
+                   if (spirvType.typeSpec.precision == SPIRVPrecisionChoice::UseFP16)
+                       return spv::ImageFormatRgba16ui;
+                   return spv::ImageFormatRgba32ui;
       
                case EbtSampler2D:
                case EbtSamplerExternalOES:
