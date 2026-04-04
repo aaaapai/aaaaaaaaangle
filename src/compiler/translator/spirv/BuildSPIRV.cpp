@@ -1587,7 +1587,7 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
     }
 }
 
-spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageInternalFormat, const TType &fieldType)
+spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageInternalFormat, const SpirvType &spirvType)
 {
     switch (imageInternalFormat)
     {
@@ -1620,20 +1620,20 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
         case EiifRGBA8_SNORM:
             return spv::ImageFormatRgba8Snorm;
         case EiifUnspecified:
-            switch (fieldType.getBasicType())
+            switch (spirvType.type)
             {
                case EbtFloat:
-                    if (fieldType.getPrecision() == EbpMedium || fieldType.getPrecision() == EbpLow)
+                    if (spirvType.typeSpec.precision == EbpMedium || spirvType.typeSpec.precision == EbpLow)
                         return spv::ImageFormatRgba16f;
                     return spv::ImageFormatRgba32f;
             
                case EbtInt:
-                  if (fieldType.getPrecision() == EbpHigh || fieldType.getPrecision() == EbpUndefined)
+                  if (spirvType.typeSpec.precision == EbpHigh || spirvType.typeSpec.precision == EbpUndefined)
                       return spv::ImageFormatRgba32i;
                    return spv::ImageFormatRgba16i;
             
                case EbtUInt:
-                   if (fieldType.getPrecision() == EbpHigh || fieldType.getPrecision() == EbpUndefined)
+                   if (spirvType.typeSpec.precision == EbpHigh || spirvType.typeSpec.precision == EbpUndefined)
                        return spv::ImageFormatRgba32ui;
                    return spv::ImageFormatRgba16ui;
       
