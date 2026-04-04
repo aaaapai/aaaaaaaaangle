@@ -2549,27 +2549,17 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-                warning(identifierLocation, 
+              if (!(std::getenv("ANGLE_APLABEDIT"))) {
+                error(identifierLocation, 
                     "No image internal format specified.",
                     getBasicString(publicType.getBasicType()));
                 return;
-                /*if (IsFloatImage(publicType.getBasicType()))
-                {
-                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32F;
-                }
-                else if (IsIntegerImage(publicType.getBasicType()))
-                {
-                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32I;
-                }
-                else if (IsUnsignedImage(publicType.getBasicType()))
-                {
-                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32UI;
-                }
-                else
-                {
-                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32F;
-                }
-                break;*/
+              } else {
+                warning(identifierLocation, 
+                    "No image internal format specified.",
+                    getBasicString(publicType.getBasicType()));
+                //return;
+              }
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
                 return;
@@ -2642,8 +2632,13 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                       getImageInternalFormatString(layoutQualifier.imageInternalFormat));
                 break;
             case EiifUnspecified:
+              if (!(std::getenv("ANGLE_APLABEDIT"))) {
+                error(identifierLocation, "pixel local storage requires a format specifier",
+                      "layout qualifier");
+              } else {
                 warning(identifierLocation, "pixel local storage requires a format specifier",
                       "layout qualifier");
+              }
                 break;
         }
         checkMemoryQualifierIsNotSpecified(publicType.memoryQualifier, identifierLocation);
@@ -3569,7 +3564,12 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     {
         // Error message does not completely match behavior with ESSL 1.00, but
         // we want to steer developers towards only using constant expressions.
+      if (!(std::getenv("ANGLE_APLABEDIT"))) {
+        error(line, "global variable initializers must be constant expressions", "=");
+        return false;
+      } else {
         warning(line, "global variable initializers must be constant expressions", "=");
+      }
     }
     if (globalInitWarning)
     {
@@ -3581,11 +3581,14 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     }
 
     // identifier must be of type constant, a global, or a temporary
-    if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst))
+    if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst) && !(std::getenv("ANGLE_APLABEDIT")))
     {
+        error(line, " cannot initialize this type of qualifier ",
+              variable->getType().getQualifierString());
+        return false;
+    } else {
         warning(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
-        //return false;
     }
 
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
