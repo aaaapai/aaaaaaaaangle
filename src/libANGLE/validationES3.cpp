@@ -427,11 +427,11 @@ bool ValidateES3TexImageParametersBase(const Context *context,
             return false;
         }
 
-        if (level != 0)
+        /*if (level != 0)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidMipLevel);
             return false;
-        }
+        }*/
     }
 
     // Validate image size
