@@ -11,6 +11,7 @@ use crate::*;
 // Helper functions that perform constant folding per instruction
 mod const_fold {
     use crate::ir::*;
+    use crate::util;
 
     fn apply_unary_componentwise<FloatOp, IntOp, UintOp, BoolOp>(
         ir_meta: &mut IRMeta,
@@ -500,15 +501,15 @@ mod const_fold {
     }
 
     // Construct a matrix from multiple components.
-    fn construct_matrix_from_many(
+    fn construct_matrix_from_multiple(
         ir_meta: &mut IRMeta,
         args: Vec<ConstantId>,
         result_type_id: TypeId,
     ) -> ConstantId {
-        util::construct_vector_from_scalar(
+        util::construct_matrix_from_multiple(
             ir_meta,
             &mut (),
-            arg,
+            &args,
             result_type_id,
             None,
             |ir_meta, _, type_id, args, _| ir_meta.get_constant_composite(type_id, args),
@@ -552,9 +553,9 @@ mod const_fold {
             } else if is_matrix && args.len() == 1 {
                 construct_matrix_from_scalar(ir_meta, args[0], result_type_id)
             } else if is_vector {
-                construct_vector_from_many(ir_meta, args, result_type_id)
+                construct_vector_from_multiple(ir_meta, args, result_type_id)
             } else if is_matrix {
-                construct_matrix_from_many(ir_meta, args, result_type_id)
+                construct_vector_from_multiple(ir_meta, args, result_type_id)
             } else {
                 // The type cast is enough to satisfy scalar constructors.
                 args[0]
