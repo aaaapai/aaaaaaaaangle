@@ -1407,11 +1407,13 @@ impl ConstantValue {
     }
 
     pub fn get_composite_elements(&self) -> &Vec<ConstantId> {
+        static EMPTY_VEC: Vec<ConstantId> = Vec::new();
+    
         match self {
             ConstantValue::Composite(ids) => ids,
             _ => {
-                eprintln!("Warning: Attempt to query elements of a non-composite type, returning empty vector (OpenGL 4.6 compat behavior)");
-                &Vec::new()
+                eprintln!("Warning: Attempt to query elements of a non-composite type (OpenGL 4.6 compat behavior)");
+                &EMPTY_VEC
             }
         }
     }
