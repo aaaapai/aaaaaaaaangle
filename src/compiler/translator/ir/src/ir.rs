@@ -1406,12 +1406,16 @@ impl ConstantValue {
         matches!(self, ConstantValue::Composite(_))
     }
 
-    pub fn get_composite_elements(&self) -> &Vec<ConstantId> {
+    pub fn get_composite_elements(&self) -> Option<&Vec<ConstantId>> {
         match self {
-            ConstantValue::Composite(ids) => ids,
-            _ => panic!("Internal error: Attempt to query elements of a non-composite type"),
+            ConstantValue::Composite(ids) => Some(ids),
+            _ => {
+                eprintln!("Warning: Attempt to query elements of a non-composite type");
+                None
+            }
         }
     }
+
 }
 
 // A constant value.  Constant values are of a given type, and can composite accordingly.
