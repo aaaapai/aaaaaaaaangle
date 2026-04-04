@@ -6013,7 +6013,10 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
         {
             // With ESSL 3.00 and above, names of built-in functions cannot be redeclared as
             // functions. Therefore overloading or redefining builtin functions is an error.
-            //warning(location, "Name of a built-in function cannot be redeclared as function");
+            if (!(std::getenv("ANGLE_APLABEDIT"))) {
+              error(location, "Name of a built-in function cannot be redeclared as function",
+                  function->name());
+            }
         }
     }
     else
@@ -6024,7 +6027,9 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             symbolTable.findBuiltIn(function->getMangledName(), getShaderVersion());
         if (builtIn)
         {
-            //warning(location, "built-in functions cannot be redefined");
+            if (!(std::getenv("ANGLE_APLABEDIT"))) {
+              error(location, "built-in functions cannot be redefined", function->name());
+            }
         }
     }
 
@@ -9170,7 +9175,11 @@ TIntermBranch *TParseContext::addBranch(TOperator op,
         }
         else if (mCurrentFunction->getReturnType() != expression->getType())
         {
-            warning(loc, "function return is not matching type:", "return");
+            if (!(std::getenv("ANGLE_APLABEDIT"))) {
+              error(loc, "function return is not matching type:", "return");
+            } else {
+              warning(loc, "function return is not matching type:", "return");
+            }
         }
         if (!mControlFlow.empty())
         {
