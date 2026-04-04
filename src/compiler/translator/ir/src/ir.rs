@@ -1406,12 +1406,12 @@ impl ConstantValue {
         matches!(self, ConstantValue::Composite(_))
     }
 
-    pub fn get_composite_elements(&self) -> Option<&Vec<ConstantId>> {
+    pub fn get_composite_elements(&self) -> &Vec<ConstantId> {
         match self {
-            ConstantValue::Composite(ids) => Some(ids),
+            ConstantValue::Composite(ids) => ids,
             _ => {
-                eprintln!("Warning: Attempt to query elements of a non-composite type");
-                None
+                eprintln!("Warning: Attempt to query elements of a non-composite type, returning empty vector (OpenGL 4.6 compat behavior)");
+                &Vec::new()
             }
         }
     }
