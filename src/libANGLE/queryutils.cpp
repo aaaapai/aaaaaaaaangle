@@ -3891,7 +3891,6 @@ bool GetQueryParameterInfo(const State &glState,
         return true;
     }
 
-    if (glState.getClientVersion() < Version(2, 0))
     {
         switch (pname)
         {
