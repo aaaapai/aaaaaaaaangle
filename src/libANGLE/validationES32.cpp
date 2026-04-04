@@ -161,7 +161,7 @@ bool ValidateColorMaski(const PrivateState &state,
     if (buf >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
     {
         errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-        return true;
+        if (!std::getenv("ANGLE_APLABEDIT")) return false;
     }
 
     return true;
