@@ -174,11 +174,11 @@ bool IsValidCopyTextureDestinationFormatType(const Context *context,
                                              GLint internalFormat,
                                              GLenum type)
 {
-    /*if (!IsValidCopyTextureDestinationInternalFormatEnum(internalFormat))
+    if (!IsValidCopyTextureDestinationInternalFormatEnum(internalFormat))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
         return false;
-    }*/
+    }
 
     if (!ValidES3FormatCombination(GetUnsizedFormat(internalFormat), type, internalFormat))
     {
@@ -186,12 +186,12 @@ bool IsValidCopyTextureDestinationFormatType(const Context *context,
         return false;
     }
 
-    /*const InternalFormat &internalFormatInfo = GetInternalFormatInfo(internalFormat, type);
+    const InternalFormat &internalFormatInfo = GetInternalFormatInfo(internalFormat, type);
     if (!internalFormatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
         return false;
-    }*/
+    }
 
     return true;
 }
