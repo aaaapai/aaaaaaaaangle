@@ -1885,7 +1885,7 @@ mod const_fold {
             uint_op,
             bool_op,
         )
-    }                                                     }
+    }
 
     fn built_in_distance(
         ir_meta: &mut IRMeta,
