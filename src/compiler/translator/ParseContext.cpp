@@ -3581,14 +3581,16 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     }
 
     // identifier must be of type constant, a global, or a temporary
-    if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst) && !(std::getenv("ANGLE_APLABEDIT")))
+    if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst))
     {
+       if (!(std::getenv("ANGLE_APLABEDIT"))) {
         error(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
         return false;
-    } else {
+       } else {
         warning(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
+       }
     }
 
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
