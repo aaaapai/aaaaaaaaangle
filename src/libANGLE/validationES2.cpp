@@ -4566,8 +4566,8 @@ bool ValidateGetBooleanv(const Context *context,
                          GLenum pname,
                          const GLboolean *data)
 {
-    //return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
-    return true;
+    return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
+    //return true;
 }
 
 bool ValidateGetError(const Context *context, angle::EntryPoint entryPoint)
