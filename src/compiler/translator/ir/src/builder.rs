@@ -167,8 +167,7 @@ impl CFGBuilder {
     fn add_variable_declaration(&mut self, variable_id: VariableId) {
         if !self.current_block.new_instructions_are_dead_code {
             self.current_block.block.add_variable_declaration(variable_id);
-            return;
-        }
+        } else {
 
         // GLSL supports declaring a variable in one case and using it in the next, even if the
         // declaration is in dead code! To support this, the variable declaration is added to
@@ -194,6 +193,7 @@ impl CFGBuilder {
         if parent_is_switch || grandparent_is_switch {
             self.current_block.block.add_variable_declaration(variable_id);
         }
+       }
     }
 
     // Add an instruction to the current block.  This may be a break, continue, return or discard,
