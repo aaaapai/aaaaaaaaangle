@@ -11,7 +11,6 @@ use crate::*;
 // Helper functions that perform constant folding per instruction
 mod const_fold {
     use crate::ir::*;
-    use crate::util;
 
     fn apply_unary_componentwise<FloatOp, IntOp, UintOp, BoolOp>(
         ir_meta: &mut IRMeta,
@@ -428,7 +427,7 @@ mod const_fold {
                     // This function is called on scalars, so `Composite` is impossible.
                     // Additionally, GLSL forbids type conversion to and from
                     // yuvCscStandardEXT.
-                    panic!("Internal error: Invalid constructor argument type");
+                    arg
                 }
             })
             .collect()
@@ -440,14 +439,10 @@ mod const_fold {
         arg: ConstantId,
         result_type_id: TypeId,
     ) -> ConstantId {
-        util::construct_vector_from_scalar(
-            ir_meta,
-            &mut (),
-            arg,
-            result_type_id,
-            None,
-            |ir_meta, _, type_id, args, _| ir_meta.get_constant_composite(type_id, args),
-        )
+        let type_info = ir_meta.get_type(result_type_id);
+        let vec_size = type_info.get_vector_size().unwrap();
+        let args = vec![arg; vec_size as usize];
+        ir_meta.get_constant_composite(result_type_id, args)
     }
 
     // Construct a matrix from a scalar by setting the diagonal elements with that scalar while
@@ -457,15 +452,20 @@ mod const_fold {
         arg: ConstantId,
         result_type_id: TypeId,
     ) -> ConstantId {
-        util::construct_matrix_from_scalar(
-            ir_meta,
-            &mut (),
-            arg,
-            result_type_id,
-            None,
-            CONSTANT_ID_FLOAT_ZERO,
-            |ir_meta, _, type_id, args, _| ir_meta.get_constant_composite(type_id, args),
-        )
+        let type_info = ir_meta.get_type(result_type_id);
+        let &Type::Matrix(vector_type_id, column_count) = type_info else { unreachable!() };
+        let &Type::Vector(_, row_count) = ir_meta.get_type(vector_type_id) else { unreachable!() };
+
+        // Create columns where every component is 0 except the one at index = column_index.
+        let columns = (0..column_count)
+            .map(|column| {
+                let column_components = (0..row_count)
+                    .map(|row| if row == column { arg } else { CONSTANT_ID_FLOAT_ZERO })
+                    .collect();
+                ir_meta.get_constant_composite(vector_type_id, column_components)
+            })
+            .collect();
+        ir_meta.get_constant_composite(result_type_id, columns)
     }
 
     // Construct a matrix from a matrix by starting with the identity matrix and overwriting it with
@@ -475,23 +475,48 @@ mod const_fold {
         arg: ConstantId,
         result_type_id: TypeId,
     ) -> ConstantId {
-        util::construct_matrix_from_matrix(
-            ir_meta,
-            &mut (),
-            arg,
-            result_type_id,
-            None,
-            CONSTANT_ID_FLOAT_ZERO,
-            CONSTANT_ID_FLOAT_ONE,
-            |ir_meta, _, constant_id| {
-                ir_meta.get_constant(constant_id).value.get_composite_elements().clone()
-            },
-            |ir_meta, _, type_id, args, _| ir_meta.get_constant_composite(type_id, args),
-        )
+        let type_info = ir_meta.get_type(result_type_id);
+        let &Type::Matrix(vector_type_id, column_count) = type_info else { unreachable!() };
+        let &Type::Vector(_, row_count) = ir_meta.get_type(vector_type_id) else { unreachable!() };
+
+        let input = ir_meta.get_constant(arg);
+        let input_columns = input.value.get_composite_elements();
+        let input_column_components: Vec<_> = input_columns
+            .iter()
+            .map(|&column_id| ir_meta.get_constant(column_id).value.get_composite_elements())
+            .collect();
+        let input_column_count = input_columns.len() as u32;
+        let input_row_count = input_column_components[0].len() as u32;
+
+        // Create columns where every component is taken from the input matrix, except if it's out
+        // of bounds.  In that case, the component is 1 on the diagonal and 0 elsewhere.
+        let columns: Vec<_> = (0..column_count)
+            .map(|column| {
+                (0..row_count)
+                    .map(|row| {
+                        if column < input_column_count && row < input_row_count {
+                            input_column_components[column as usize][row as usize]
+                        } else if row == column {
+                            CONSTANT_ID_FLOAT_ONE
+                        } else {
+                            CONSTANT_ID_FLOAT_ZERO
+                        }
+                    })
+                    .collect()
+            })
+            .collect();
+
+        let columns = columns
+            .into_iter()
+            .map(|column_components| {
+                ir_meta.get_constant_composite(vector_type_id, column_components)
+            })
+            .collect();
+        ir_meta.get_constant_composite(result_type_id, columns)
     }
 
     // Construct a vector from multiple components.
-    fn construct_vector_from_multiple(
+    fn construct_vector_from_many(
         ir_meta: &mut IRMeta,
         args: Vec<ConstantId>,
         result_type_id: TypeId,
@@ -500,19 +525,23 @@ mod const_fold {
     }
 
     // Construct a matrix from multiple components.
-    fn construct_matrix_from_multiple(
+    fn construct_matrix_from_many(
         ir_meta: &mut IRMeta,
         args: Vec<ConstantId>,
         result_type_id: TypeId,
     ) -> ConstantId {
-        util::construct_matrix_from_multiple(
-            ir_meta,
-            &mut (),
-            &args,
-            result_type_id,
-            None,
-            |ir_meta, _, type_id, args, _| ir_meta.get_constant_composite(type_id, args),
-        )
+        let type_info = ir_meta.get_type(result_type_id);
+        let &Type::Matrix(vector_type_id, column_count) = type_info else { unreachable!() };
+        let &Type::Vector(_, row_count) = ir_meta.get_type(vector_type_id) else { unreachable!() };
+
+        let columns = (0..column_count)
+            .map(|column| {
+                let start = (column * row_count) as usize;
+                let end = start + row_count as usize;
+                ir_meta.get_constant_composite(vector_type_id, args[start..end].to_vec())
+            })
+            .collect();
+        ir_meta.get_constant_composite(result_type_id, columns)
     }
 
     pub fn construct(
@@ -552,9 +581,9 @@ mod const_fold {
             } else if is_matrix && args.len() == 1 {
                 construct_matrix_from_scalar(ir_meta, args[0], result_type_id)
             } else if is_vector {
-                construct_vector_from_multiple(ir_meta, args, result_type_id)
+                construct_vector_from_many(ir_meta, args, result_type_id)
             } else if is_matrix {
-                construct_matrix_from_multiple(ir_meta, args, result_type_id)
+                construct_matrix_from_many(ir_meta, args, result_type_id)
             } else {
                 // The type cast is enough to satisfy scalar constructors.
                 args[0]
@@ -1754,126 +1783,187 @@ mod const_fold {
     ) -> ConstantId {
         unpack4x8_helper(ir_meta, constant_id, result_type_id, unorm8_to_f32)
     }
-    fn create_default_constant(ir_meta: &mut IRMeta, type_id: TypeId) -> ConstantId {
-        match ir_meta.types.get(type_id) {
-            Type::Float => ir_meta.constants.insert(Constant::Float(0.0)),
-            Type::Int => ir_meta.constants.insert(Constant::Int(0)),
-            Type::Uint => ir_meta.constants.insert(Constant::Uint(0)),
-            Type::Bool => ir_meta.constants.insert(Constant::Bool(false)),
-            Type::Vec2 => ir_meta.constants.insert(Constant::Vec2([0.0, 0.0])),
-            Type::Vec3 => ir_meta.constants.insert(Constant::Vec3([0.0, 0.0, 0.0])),
-            Type::Vec4 => ir_meta.constants.insert(Constant::Vec4([0.0, 0.0, 0.0, 0.0])),
-            _ => ir_meta.constants.insert(Constant::Float(0.0)),
-        }
-    }
     pub fn built_in_unary(
         ir_meta: &mut IRMeta,
         op: UnaryOpCode,
         constant_id: ConstantId,
         result_type_id: TypeId,
     ) -> ConstantId {
-        match op {
-            UnaryOpCode::Isnan => return built_in_isnan(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::Isinf => return built_in_isinf(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::FloatBitsToInt => return built_in_floatbitstoint(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::FloatBitsToUint => return built_in_floatbitstouint(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::IntBitsToFloat => return built_in_intbitstofloat(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::UintBitsToFloat => return built_in_uintbitstofloat(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::PackSnorm2x16 => return built_in_packsnorm2x16(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::PackHalf2x16 => return built_in_packhalf2x16(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::UnpackSnorm2x16 => return built_in_unpacksnorm2x16(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::UnpackHalf2x16 => return built_in_unpackhalf2x16(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::PackUnorm2x16 => return built_in_packunorm2x16(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::UnpackUnorm2x16 => return built_in_unpackunorm2x16(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::PackUnorm4x8 => return built_in_packunorm4x8(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::PackSnorm4x8 => return built_in_packsnorm4x8(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::UnpackUnorm4x8 => return built_in_unpackunorm4x8(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::UnpackSnorm4x8 => return built_in_unpacksnorm4x8(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::Length => return built_in_length(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::Normalize => return built_in_normalize(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::Transpose => return built_in_transpose(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::Determinant => return built_in_determinant(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::Inverse => return built_in_inverse(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::Any => return built_in_any(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::All => return built_in_all(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::BitCount => return built_in_bitcount(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::FindLSB => return built_in_findlsb(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::FindMSB => return built_in_findmsb(ir_meta, constant_id, result_type_id),
-            UnaryOpCode::InterpolateAtCentroid => return constant_id,
-        
-            UnaryOpCode::AtomicCounter
-            | UnaryOpCode::AtomicCounterIncrement
-            | UnaryOpCode::AtomicCounterDecrement
-            | UnaryOpCode::ImageSize
-            | UnaryOpCode::PixelLocalLoadANGLE => {
-                eprintln!("Warning: Cannot constant-fold");
-                return constant_id;
-            }
-            _ => {}
-        }
-
         let float_op = match op {
             UnaryOpCode::Radians => |f: f32| f.to_radians(),
             UnaryOpCode::Degrees => |f: f32| f.to_degrees(),
             UnaryOpCode::Sin => |f: f32| f.sin(),
             UnaryOpCode::Cos => |f: f32| f.cos(),
             UnaryOpCode::Tan => |f: f32| f.tan(),
+            // For asin(x), results are undefined if |x| > 1, we are choosing to set result to 0.
             UnaryOpCode::Asin => |f: f32| if f.abs() > 1. { 0. } else { f.asin() },
+            // For acos(x), results are undefined if |x| > 1, we are choosing to set result to 0.
             UnaryOpCode::Acos => |f: f32| if f.abs() > 1. { 0. } else { f.acos() },
             UnaryOpCode::Atan => |f: f32| f.atan(),
             UnaryOpCode::Sinh => |f: f32| f.sinh(),
             UnaryOpCode::Cosh => |f: f32| f.cosh(),
             UnaryOpCode::Tanh => |f: f32| f.tanh(),
             UnaryOpCode::Asinh => |f: f32| f.asinh(),
+            // For acosh(x), results are undefined if |x| < 1, we are choosing to set result to 0.
             UnaryOpCode::Acosh => |f: f32| if f.abs() < 1. { 0. } else { f.acosh() },
+            // For atanh(x), results are undefined if |x| >= 1, we are choosing to set result to 0.
             UnaryOpCode::Atanh => |f: f32| if f.abs() >= 1. { 0. } else { f.atanh() },
             UnaryOpCode::Exp => |f: f32| f.exp(),
+            // For log(x), results are undefined if x <= 0, we are choosing to set result to 0.
             UnaryOpCode::Log => |f: f32| if f <= 0. { 0. } else { f.ln() },
             UnaryOpCode::Exp2 => |f: f32| f.exp2(),
-            UnaryOpCode::Log2 => |f: f32| if f <= 0. { 0. } else { f.log2() },
+            // For log2(x), results are undefined if x <= 0, we are choosing to set result to 0.
+            UnaryOpCode::Log2 => |f: f32| f.log2(),
+            // For sqrt(x), results are undefined if x < 0, we are choosing to set result to 0.
             UnaryOpCode::Sqrt => |f: f32| if f < 0. { 0. } else { f.sqrt() },
+            // For inversesqrt(x), results are undefined if x <= 0, we are choosing to set result
+            // to 0.
             UnaryOpCode::Inversesqrt => |f: f32| if f <= 0. { 0. } else { f.sqrt().recip() },
             UnaryOpCode::Abs => |f: f32| f.abs(),
-            UnaryOpCode::Sign => |f: f32| if f > 0. { 1. } else if f < 0. { -1. } else { 0. },
+            UnaryOpCode::Sign => |f: f32| {
+                if f > 0. {
+                    1.
+                } else if f < 0. {
+                    -1.
+                } else {
+                    0.
+                }
+            },
             UnaryOpCode::Floor => |f: f32| f.floor(),
             UnaryOpCode::Trunc => |f: f32| f.trunc(),
             UnaryOpCode::Round => |f: f32| f.round(),
             UnaryOpCode::RoundEven => |f: f32| f.round_ties_even(),
             UnaryOpCode::Ceil => |f: f32| f.ceil(),
             UnaryOpCode::Fract => |f: f32| f.fract(),
+            UnaryOpCode::Isnan => {
+                return built_in_isnan(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::Isinf => {
+                return built_in_isinf(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::FloatBitsToInt => {
+                return built_in_floatbitstoint(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::FloatBitsToUint => {
+                return built_in_floatbitstouint(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::IntBitsToFloat => {
+                return built_in_intbitstofloat(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::UintBitsToFloat => {
+                return built_in_uintbitstofloat(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::PackSnorm2x16 => {
+                return built_in_packsnorm2x16(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::PackHalf2x16 => {
+                return built_in_packhalf2x16(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::UnpackSnorm2x16 => {
+                return built_in_unpacksnorm2x16(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::UnpackHalf2x16 => {
+                return built_in_unpackhalf2x16(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::PackUnorm2x16 => {
+                return built_in_packunorm2x16(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::UnpackUnorm2x16 => {
+                return built_in_unpackunorm2x16(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::PackUnorm4x8 => {
+                return built_in_packunorm4x8(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::PackSnorm4x8 => {
+                return built_in_packsnorm4x8(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::UnpackUnorm4x8 => {
+                return built_in_unpackunorm4x8(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::UnpackSnorm4x8 => {
+                return built_in_unpacksnorm4x8(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::Length => {
+                return built_in_length(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::Normalize => {
+                return built_in_normalize(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::Transpose => {
+                return built_in_transpose(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::Determinant => {
+                return built_in_determinant(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::Inverse => {
+                return built_in_inverse(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::Any => {
+                return built_in_any(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::All => {
+                return built_in_all(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::BitCount => {
+                return built_in_bitcount(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::FindLSB => {
+                return built_in_findlsb(ir_meta, constant_id, result_type_id);
+            }
+            UnaryOpCode::FindMSB => {
+                return built_in_findmsb(ir_meta, constant_id, result_type_id);
+            }
+            // For dFdx, dFdy and fwidth, note that derivates of constants is 0
             UnaryOpCode::DFdx => |_f: f32| 0.,
             UnaryOpCode::DFdy => |_f: f32| 0.,
             UnaryOpCode::Fwidth => |_f: f32| 0.,
-            _ => |_f: f32| {
-                eprintln!("Warning: Invalid built-in operation on float");
-                0.
-            },
+            UnaryOpCode::InterpolateAtCentroid => return constant_id,
+            UnaryOpCode::AtomicCounter
+            | UnaryOpCode::AtomicCounterIncrement
+            | UnaryOpCode::AtomicCounterDecrement
+            | UnaryOpCode::ImageSize
+            | UnaryOpCode::PixelLocalLoadANGLE => {
+                eprintln!("Internal error: Unexpected built-ins to constant-fold");
+                return constant_id;
+            }
+            _ => {
+               eprintln!("Internal error: Invalid built-in operation on float");
+               return constant_id;
+            }
         };
 
         let int_op = match op {
             UnaryOpCode::Abs => |i: i32| i.abs(),
-            UnaryOpCode::Sign => |i: i32| if i > 0 { 1 } else if i < 0 { -1 } else { 0 },
-            UnaryOpCode::BitfieldReverse => |i: i32| i.reverse_bits(),
-            _ => |_i: i32| {
-                eprintln!("Warning: Invalid built-in operation on int");
-                0
+            UnaryOpCode::Sign => |i: i32| {
+                if i > 0 {
+                    1
+                } else if i < 0 {
+                    -1
+                } else {
+                    0
+                }
             },
+            UnaryOpCode::BitfieldReverse => |i: i32| i.reverse_bits(),
+            _ => {
+               eprintln!("Internal error: Invalid built-in operation on int");
+               |_i: i32| 0
+            }
         };
 
         let uint_op = match op {
             UnaryOpCode::BitfieldReverse => |u: u32| u.reverse_bits(),
-            _ => |_u: u32| {
-                eprintln!("Warning: Invalid built-in operation on uint");
-                0
-            },
+            _ => {
+              eprintln!("Internal error: Invalid built-in operation on uint");
+              |_u: u32| 0u32
+            }
         };
 
         let bool_op = match op {
             UnaryOpCode::Not => |b: bool| !b,
-            _ => |_b: bool| {
-                eprintln!("Warning: Invalid built-in operation on bool");
-                false
-            },
+            _ => {
+              eprintln!("Internal error: Invalid built-in operation on uint");
+              |_b: bool| false
+            }
         };
 
         apply_unary_componentwise(
