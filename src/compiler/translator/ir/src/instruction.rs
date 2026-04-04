@@ -1755,339 +1755,125 @@ mod const_fold {
         unpack4x8_helper(ir_meta, constant_id, result_type_id, unorm8_to_f32)
     }
     pub fn built_in_unary(
-    ir_meta: &mut IRMeta,
-    op: UnaryOpCode,
-    constant_id: ConstantId,
-    result_type_id: TypeId,
+        ir_meta: &mut IRMeta,
+        op: UnaryOpCode,
+        constant_id: ConstantId,
+        result_type_id: TypeId,
     ) -> ConstantId {
-    let constant = match ir_meta.constants.get(constant_id) {
-        Some(c) => c,
-        None => {
-            eprintln!("Warning: Invalid constant_id {:?} in built_in_unary", constant_id);
-            return match ir_meta.types.get(result_type_id) {
-                Type::Float => ir_meta.constants.insert(Constant::Float(0.0)),
-                Type::Int => ir_meta.constants.insert(Constant::Int(0)),
-                Type::Uint => ir_meta.constants.insert(Constant::Uint(0)),
-                Type::Bool => ir_meta.constants.insert(Constant::Bool(false)),
-                Type::Vec2 => ir_meta.constants.insert(Constant::Vec2([0.0, 0.0])),
-                Type::Vec3 => ir_meta.constants.insert(Constant::Vec3([0.0, 0.0, 0.0])),
-                Type::Vec4 => ir_meta.constants.insert(Constant::Vec4([0.0, 0.0, 0.0, 0.0])),
-                Type::Mat2x2 => ir_meta.constants.insert(Constant::Mat2x2([0.0; 4])),
-                Type::Mat2x3 => ir_meta.constants.insert(Constant::Mat2x3([0.0; 6])),
-                Type::Mat2x4 => ir_meta.constants.insert(Constant::Mat2x4([0.0; 8])),
-                Type::Mat3x2 => ir_meta.constants.insert(Constant::Mat3x2([0.0; 6])),
-                Type::Mat3x3 => ir_meta.constants.insert(Constant::Mat3x3([0.0; 9])),
-                Type::Mat3x4 => ir_meta.constants.insert(Constant::Mat3x4([0.0; 12])),
-                Type::Mat4x2 => ir_meta.constants.insert(Constant::Mat4x2([0.0; 8])),
-                Type::Mat4x3 => ir_meta.constants.insert(Constant::Mat4x3([0.0; 12])),
-                Type::Mat4x4 => ir_meta.constants.insert(Constant::Mat4x4([0.0; 16])),
-                _ => ir_meta.constants.insert(Constant::Float(0.0)),
-            };
-        }
-    };
-
-    match (op, constant) {
-        (UnaryOpCode::Radians, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.to_radians()))
-        }
-        (UnaryOpCode::Degrees, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.to_degrees()))
-        }
-        (UnaryOpCode::Sin, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.sin()))
-        }
-        (UnaryOpCode::Cos, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.cos()))
-        }
-        (UnaryOpCode::Tan, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.tan()))
-        }
-        (UnaryOpCode::Asin, Constant::Float(f)) => {
-            let result = if f.abs() > 1.0 { 0.0 } else { f.asin() };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Acos, Constant::Float(f)) => {
-            let result = if f.abs() > 1.0 { 0.0 } else { f.acos() };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Atan, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.atan()))
-        }
-        (UnaryOpCode::Sinh, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.sinh()))
-        }
-        (UnaryOpCode::Cosh, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.cosh()))
-        }
-        (UnaryOpCode::Tanh, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.tanh()))
-        }
-        (UnaryOpCode::Asinh, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.asinh()))
-        }
-        (UnaryOpCode::Acosh, Constant::Float(f)) => {
-            let result = if f.abs() < 1.0 { 0.0 } else { f.acosh() };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Atanh, Constant::Float(f)) => {
-            let result = if f.abs() >= 1.0 { 0.0 } else { f.atanh() };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Exp, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.exp()))
-        }
-        (UnaryOpCode::Log, Constant::Float(f)) => {
-            let result = if f <= 0.0 { 0.0 } else { f.ln() };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Exp2, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.exp2()))
-        }
-        (UnaryOpCode::Log2, Constant::Float(f)) => {
-            let result = if f <= 0.0 { 0.0 } else { f.log2() };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Sqrt, Constant::Float(f)) => {
-            let result = if f < 0.0 { 0.0 } else { f.sqrt() };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Inversesqrt, Constant::Float(f)) => {
-            let result = if f <= 0.0 { 0.0 } else { f.sqrt().recip() };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Abs, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.abs()))
-        }
-        (UnaryOpCode::Sign, Constant::Float(f)) => {
-            let result = if f > 0.0 { 1.0 } else if f < 0.0 { -1.0 } else { 0.0 };
-            ir_meta.constants.insert(Constant::Float(result))
-        }
-        (UnaryOpCode::Floor, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.floor()))
-        }
-        (UnaryOpCode::Trunc, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.trunc()))
-        }
-        (UnaryOpCode::Round, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.round()))
-        }
-        (UnaryOpCode::RoundEven, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.round_ties_even()))
-        }
-        (UnaryOpCode::Ceil, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.ceil()))
-        }
-        (UnaryOpCode::Fract, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f.fract()))
-        }
-        (UnaryOpCode::DFdx, Constant::Float(_)) => {
-            ir_meta.constants.insert(Constant::Float(0.0))
-        }
-        (UnaryOpCode::DFdy, Constant::Float(_)) => {
-            ir_meta.constants.insert(Constant::Float(0.0))
-        }
-        (UnaryOpCode::Fwidth, Constant::Float(_)) => {
-            ir_meta.constants.insert(Constant::Float(0.0))
-        }
-        (UnaryOpCode::InterpolateAtCentroid, Constant::Float(f)) => {
-            ir_meta.constants.insert(Constant::Float(f))
-        }
-
-        (UnaryOpCode::Abs, Constant::Int(i)) => {
-            ir_meta.constants.insert(Constant::Int(i.abs()))
-        }
-        (UnaryOpCode::Sign, Constant::Int(i)) => {
-            let result = if i > 0 { 1 } else if i < 0 { -1 } else { 0 };
-            ir_meta.constants.insert(Constant::Int(result))
-        }
-        (UnaryOpCode::BitfieldReverse, Constant::Int(i)) => {
-            ir_meta.constants.insert(Constant::Int(i.reverse_bits()))
-        }
-        (UnaryOpCode::BitCount, Constant::Int(i)) => {
-            ir_meta.constants.insert(Constant::Int(i.count_ones() as i32))
-        }
-        (UnaryOpCode::FindLSB, Constant::Int(i)) => {
-            let result = if i == 0 { -1 } else { i.trailing_zeros() as i32 };
-            ir_meta.constants.insert(Constant::Int(result))
-        }
-        (UnaryOpCode::FindMSB, Constant::Int(i)) => {
-            let result = if i == 0 { -1 } else { 31 - i.leading_zeros() as i32 };
-            ir_meta.constants.insert(Constant::Int(result))
-        }
-
-        // ========== 无符号整数操作 ==========
-        (UnaryOpCode::BitfieldReverse, Constant::Uint(u)) => {
-            ir_meta.constants.insert(Constant::Uint(u.reverse_bits()))
-        }
-        (UnaryOpCode::BitCount, Constant::Uint(u)) => {
-            ir_meta.constants.insert(Constant::Uint(u.count_ones()))
-        }
-        (UnaryOpCode::FindLSB, Constant::Uint(u)) => {
-            let result = if u == 0 { -1 } else { u.trailing_zeros() as i32 };
-            ir_meta.constants.insert(Constant::Int(result))
-        }
-        (UnaryOpCode::FindMSB, Constant::Uint(u)) => {
-            let result = if u == 0 { -1 } else { 31 - u.leading_zeros() as i32 };
-            ir_meta.constants.insert(Constant::Int(result))
-        }
-
-        (UnaryOpCode::Not, Constant::Bool(b)) => {
-            ir_meta.constants.insert(Constant::Bool(!b))
-        }
-
-        (UnaryOpCode::Abs, Constant::Vec2(v)) => {
-            ir_meta.constants.insert(Constant::Vec2([v[0].abs(), v[1].abs()]))
-        }
-        (UnaryOpCode::Abs, Constant::Vec3(v)) => {
-            ir_meta.constants.insert(Constant::Vec3([v[0].abs(), v[1].abs(), v[2].abs()]))
-        }
-        (UnaryOpCode::Abs, Constant::Vec4(v)) => {
-            ir_meta.constants.insert(Constant::Vec4([v[0].abs(), v[1].abs(), v[2].abs(), v[3].abs()]))
-        }
-        (UnaryOpCode::Floor, Constant::Vec2(v)) => {
-            ir_meta.constants.insert(Constant::Vec2([v[0].floor(), v[1].floor()]))
-        }
-        (UnaryOpCode::Floor, Constant::Vec3(v)) => {
-            ir_meta.constants.insert(Constant::Vec3([v[0].floor(), v[1].floor(), v[2].floor()]))
-        }
-        (UnaryOpCode::Floor, Constant::Vec4(v)) => {
-            ir_meta.constants.insert(Constant::Vec4([v[0].floor(), v[1].floor(), v[2].floor(), v[3].floor()]))
-        }
-        (UnaryOpCode::Ceil, Constant::Vec2(v)) => {
-            ir_meta.constants.insert(Constant::Vec2([v[0].ceil(), v[1].ceil()]))
-        }
-        (UnaryOpCode::Ceil, Constant::Vec3(v)) => {
-            ir_meta.constants.insert(Constant::Vec3([v[0].ceil(), v[1].ceil(), v[2].ceil()]))
-        }
-        (UnaryOpCode::Ceil, Constant::Vec4(v)) => {
-            ir_meta.constants.insert(Constant::Vec4([v[0].ceil(), v[1].ceil(), v[2].ceil(), v[3].ceil()]))
-        }
-        (UnaryOpCode::Sin, Constant::Vec2(v)) => {
-            ir_meta.constants.insert(Constant::Vec2([v[0].sin(), v[1].sin()]))
-        }
-        (UnaryOpCode::Sin, Constant::Vec3(v)) => {
-            ir_meta.constants.insert(Constant::Vec3([v[0].sin(), v[1].sin(), v[2].sin()]))
-        }
-        (UnaryOpCode::Sin, Constant::Vec4(v)) => {
-            ir_meta.constants.insert(Constant::Vec4([v[0].sin(), v[1].sin(), v[2].sin(), v[3].sin()]))
-        }
-        (UnaryOpCode::Cos, Constant::Vec2(v)) => {
-            ir_meta.constants.insert(Constant::Vec2([v[0].cos(), v[1].cos()]))
-        }
-        (UnaryOpCode::Cos, Constant::Vec3(v)) => {
-            ir_meta.constants.insert(Constant::Vec3([v[0].cos(), v[1].cos(), v[2].cos()]))
-        }
-        (UnaryOpCode::Cos, Constant::Vec4(v)) => {
-            ir_meta.constants.insert(Constant::Vec4([v[0].cos(), v[1].cos(), v[2].cos(), v[3].cos()]))
-        }
-        (UnaryOpCode::Normalize, Constant::Vec2(v)) => {
-            let len = (v[0] * v[0] + v[1] * v[1]).sqrt();
-            let result = if len > 0.0 { [v[0] / len, v[1] / len] } else { [0.0, 0.0] };
-            ir_meta.constants.insert(Constant::Vec2(result))
-        }
-        (UnaryOpCode::Normalize, Constant::Vec3(v)) => {
-            let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
-            let result = if len > 0.0 { [v[0] / len, v[1] / len, v[2] / len] } else { [0.0, 0.0, 0.0] };
-            ir_meta.constants.insert(Constant::Vec3(result))
-        }
-        (UnaryOpCode::Normalize, Constant::Vec4(v)) => {
-            let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]).sqrt();
-            let result = if len > 0.0 { [v[0] / len, v[1] / len, v[2] / len, v[3] / len] } else { [0.0, 0.0, 0.0, 0.0] };
-            ir_meta.constants.insert(Constant::Vec4(result))
-        }
-        (UnaryOpCode::Length, Constant::Vec2(v)) => {
-            let len = (v[0] * v[0] + v[1] * v[1]).sqrt();
-            ir_meta.constants.insert(Constant::Float(len))
-        }
-        (UnaryOpCode::Length, Constant::Vec3(v)) => {
-            let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
-            ir_meta.constants.insert(Constant::Float(len))
-        }
-        (UnaryOpCode::Length, Constant::Vec4(v)) => {
-            let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]).sqrt();
-            ir_meta.constants.insert(Constant::Float(len))
-        }
-
-        (UnaryOpCode::Isnan, Constant::Float(f)) => {
-            built_in_isnan(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::Isinf, Constant::Float(f)) => {
-            built_in_isinf(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::FloatBitsToInt, Constant::Float(f)) => {
-            built_in_floatbitstoint(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::FloatBitsToUint, Constant::Float(f)) => {
-            built_in_floatbitstouint(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::IntBitsToFloat, Constant::Int(i)) => {
-            built_in_intbitstofloat(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::UintBitsToFloat, Constant::Uint(u)) => {
-            built_in_uintbitstofloat(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::PackSnorm2x16, Constant::Vec2(v)) => {
-            built_in_packsnorm2x16(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::PackHalf2x16, Constant::Vec2(v)) => {
-            built_in_packhalf2x16(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::UnpackSnorm2x16, Constant::Uint(u)) => {
-            built_in_unpacksnorm2x16(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::UnpackHalf2x16, Constant::Uint(u)) => {
-            built_in_unpackhalf2x16(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::PackUnorm2x16, Constant::Vec2(v)) => {
-            built_in_packunorm2x16(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::UnpackUnorm2x16, Constant::Uint(u)) => {
-            built_in_unpackunorm2x16(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::PackUnorm4x8, Constant::Vec4(v)) => {
-            built_in_packunorm4x8(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::PackSnorm4x8, Constant::Vec4(v)) => {
-            built_in_packsnorm4x8(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::UnpackUnorm4x8, Constant::Uint(u)) => {
-            built_in_unpackunorm4x8(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::UnpackSnorm4x8, Constant::Uint(u)) => {
-            built_in_unpacksnorm4x8(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::Transpose, _) => {
-            built_in_transpose(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::Determinant, _) => {
-            built_in_determinant(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::Inverse, _) => {
-            built_in_inverse(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::Any, _) => {
-            built_in_any(ir_meta, constant_id, result_type_id)
-        }
-        (UnaryOpCode::All, _) => {
-            built_in_all(ir_meta, constant_id, result_type_id)
-        }
-
-        (op, constant) => {
-            eprintln!("Warning: Unsupported built_in_unary combination - op: {:?}, constant type: {:?}", 
-                      op, constant.type_name());
-            match ir_meta.types.get(result_type_id) {
-                Type::Float => ir_meta.constants.insert(Constant::Float(0.0)),
-                Type::Int => ir_meta.constants.insert(Constant::Int(0)),
-                Type::Uint => ir_meta.constants.insert(Constant::Uint(0)),
-                Type::Bool => ir_meta.constants.insert(Constant::Bool(false)),
-                Type::Vec2 => ir_meta.constants.insert(Constant::Vec2([0.0, 0.0])),
-                Type::Vec3 => ir_meta.constants.insert(Constant::Vec3([0.0, 0.0, 0.0])),
-                Type::Vec4 => ir_meta.constants.insert(Constant::Vec4([0.0, 0.0, 0.0, 0.0])),
-                _ => ir_meta.constants.insert(Constant::Float(0.0)),
+        match op {
+            UnaryOpCode::Isnan => return built_in_isnan(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::Isinf => return built_in_isinf(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::FloatBitsToInt => return built_in_floatbitstoint(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::FloatBitsToUint => return built_in_floatbitstouint(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::IntBitsToFloat => return built_in_intbitstofloat(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::UintBitsToFloat => return built_in_uintbitstofloat(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::PackSnorm2x16 => return built_in_packsnorm2x16(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::PackHalf2x16 => return built_in_packhalf2x16(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::UnpackSnorm2x16 => return built_in_unpacksnorm2x16(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::UnpackHalf2x16 => return built_in_unpackhalf2x16(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::PackUnorm2x16 => return built_in_packunorm2x16(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::UnpackUnorm2x16 => return built_in_unpackunorm2x16(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::PackUnorm4x8 => return built_in_packunorm4x8(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::PackSnorm4x8 => return built_in_packsnorm4x8(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::UnpackUnorm4x8 => return built_in_unpackunorm4x8(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::UnpackSnorm4x8 => return built_in_unpacksnorm4x8(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::Length => return built_in_length(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::Normalize => return built_in_normalize(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::Transpose => return built_in_transpose(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::Determinant => return built_in_determinant(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::Inverse => return built_in_inverse(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::Any => return built_in_any(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::All => return built_in_all(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::BitCount => return built_in_bitcount(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::FindLSB => return built_in_findlsb(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::FindMSB => return built_in_findmsb(ir_meta, constant_id, result_type_id),
+            UnaryOpCode::InterpolateAtCentroid => return constant_id,
+        
+            UnaryOpCode::AtomicCounter
+            | UnaryOpCode::AtomicCounterIncrement
+            | UnaryOpCode::AtomicCounterDecrement
+            | UnaryOpCode::ImageSize
+            | UnaryOpCode::PixelLocalLoadANGLE => {
+                eprintln!("Warning: Cannot constant-fold {:?}, returning default", op);
+                return create_default_constant(ir_meta, result_type_id);
             }
+            _ => {}
         }
-    }
-                                                         }
+
+        let float_op = match op {
+            UnaryOpCode::Radians => |f: f32| f.to_radians(),
+            UnaryOpCode::Degrees => |f: f32| f.to_degrees(),
+            UnaryOpCode::Sin => |f: f32| f.sin(),
+            UnaryOpCode::Cos => |f: f32| f.cos(),
+            UnaryOpCode::Tan => |f: f32| f.tan(),
+            UnaryOpCode::Asin => |f: f32| if f.abs() > 1. { 0. } else { f.asin() },
+            UnaryOpCode::Acos => |f: f32| if f.abs() > 1. { 0. } else { f.acos() },
+            UnaryOpCode::Atan => |f: f32| f.atan(),
+            UnaryOpCode::Sinh => |f: f32| f.sinh(),
+            UnaryOpCode::Cosh => |f: f32| f.cosh(),
+            UnaryOpCode::Tanh => |f: f32| f.tanh(),
+            UnaryOpCode::Asinh => |f: f32| f.asinh(),
+            UnaryOpCode::Acosh => |f: f32| if f.abs() < 1. { 0. } else { f.acosh() },
+            UnaryOpCode::Atanh => |f: f32| if f.abs() >= 1. { 0. } else { f.atanh() },
+            UnaryOpCode::Exp => |f: f32| f.exp(),
+            UnaryOpCode::Log => |f: f32| if f <= 0. { 0. } else { f.ln() },
+            UnaryOpCode::Exp2 => |f: f32| f.exp2(),
+            UnaryOpCode::Log2 => |f: f32| if f <= 0. { 0. } else { f.log2() },
+            UnaryOpCode::Sqrt => |f: f32| if f < 0. { 0. } else { f.sqrt() },
+            UnaryOpCode::Inversesqrt => |f: f32| if f <= 0. { 0. } else { f.sqrt().recip() },
+            UnaryOpCode::Abs => |f: f32| f.abs(),
+            UnaryOpCode::Sign => |f: f32| if f > 0. { 1. } else if f < 0. { -1. } else { 0. },
+            UnaryOpCode::Floor => |f: f32| f.floor(),
+            UnaryOpCode::Trunc => |f: f32| f.trunc(),
+            UnaryOpCode::Round => |f: f32| f.round(),
+            UnaryOpCode::RoundEven => |f: f32| f.round_ties_even(),
+            UnaryOpCode::Ceil => |f: f32| f.ceil(),
+            UnaryOpCode::Fract => |f: f32| f.fract(),
+            UnaryOpCode::DFdx => |_f: f32| 0.,
+            UnaryOpCode::DFdy => |_f: f32| 0.,
+            UnaryOpCode::Fwidth => |_f: f32| 0.,
+            _ => |_f: f32| {
+                eprintln!("Warning: Invalid built-in operation on float: {:?}", op);
+                0.
+            },
+        };
+
+        let int_op = match op {
+            UnaryOpCode::Abs => |i: i32| i.abs(),
+            UnaryOpCode::Sign => |i: i32| if i > 0 { 1 } else if i < 0 { -1 } else { 0 },
+            UnaryOpCode::BitfieldReverse => |i: i32| i.reverse_bits(),
+            _ => |_i: i32| {
+                eprintln!("Warning: Invalid built-in operation on int: {:?}", op);
+                0
+            },
+        };
+
+        let uint_op = match op {
+            UnaryOpCode::BitfieldReverse => |u: u32| u.reverse_bits(),
+            _ => |_u: u32| {
+                eprintln!("Warning: Invalid built-in operation on uint: {:?}", op);
+                0
+            },
+        };
+
+        let bool_op = match op {
+            UnaryOpCode::Not => |b: bool| !b,
+            _ => |_b: bool| {
+                eprintln!("Warning: Invalid built-in operation on bool: {:?}", op);
+                false
+            },
+        };
+
+        apply_unary_componentwise(
+            ir_meta,
+            constant_id,
+            result_type_id,
+            float_op,
+            int_op,
+            uint_op,
+            bool_op,
+        )
+    }                                                     }
 
     fn built_in_distance(
         ir_meta: &mut IRMeta,
