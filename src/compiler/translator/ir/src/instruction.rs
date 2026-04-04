@@ -1754,6 +1754,18 @@ mod const_fold {
     ) -> ConstantId {
         unpack4x8_helper(ir_meta, constant_id, result_type_id, unorm8_to_f32)
     }
+    fn create_default_constant(ir_meta: &mut IRMeta, type_id: TypeId) -> ConstantId {
+        match ir_meta.types.get(type_id) {
+            Type::Float => ir_meta.constants.insert(Constant::Float(0.0)),
+            Type::Int => ir_meta.constants.insert(Constant::Int(0)),
+            Type::Uint => ir_meta.constants.insert(Constant::Uint(0)),
+            Type::Bool => ir_meta.constants.insert(Constant::Bool(false)),
+            Type::Vec2 => ir_meta.constants.insert(Constant::Vec2([0.0, 0.0])),
+            Type::Vec3 => ir_meta.constants.insert(Constant::Vec3([0.0, 0.0, 0.0])),
+            Type::Vec4 => ir_meta.constants.insert(Constant::Vec4([0.0, 0.0, 0.0, 0.0])),
+            _ => ir_meta.constants.insert(Constant::Float(0.0)),
+        }
+    }
     pub fn built_in_unary(
         ir_meta: &mut IRMeta,
         op: UnaryOpCode,
