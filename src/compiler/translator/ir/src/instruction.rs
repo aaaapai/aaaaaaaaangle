@@ -1298,9 +1298,10 @@ mod const_fold {
             2 => determinant_2x2(&m2x2),
             3 => determinant_3x3(&m3x3),
             4 => determinant_4x4(&m4x4),
-            _ => panic!(
-                "Internal error: Invalid matrix dimensions when calculating determinant/inverse"
-            ),
+            s => {
+                eprintln!("Error: Invalid matrix dimensions {} when calculating determinant/inverse", s);
+                0.0
+            }
         }
     }
     fn determinant(ir_meta: &IRMeta, constant_id: ConstantId) -> f32 {
