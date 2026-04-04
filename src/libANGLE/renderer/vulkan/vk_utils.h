@@ -1797,7 +1797,7 @@ enum class SyncFenceScope
             fprintf(stderr, "[ANGLE] Vulkan error %d at %s:%d\n",                        \
                     ANGLE_LOCAL_VAR, __FILE__, __LINE__);                                \
             (context)->handleError(ANGLE_LOCAL_VAR, __FILE__, ANGLE_FUNCTION, __LINE__); \
-            return angle::Result::Stop;                                                  \
+            return angle::Result::Continue;                                              \
         }                                                                                \
     } while (0)
 
