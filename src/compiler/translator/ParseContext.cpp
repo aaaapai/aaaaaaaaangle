@@ -839,12 +839,12 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                                             TBasicType type)
 {
 
-    /*if (precision != EbpUndefined && !SupportsPrecision(type))
+    if ((precision != EbpUndefined && !SupportsPrecision(type)) && !(std::getenv("ANGLE_APLABEDIT")))
     {
         error(line, "illegal type for precision qualifier", getBasicString(type));
-    }*/
+    }
 
-    /*if (precision == EbpUndefined)
+    if (precision == EbpUndefined && !(std::getenv("ANGLE_APLABEDIT")))
     {
         switch (type)
         {
@@ -863,7 +863,7 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                     return;
                 }
         }
-    }*/
+    }
 }
 
 void TParseContext::markStaticUseIfSymbol(TIntermNode *node)
@@ -2549,27 +2549,17 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-                warning(identifierLocation, 
+              if (!(std::getenv("ANGLE_APLABEDIT"))) {
+                error(identifierLocation, 
                     "No image internal format specified.",
                     getBasicString(publicType.getBasicType()));
                 return;
-                /*if (IsFloatImage(publicType.getBasicType()))
-                {
-                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32F;
-                }
-                else if (IsIntegerImage(publicType.getBasicType()))
-                {
-                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32I;
-                }
-                else if (IsUnsignedImage(publicType.getBasicType()))
-                {
-                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32UI;
-                }
-                else
-                {
-                    const_cast<TLayoutQualifier&>(layoutQualifier).imageInternalFormat = EiifRGBA32F;
-                }
-                break;*/
+              } else {
+                warning(identifierLocation, 
+                    "No image internal format specified.",
+                    getBasicString(publicType.getBasicType()));
+                //return;
+              }
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
                 return;
@@ -2642,8 +2632,13 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                       getImageInternalFormatString(layoutQualifier.imageInternalFormat));
                 break;
             case EiifUnspecified:
+              if (!(std::getenv("ANGLE_APLABEDIT"))) {
+                error(identifierLocation, "pixel local storage requires a format specifier",
+                      "layout qualifier");
+              } else {
                 warning(identifierLocation, "pixel local storage requires a format specifier",
                       "layout qualifier");
+              }
                 break;
         }
         checkMemoryQualifierIsNotSpecified(publicType.memoryQualifier, identifierLocation);
@@ -3569,7 +3564,12 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     {
         // Error message does not completely match behavior with ESSL 1.00, but
         // we want to steer developers towards only using constant expressions.
+      if (!(std::getenv("ANGLE_APLABEDIT"))) {
+        error(line, "global variable initializers must be constant expressions", "=");
+        return false;
+      } else {
         warning(line, "global variable initializers must be constant expressions", "=");
+      }
     }
     if (globalInitWarning)
     {
@@ -3581,11 +3581,14 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     }
 
     // identifier must be of type constant, a global, or a temporary
-    if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst))
+    if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst) && !(std::getenv("ANGLE_APLABEDIT")))
     {
+        error(line, " cannot initialize this type of qualifier ",
+              variable->getType().getQualifierString());
+        return false;
+    } else {
         warning(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
-        //return false;
     }
 
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
@@ -6010,7 +6013,10 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
         {
             // With ESSL 3.00 and above, names of built-in functions cannot be redeclared as
             // functions. Therefore overloading or redefining builtin functions is an error.
-            //warning(location, "Name of a built-in function cannot be redeclared as function");
+            if (!(std::getenv("ANGLE_APLABEDIT"))) {
+              error(location, "Name of a built-in function cannot be redeclared as function",
+                  function->name());
+            }
         }
     }
     else
@@ -6021,7 +6027,9 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             symbolTable.findBuiltIn(function->getMangledName(), getShaderVersion());
         if (builtIn)
         {
-            //warning(location, "built-in functions cannot be redefined");
+            if (!(std::getenv("ANGLE_APLABEDIT"))) {
+              error(location, "built-in functions cannot be redefined", function->name());
+            }
         }
     }
 
@@ -9167,7 +9175,11 @@ TIntermBranch *TParseContext::addBranch(TOperator op,
         }
         else if (mCurrentFunction->getReturnType() != expression->getType())
         {
-            warning(loc, "function return is not matching type:", "return");
+            if (!(std::getenv("ANGLE_APLABEDIT"))) {
+              error(loc, "function return is not matching type:", "return");
+            } else {
+              warning(loc, "function return is not matching type:", "return");
+            }
         }
         if (!mControlFlow.empty())
         {
@@ -10210,8 +10222,9 @@ void TParseContext::postParseValidateFragmentOutputLocations()
             strstr << (elementCount > 1 ? "output array locations would exceed "
                                         : "output location must be < ")
                    << "MAX_" << (mFragmentOutputIndex1Used ? "DUAL_SOURCE_" : "") << "DRAW_BUFFERS";
-            //error(variable.line, strstr.str().c_str(), variable.variable->name());
-            printf("error: output location must be < MAX_DRAW_BUFFERS or output array locations would exceed\n");
+           if (!(std::getenv("ANGLE_APLABEDIT"))) {
+            error(variable.line, strstr.str().c_str(), variable.variable->name());
+           }
         }
     }
 
@@ -10240,9 +10253,11 @@ void TParseContext::postParseValidateFragmentOutputLocations()
         const char *unspecifiedLocationErrorMessage = nullptr;
         if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
         {
-            /*unspecifiedLocationErrorMessage =
+            if (!(std::getenv("ANGLE_APLABEDIT"))) {
+              unspecifiedLocationErrorMessage =
                 "when EXT_blend_func_extended extension is not enabled, must explicitly specify "
-                "all locations when using multiple fragment outputs";*/
+                "all locations when using multiple fragment outputs";
+            }
         }
         else if (!mPLSLayouts.empty())
         {

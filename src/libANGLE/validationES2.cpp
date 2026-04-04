@@ -174,11 +174,11 @@ bool IsValidCopyTextureDestinationFormatType(const Context *context,
                                              GLint internalFormat,
                                              GLenum type)
 {
-    /*if (!IsValidCopyTextureDestinationInternalFormatEnum(internalFormat))
+    if (!IsValidCopyTextureDestinationInternalFormatEnum(internalFormat))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
         return false;
-    }*/
+    }
 
     if (!ValidES3FormatCombination(GetUnsizedFormat(internalFormat), type, internalFormat))
     {
@@ -186,12 +186,12 @@ bool IsValidCopyTextureDestinationFormatType(const Context *context,
         return false;
     }
 
-    /*const InternalFormat &internalFormatInfo = GetInternalFormatInfo(internalFormat, type);
+    const InternalFormat &internalFormatInfo = GetInternalFormatInfo(internalFormat, type);
     if (!internalFormatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
         return false;
-    }*/
+    }
 
     return true;
 }
@@ -3844,11 +3844,11 @@ bool ValidateAttachShader(const Context *context,
         return false;
     }
 
-    /*if (programObject->getAttachedShader(shaderObject->getType()))
+    if (programObject->getAttachedShader(shaderObject->getType()) && (!std::getenv("ANGLE_APLABEDIT")))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kShaderAttachmentHasShader);
         return false;
-    }*/
+    }
 
     return true;
 }
@@ -4566,8 +4566,8 @@ bool ValidateGetBooleanv(const Context *context,
                          GLenum pname,
                          const GLboolean *data)
 {
-    //return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
-    return true;
+    return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
+    //return true;
 }
 
 bool ValidateGetError(const Context *context, angle::EntryPoint entryPoint)
@@ -5473,13 +5473,13 @@ bool ValidateFramebufferTexture2D(const Context *context,
                 if (attachment != GL_COLOR_ATTACHMENT0)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-                    //return false;
+                    if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
 
                 if (tex->getType() != TextureType::External)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kTextureTargetMismatch);
-                    return false;
+                    if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
             }
             break;
@@ -5984,7 +5984,7 @@ bool ValidateFramebufferTexture2DMultisampleEXT(const Context *context,
         attachment != GL_COLOR_ATTACHMENT0)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-        //return false;
+        if (!std::getenv("ANGLE_APLABEDIT")) return false;
     }
 
     if (!ValidTexture2DDestinationTarget(context, textarget))

@@ -1620,6 +1620,7 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
         case EiifRGBA8_SNORM:
             return spv::ImageFormatRgba8Snorm;
         case EiifUnspecified:
+            if (!std::getenv("ANGLE_APLABEDIT")) return spv::ImageFormatUnknown;
             switch (spirvType.type)
             {
                case EbtFloat:
