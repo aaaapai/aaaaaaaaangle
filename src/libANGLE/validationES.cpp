@@ -1598,7 +1598,7 @@ bool ValidateAttachmentTarget(const Context *context,
         if (colorAttachment >= context->getCaps().maxColorAttachments)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-            //return false;
+            if (!std::getenv("ANGLE_APLABEDIT")) return false;
         }
     }
     else
@@ -2943,7 +2943,7 @@ bool ValidateStateQuery(const Context *context,
         if (colorAttachment >= caps.maxDrawBuffers)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kIndexExceedsMaxDrawBuffer);
-            return true;
+            if (!std::getenv("ANGLE_APLABEDIT")) return true;
         }
     }
 
@@ -4260,7 +4260,7 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
         {
             if (!executable->validateSamplers(context->getCaps()))
             {
-                //return kTextureTypeConflict;
+                if (!std::getenv("ANGLE_APLABEDIT")) return kTextureTypeConflict;
             }
 
             if (ANGLE_UNLIKELY(executable->hasLinkedTessellationShader()))
@@ -4741,7 +4741,7 @@ bool ValidateDiscardFramebufferBase(const Context *context,
                 GL_COLOR_ATTACHMENT0 + static_cast<GLuint>(context->getCaps().maxColorAttachments))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-                //return false;
+                if (!std::getenv("ANGLE_APLABEDIT")) return false;
             }
         }
         else
@@ -5027,7 +5027,7 @@ bool ValidateDrawBuffersBase(const Context *context,
     if (n > context->getCaps().maxDrawBuffers)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-        return true;
+        if (!std::getenv("ANGLE_APLABEDIT")) return false;
     }
     // INVALID_VALUE is generated if n != 0 and bufs is NULL
     if (n != 0 && bufs == nullptr)
@@ -5057,12 +5057,12 @@ bool ValidateDrawBuffersBase(const Context *context,
             // 3.1 is still a bit ambiguous about the error, but future specs are
             // expected to clarify that GL_INVALID_ENUM is the correct error.
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidDrawBuffer);
-            return false;
+            if (!std::getenv("ANGLE_APLABEDIT")) return false;
         }
         else if (bufs[colorAttachment] >= maxColorAttachment)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-            //return false;
+            if (!std::getenv("ANGLE_APLABEDIT")) return false;
         }
         else if (bufs[colorAttachment] != GL_NONE && bufs[colorAttachment] != attachment &&
                  frameBufferId.value != 0)
@@ -5501,7 +5501,7 @@ bool ValidateGetFramebufferAttachmentParameterivBase(const Context *context,
                     static_cast<GLuint>(context->getCaps().maxColorAttachments))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-                //return false;
+                if (!std::getenv("ANGLE_APLABEDIT")) return false;
             }
             [[fallthrough]];
 
@@ -5605,7 +5605,7 @@ bool ValidateGetFramebufferAttachmentParameterivBase(const Context *context,
                 if (attachment == GL_DEPTH_STENCIL_ATTACHMENT)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-                    //return false;
+                    if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
                 break;
 
