@@ -1806,8 +1806,8 @@ mod const_fold {
             | UnaryOpCode::AtomicCounterDecrement
             | UnaryOpCode::ImageSize
             | UnaryOpCode::PixelLocalLoadANGLE => {
-                eprintln!("Warning: Cannot constant-fold {:?}, returning default", op);
-                return create_default_constant(ir_meta, result_type_id);
+                eprintln!("Warning: Cannot constant-fold");
+                return constant_id;
             }
             _ => {}
         }
@@ -1845,7 +1845,7 @@ mod const_fold {
             UnaryOpCode::DFdy => |_f: f32| 0.,
             UnaryOpCode::Fwidth => |_f: f32| 0.,
             _ => |_f: f32| {
-                eprintln!("Warning: Invalid built-in operation on float: {:?}", op);
+                eprintln!("Warning: Invalid built-in operation on float");
                 0.
             },
         };
@@ -1855,7 +1855,7 @@ mod const_fold {
             UnaryOpCode::Sign => |i: i32| if i > 0 { 1 } else if i < 0 { -1 } else { 0 },
             UnaryOpCode::BitfieldReverse => |i: i32| i.reverse_bits(),
             _ => |_i: i32| {
-                eprintln!("Warning: Invalid built-in operation on int: {:?}", op);
+                eprintln!("Warning: Invalid built-in operation on int");
                 0
             },
         };
@@ -1863,7 +1863,7 @@ mod const_fold {
         let uint_op = match op {
             UnaryOpCode::BitfieldReverse => |u: u32| u.reverse_bits(),
             _ => |_u: u32| {
-                eprintln!("Warning: Invalid built-in operation on uint: {:?}", op);
+                eprintln!("Warning: Invalid built-in operation on uint");
                 0
             },
         };
@@ -1871,7 +1871,7 @@ mod const_fold {
         let bool_op = match op {
             UnaryOpCode::Not => |b: bool| !b,
             _ => |_b: bool| {
-                eprintln!("Warning: Invalid built-in operation on bool: {:?}", op);
+                eprintln!("Warning: Invalid built-in operation on bool");
                 false
             },
         };
