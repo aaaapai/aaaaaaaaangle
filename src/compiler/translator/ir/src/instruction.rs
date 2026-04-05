@@ -1353,7 +1353,7 @@ mod const_fold {
                 coft[0][0] = m[1][1] * m[2][2] * m[3][3]
                     + m[2][1] * m[3][2] * m[1][3]
                     + m[3][1] * m[1][2] * m[2][3]
-                    - m[1][1] * m[3][2] * m[2][3]
+                - m[1][1] * m[3][2] * m[2][3]
                     - m[2][1] * m[1][2] * m[3][3]
                     - m[3][1] * m[2][2] * m[1][3];
                 coft[1][0] = -(m[1][0] * m[2][2] * m[3][3]
@@ -1448,8 +1448,25 @@ mod const_fold {
                     - m[2][0] * m[1][1] * m[0][2];
                 TYPE_ID_VEC4
             }
-            _ => panic!("Internal error: Invalid matrix dimensions when calculating inverse"),
+            1 => {
+                coft[0][0] = 1.0;
+                TYPE_ID_VEC1
+            }
+            _ => {
+                eprintln!(
+                    "Warning: built_in_inverse called with unsupported matrix dimension {}; returning original matrix",
+                    size
+                );
+                return constant_id;
+            }
         };
+
+        if size == 1 {
+            let value = coft[0][0] * determinant_reciprocal;
+            let float_const = ir_meta.get_constant_float(value);
+            let column = ir_meta.get_constant_composite(vec_type_id, vec![float_const]);
+            return ir_meta.get_constant_composite(result_type_id, vec![column]);
+        }
 
         let columns = (0..size)
             .map(|column_index| {
@@ -1465,6 +1482,7 @@ mod const_fold {
             .collect();
         ir_meta.get_constant_composite(result_type_id, columns)
     }
+
     fn float_isx_helper<FloatOp>(
         ir_meta: &mut IRMeta,
         constant_id: ConstantId,
