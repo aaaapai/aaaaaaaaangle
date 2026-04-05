@@ -572,6 +572,17 @@ struct ShBuiltInResources
     int ANGLE_base_vertex_base_instance_shader_builtin;
     int ANDROID_extension_pack_es31a;
     int KHR_blend_equation_advanced;
+    int KHR_shader_subgroup;
+    int KHR_shader_subgroup_ballot;
+    int KHR_shader_subgroup_shuffle;
+    int KHR_shader_subgroup_shuffle_relative;
+    int KHR_shader_subgroup_clustered;
+    int KHR_shader_subgroup_quad;
+    int KHR_shader_subgroup_arithmetic;
+    int KHR_shader_subgroup_vote;
+    int EXT_shader_subgroup_extended_types;
+    int AMD_shader_ballot;
+    int NV_shader_subgroup_partitioned;
 
     // Set to 1 to enable replacing GL_EXT_draw_buffers #extension directives
     // with GL_NV_draw_buffers in ESSL output. This flag can be used to emulate
