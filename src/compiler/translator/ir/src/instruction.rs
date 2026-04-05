@@ -1449,9 +1449,13 @@ mod const_fold {
                 TYPE_ID_VEC4
             }
             1 => {
-                coft[0][0] = 1.0;
-                TYPE_ID_VEC1
+                coft[0][0] = m[1][1];
+                coft[1][0] = -m[1][0];
+                coft[0][1] = -m[0][1];
+                coft[1][1] = m[0][0];
+                TYPE_ID_VEC2
             }
+
             _ => {
                 eprintln!(
                     "Warning: built_in_inverse called with unsupported matrix dimension {}; returning original matrix",
