@@ -239,7 +239,7 @@ angle::Result CompileTask::postTranslate()
             mInfoLog +=
                 "\nThe total number of invocations within a work group exceeds "
                 "MAX_COMPUTE_WORK_GROUP_INVOCATIONS.";
-            return angle::Result::Stop;
+            if (!std::getenv("ANGLE_APLABEDIT")) return angle::Result::Stop;
         }
     }
 
@@ -247,7 +247,7 @@ angle::Result CompileTask::postTranslate()
     if (sharedMemSize > mMaxComputeSharedMemory)
     {
         mInfoLog += "\nShared memory size exceeds GL_MAX_COMPUTE_SHARED_MEMORY_SIZE";
-        return angle::Result::Stop;
+        if (!std::getenv("ANGLE_APLABEDIT")) return angle::Result::Stop;
     }
 
     bool substitutedTranslatedShader = false;

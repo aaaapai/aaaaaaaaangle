@@ -892,6 +892,7 @@ enum TQualifier
     EvqSecondaryFragDataEXT,   // EXT_blend_func_extended
 
     EvqViewIDOVR,          // OVR_multiview
+    //EvqViewportIndex,  // gl_ViewportIndex
     EvqEmulatedViewIDOVR,  // Emulated gl_ViewID_OVR
 
     EvqClipDistance,  // APPLE_clip_distance / EXT_clip_cull_distance / ANGLE_clip_cull_distance
@@ -1523,6 +1524,7 @@ inline const char *getQualifierString(TQualifier q)
     case EvqShadingRateEXT:            return "ShadingRateEXT";
     case EvqPrimitiveShadingRateEXT:   return "PrimitiveShadingRateEXT";
     case EvqSampleID:                  return "SampleID";
+    //case EvqViewportIndex:             return "ViewportIndex";
     case EvqSamplePosition:            return "SamplePosition";
     case EvqSampleMaskIn:              return "SampleMaskIn";
     case EvqSampleMask:                return "SampleMask";

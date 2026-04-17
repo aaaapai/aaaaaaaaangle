@@ -1620,7 +1620,7 @@ bool ValidateAttachmentTarget(const Context *context,
         if (colorAttachment >= context->getCaps().maxColorAttachments)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-            return false;
+            if (!std::getenv("ANGLE_APLABEDIT")) return false;
         }
     }
     else
@@ -2965,7 +2965,7 @@ bool ValidateStateQuery(const Context *context,
         if (colorAttachment >= caps.maxDrawBuffers)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kIndexExceedsMaxDrawBuffer);
-            return false;
+            if (!std::getenv("ANGLE_APLABEDIT")) return true;
         }
     }
 
@@ -3382,7 +3382,7 @@ bool ValidateCopyMixedFormatCompatible(const Context *context,
                     return true;
                 case GL_RGBA16_EXT:
                 case GL_RGBA16_SNORM_EXT:
-                    return context->getExtensions().textureNorm16EXT;
+                    return true;
                 default:
                     return false;
             }
@@ -4282,7 +4282,7 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
         {
             if (!executable->validateSamplers(context->getCaps()))
             {
-                return kTextureTypeConflict;
+                if (!std::getenv("ANGLE_APLABEDIT")) return kTextureTypeConflict;
             }
 
             if (ANGLE_UNLIKELY(executable->hasLinkedTessellationShader()))
@@ -4773,7 +4773,7 @@ bool ValidateDiscardFramebufferBase(const Context *context,
                 GL_COLOR_ATTACHMENT0 + static_cast<GLuint>(context->getCaps().maxColorAttachments))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-                return false;
+                if (!std::getenv("ANGLE_APLABEDIT")) return false;
             }
         }
         else
@@ -5059,7 +5059,7 @@ bool ValidateDrawBuffersBase(const Context *context,
     if (n > context->getCaps().maxDrawBuffers)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-        return false;
+        if (!std::getenv("ANGLE_APLABEDIT")) return false;
     }
     // INVALID_VALUE is generated if n != 0 and bufs is NULL
     if (n != 0 && bufs == nullptr)
@@ -5089,12 +5089,12 @@ bool ValidateDrawBuffersBase(const Context *context,
             // 3.1 is still a bit ambiguous about the error, but future specs are
             // expected to clarify that GL_INVALID_ENUM is the correct error.
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidDrawBuffer);
-            return false;
+            if (!std::getenv("ANGLE_APLABEDIT")) return false;
         }
         else if (bufs[colorAttachment] >= maxColorAttachment)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-            return false;
+            if (!std::getenv("ANGLE_APLABEDIT")) return false;
         }
         else if (bufs[colorAttachment] != GL_NONE && bufs[colorAttachment] != attachment &&
                  frameBufferId.value != 0)
@@ -5533,7 +5533,7 @@ bool ValidateGetFramebufferAttachmentParameterivBase(const Context *context,
                     static_cast<GLuint>(context->getCaps().maxColorAttachments))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-                return false;
+                if (!std::getenv("ANGLE_APLABEDIT")) return false;
             }
             [[fallthrough]];
 
@@ -5637,7 +5637,7 @@ bool ValidateGetFramebufferAttachmentParameterivBase(const Context *context,
                 if (attachment == GL_DEPTH_STENCIL_ATTACHMENT)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-                    return false;
+                    if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
                 break;
 
@@ -6786,11 +6786,11 @@ bool ValidateGetTexParameterBase(const Context *context,
         case GL_TEXTURE_CROP_RECT_OES:
             // TODO(lfy@google.com): Restrict to GL_OES_draw_texture
             // after GL_OES_draw_texture functionality implemented
-            if (context->getClientVersion() >= ES_2_0)
+            /*if (context->getClientVersion() >= ES_2_0)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
                 return false;
-            }
+            }*/
             break;
 
         case GL_MEMORY_SIZE_ANGLE:
@@ -7373,11 +7373,11 @@ bool ValidateTexParameterBase(const Context *context,
 
         case GL_GENERATE_MIPMAP:
         case GL_TEXTURE_CROP_RECT_OES:
-            if (context->getClientVersion() >= ES_2_0)
+            /*if (context->getClientVersion() >= ES_2_0)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
                 return false;
-            }
+            }*/
             break;
 
         default:
@@ -7578,19 +7578,19 @@ bool ValidateTexParameterBase(const Context *context,
             break;
 
         case GL_GENERATE_MIPMAP:
-            if (context->getClientVersion() >= ES_2_0)
+            /*if (context->getClientVersion() >= ES_2_0)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
                 return false;
-            }
+            }*/
             break;
 
         case GL_TEXTURE_CROP_RECT_OES:
-            if (context->getClientVersion() >= ES_2_0)
+            /*if (context->getClientVersion() >= ES_2_0)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
                 return false;
-            }
+            }*/
             if (entryPoint == angle::EntryPoint::GLTexParameterf ||
                 entryPoint == angle::EntryPoint::GLTexParameteri ||
                 entryPoint == angle::EntryPoint::GLTexParameterx)

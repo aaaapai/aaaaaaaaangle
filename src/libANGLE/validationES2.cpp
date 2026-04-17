@@ -729,10 +729,10 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
     }
 
     // GLES1 emulation: GLES1-specific caps after this point
-    if (state.getClientVersion() >= ES_2_0)
+    /*if (state.getClientVersion() >= ES_2_0)
     {
         return false;
-    }
+    }*/
 
     switch (cap)
     {
@@ -763,15 +763,13 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
         case GL_FOG:
         case GL_POINT_SMOOTH:
         case GL_LINE_SMOOTH:
-            return state.getClientVersion() < Version(2, 0);
+            return true;
         case GL_POINT_SIZE_ARRAY_OES:
-            return state.getClientVersion() < Version(2, 0) &&
-                   state.getExtensions().pointSizeArrayOES;
+            return state.getExtensions().pointSizeArrayOES;
         case GL_TEXTURE_CUBE_MAP:
-            return state.getClientVersion() < Version(2, 0) &&
-                   state.getExtensions().textureCubeMapOES;
+            return state.getExtensions().textureCubeMapOES;
         case GL_POINT_SPRITE_OES:
-            return state.getClientVersion() < Version(2, 0) && state.getExtensions().pointSpriteOES;
+            return state.getExtensions().pointSpriteOES;
         default:
             return false;
     }
@@ -3854,7 +3852,7 @@ bool ValidateAttachShader(const Context *context,
         return false;
     }
 
-    if (programObject->getAttachedShader(shaderObject->getType()))
+    if (programObject->getAttachedShader(shaderObject->getType()) && (!std::getenv("ANGLE_APLABEDIT")))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kShaderAttachmentHasShader);
         return false;
@@ -4577,6 +4575,7 @@ bool ValidateGetBooleanv(const Context *context,
                          const GLboolean *data)
 {
     return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
+    //return true;
 }
 
 bool ValidateGetError(const Context *context, angle::EntryPoint entryPoint)
@@ -4781,11 +4780,11 @@ bool ValidateHint(const PrivateState &state,
         case GL_POINT_SMOOTH_HINT:
         case GL_LINE_SMOOTH_HINT:
         case GL_FOG_HINT:
-            if (state.getClientVersion() >= ES_2_0)
+            /*if (state.getClientVersion() >= ES_2_0)
             {
                 errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
                 return false;
-            }
+            }*/
             break;
 
         default:
@@ -5482,13 +5481,13 @@ bool ValidateFramebufferTexture2D(const Context *context,
                 if (attachment != GL_COLOR_ATTACHMENT0)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-                    return false;
+                    if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
 
                 if (tex->getType() != TextureType::External)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kTextureTargetMismatch);
-                    return false;
+                    if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
             }
             break;
@@ -6000,7 +5999,7 @@ bool ValidateFramebufferTexture2DMultisampleEXT(const Context *context,
         attachment != GL_COLOR_ATTACHMENT0)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-        return false;
+        if (!std::getenv("ANGLE_APLABEDIT")) return false;
     }
 
     if (!ValidTexture2DDestinationTarget(context, textarget))

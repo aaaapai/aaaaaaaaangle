@@ -1668,9 +1668,8 @@ const InternalFormat &GetInternalFormatInfo(GLenum internalFormat, GLenum type)
     const InternalFormatInfoMap &formatMap = GetInternalFormatMap();
 
     auto internalFormatIter = formatMap.find(internalFormat);
-    if (internalFormatIter == formatMap.end())
-    {
-        return defaultInternalFormat;
+    if (internalFormatIter == formatMap.end()) {
+       return defaultInternalFormat;
     }
 
     // If the internal format is sized, simply return it without the type check.

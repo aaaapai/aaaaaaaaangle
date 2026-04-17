@@ -4211,9 +4211,9 @@ angle::Result TextureVk::initImage(ContextVk *contextVk,
             supportsMSRTTUsageActualFormat && supportsMSRTTUsageAdditionalFormat;
         if (ANGLE_UNLIKELY(mState.hasBeenBoundToMSRTTFramebuffer() && !supportsMSRTTUsage))
         {
-            ERR() << "Texture bound to EXT_multisampled_render_to_texture framebuffer, "
-                  << "but this device does not support this format.";
-            ANGLE_VK_TRY(contextVk, VK_ERROR_FORMAT_NOT_SUPPORTED);
+            std::cout << "Texture bound to EXT_multisampled_render_to_texture framebuffer, "
+                  << "but this device does not support this format.\n";
+            // ANGLE_VK_TRY(contextVk, VK_ERROR_FORMAT_NOT_SUPPORTED);
         }
 
         // Note: If we ever fail the following check, we should use the emulation path for this

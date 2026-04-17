@@ -357,10 +357,9 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
     }
 
     // GLSL ES 3 explicit location qualifiers need to use an extension before GLSL 330
-    if (getShaderVersion() >= 300 && getOutputType() < SH_GLSL_330_CORE_OUTPUT &&
-        getShaderType() != GL_COMPUTE_SHADER)
+    if (getShaderVersion() >= 300)
     {
-        sink << "#extension GL_ARB_explicit_attrib_location : require\n";
+        sink << "#extension GL_ARB_explicit_attrib_location : enable\n";
     }
 
     // Need to enable gpu_shader5 to have index constant sampler array indexing

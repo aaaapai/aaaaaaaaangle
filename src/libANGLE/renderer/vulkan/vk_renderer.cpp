@@ -19,6 +19,7 @@
 
 #include <EGL/eglext.h>
 #include <fstream>
+#include <iostream>
 
 #include "common/debug.h"
 #include "common/platform.h"
@@ -224,7 +225,8 @@ bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *devi
     }
 
     // Otherwise, look for Venus or Turnip in the device name.
-    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr;
+    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr;
+
 }
 
 bool IsXclipse()
@@ -271,7 +273,8 @@ VkResult VerifyExtensionsPresent(const vk::ExtensionNameList &haystack,
             ERR() << "Extension not supported: " << needle;
         }
     }
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
+    std::cout << "VK_ERROR_EXTENSION_NOT_PRESENT";
+    return VK_SUCCESS;
 }
 
 // Array of Validation error/warning messages that will be ignored, should include bugID
@@ -2548,8 +2551,7 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
 
     if (mInstanceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
-        WARN() << "ANGLE Requires a minimum Vulkan instance version of 1.1";
-        ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
+        std::cout << "Warning: ANGLE Requires a minimum Vulkan instance version of 1.1.But perhaps the Vulkan version of this device is 1.1+?\n";
     }
 
     const UseVulkanSwapchain useVulkanSwapchain = wsiExtension != nullptr || wsiLayer != nullptr
@@ -2680,8 +2682,7 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
 
     if (mDeviceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
-        WARN() << "ANGLE Requires a minimum Vulkan device version of 1.1";
-        ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
+        std::cout << "ANGLE Requires a minimum Vulkan device version of 1.1.But perhaps the Vulkan version of this device is 1.1+?\n";
     }
 
     mGarbageCollectionFlushThreshold =
@@ -5050,14 +5051,24 @@ std::string Renderer::getVersionString(bool includeFullVersion) const
 
 gl::Version Renderer::getMaxSupportedESVersion() const
 {
-    // Current highest supported version
-    gl::Version maxVersion = gl::Version(3, 2);
+    gl::Version maxVersion(3, 2); // 默认值
+
+    const char* angle_gles_version = std::getenv("ANGLE_GLES_VERSION");
+    if (angle_gles_version != nullptr) {
+        std::string version_str = angle_gles_version;
+        
+        if (version_str.find('.') != std::string::npos) {
+            int major = std::stoi(version_str.substr(0, version_str.find('.')));
+            int minor = std::stoi(version_str.substr(version_str.find('.') + 1));
+            maxVersion = LimitVersionTo(maxVersion, 
+                gl::Version(static_cast<uint8_t>(major), static_cast<uint8_t>(minor)));
+        }
+    }
 
     // Early out without downgrading ES version if mock ICD enabled.
     // Mock ICD doesn't expose sufficient capabilities yet.
     // https://github.com/KhronosGroup/Vulkan-Tools/issues/84
-    if (isMockICDEnabled())
-    {
+    if (isMockICDEnabled()) {
         return maxVersion;
     }
 
@@ -5070,7 +5081,9 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     }
     if (!CanSupportGLES32(mNativeExtensions))
     {
-        maxVersion = LimitVersionTo(maxVersion, {3, 1});
+        //maxVersion = LimitVersionTo(maxVersion, {3, 1});
+        //std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n"; //烦人的
+        return maxVersion;
     }
 
     // Limit to ES3.0 if there are any blockers for 3.1.
@@ -5079,84 +5092,88 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     // Atomic counter buffers are emulated with storage buffers.  For simplicity, we always support
     // either none or IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS atomic counter buffers.  So if
     // Vulkan doesn't support at least that many storage buffers in compute, we don't support 3.1.
-    const uint32_t kMinimumStorageBuffersForES31 =
+    /*const uint32_t kMinimumStorageBuffersForES31 =
         gl::limits::kMinimumComputeStorageBuffers +
-        gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
-    if (mPhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers <
+        gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;*/
+    /*if (mPhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers <
         kMinimumStorageBuffersForES31)
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 0});
-    }
+    }*/
 
     // ES3.1 requires at least a maximum offset of at least 2047.
     // If the Vulkan implementation can't support that, we cannot support 3.1.
-    if (mPhysicalDeviceProperties.limits.maxVertexInputAttributeOffset < 2047)
+    /*if (mPhysicalDeviceProperties.limits.maxVertexInputAttributeOffset < 2047)
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 0});
-    }
+    }*/
 
     // SSO is in ES3.1 core, so we have to cap to ES3.0 for SSO disablement.
-    if (mFeatures.disableSeparateShaderObjects.enabled)
+    /*if (mFeatures.disableSeparateShaderObjects.enabled)
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 0});
-    }
+    }*/
 
     // Limit to ES2.0 if there are any blockers for 3.0.
 
     // VK_EXT_provoking_vertex is required for flat shading.
-    if (!mFeatures.provokingVertex.enabled)
+    /*if (!mFeatures.provokingVertex.enabled)
     {
         maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     // Multisample textures (ES3.1) and multisample renderbuffers (ES3.0) require the Vulkan driver
     // to support the standard sample locations (in order to pass dEQP tests that check these
     // locations).  If the Vulkan implementation can't support that, we cannot support 3.0/3.1.
-    if (mPhysicalDeviceProperties.limits.standardSampleLocations != VK_TRUE)
+    /*if (mPhysicalDeviceProperties.limits.standardSampleLocations != VK_TRUE)
     {
         maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     // If independentBlend is not supported, we can't have a mix of has-alpha and emulated-alpha
     // render targets in a framebuffer.  We also cannot perform masked clears of multiple render
     // targets.
-    if (!mPhysicalDeviceFeatures.independentBlend)
+    /*if (!mPhysicalDeviceFeatures.independentBlend)
     {
-        maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+        printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为independentBlend都不支持\n");
+        //maxVersion = LimitVersionTo(maxVersion, {2, 0});
+    }*/
 
     // If the Vulkan transform feedback extension is not present, we use an emulation path that
     // requires the vertexPipelineStoresAndAtomics feature. Without the extension or this feature,
     // we can't currently support transform feedback.
-    if (!vk::CanSupportTransformFeedbackExtension(mTransformFeedbackFeatures) &&
+    /*if (!vk::CanSupportTransformFeedbackExtension(mTransformFeedbackFeatures) &&
         !vk::CanSupportTransformFeedbackEmulation(mPhysicalDeviceFeatures))
     {
-        maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+        printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为TransformFeedbackExtension和TransformFeedbackEmulation都不支持\n");
+        //maxVersion = LimitVersionTo(maxVersion, {2, 0});
+    }*/
 
     // Limit to GLES 2.0 if maxPerStageDescriptorUniformBuffers is too low.
     // Table 6.31 MAX_VERTEX_UNIFORM_BLOCKS minimum value = 12
     // Table 6.32 MAX_FRAGMENT_UNIFORM_BLOCKS minimum value = 12
     // NOTE: We reserve some uniform buffers for emulation, so use the NativeCaps which takes this
     // into account, rather than the physical device maxPerStageDescriptorUniformBuffers limits.
-    for (gl::ShaderType shaderType : gl::AllShaderTypes())
+    /*for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         if (static_cast<GLuint>(getNativeCaps().maxShaderUniformBlocks[shaderType]) <
             gl::limits::kMinimumShaderUniformBlocks)
         {
-            maxVersion = LimitVersionTo(maxVersion, {2, 0});
+            printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为maxShaderUniformBlocks太小\n");
+            //maxVersion = LimitVersionTo(maxVersion, {2, 0});
         }
-    }
+    }*/
 
     // Limit to GLES 2.0 if maxVertexOutputComponents is too low.
     // Table 6.31 MAX VERTEX OUTPUT COMPONENTS minimum value = 64
     // NOTE: We reserve some vertex output components for emulation, so use the NativeCaps which
     // takes this into account, rather than the physical device maxVertexOutputComponents limits.
-    if (static_cast<GLuint>(getNativeCaps().maxVertexOutputComponents) <
+    /*if (static_cast<GLuint>(getNativeCaps().maxVertexOutputComponents) <
         gl::limits::kMinimumVertexOutputComponents)
     {
-        maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+        printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为maxVertexOutputComponents太低，最小值为64\n");
+        // maxVersion = LimitVersionTo(maxVersion, {2, 0});
+    }*/
 
     return maxVersion;
 }
@@ -5216,6 +5233,7 @@ bool Renderer::canSupportFragmentShadingRate() const
     // VK_KHR_create_renderpass2 is required for VK_KHR_fragment_shading_rate
     if (!mFeatures.supportsRenderpass2.enabled)
     {
+        if (std::getenv("ANGLE_FORCE_RENDERPASS2")) return true;
         return false;
     }
 
@@ -5385,7 +5403,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Distinguish between the ARM proprietary driver and the Mesa open source driver
     const bool isMesaPanVK      = IsMesaPanVK(mDriverProperties.driverID);
-    const bool isARMProprietary = isARM && !isMesaPanVK;
+    const bool isARMProprietary = (isARM && !isMesaPanVK);
 
     // Lacking other explicit ways to tell if mali GPU is job manager based or command stream front
     // end based, we use maxDrawIndirectCount as equivalent since all JM based has
@@ -5499,7 +5517,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     // - ARM
     ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM);
-
+    
     // VK_EXT_pipeline_creation_feedback is promoted to core in Vulkan 1.3.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsPipelineCreationFeedback,
@@ -6290,6 +6308,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isARMProprietaryWithImagelessFramebufferBug =
         isARMProprietary && driverVersion >= angle::VersionTriple(38, 0, 0) &&
         driverVersion < angle::VersionTriple(38, 2, 0);
+
     // PowerVR with imageless framebuffer spends enormous amounts of time in framebuffer destruction
     // and creation. ANGLE doesn't cache imageless framebuffers, instead adding them to garbage
     // collection, expecting them to be lightweight.
@@ -8003,7 +8022,8 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements->size);
-        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        std::cout << "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+        return VK_SUCCESS;
     }
 
     // Avoid device-local and host-visible combinations if possible. Here, "preferredFlags" is

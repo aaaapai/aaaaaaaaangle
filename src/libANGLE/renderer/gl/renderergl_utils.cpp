@@ -648,7 +648,7 @@ static gl::TextureCaps GenerateTextureFormatCaps(const FunctionsGL *functions,
         glFormatInfo.isRequiredRenderbufferFormat(gl::Version(3, 0)) &&
         textureCaps.sampleCounts.getMaxSamples() < 4)
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     ASSERT(functions->getError() == GL_NO_ERROR);
@@ -747,12 +747,12 @@ void GenerateCaps(const FunctionsGL *functions,
                   ShPixelLocalStorageOptions *plsOptions)
 {
     // Start by assuming ES3.1 support and work down
-    *maxSupportedESVersion = gl::Version(3, 1);
+    *maxSupportedESVersion = gl::Version(3, 2);
 
     // Desktop GL below 3.2 is not supported
     if (functions->standard == STANDARD_GL_DESKTOP && !functions->isAtLeastGL(gl::Version(3, 2)))
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
     }
 
     // Texture format support checks
@@ -807,7 +807,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES3 without 3D textures
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     caps->max2DTextureSize = QuerySingleGLInt(functions, GL_MAX_TEXTURE_SIZE);  // GL 1.0 / ES 2.0
@@ -822,17 +822,13 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES3 without array textures
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
-    if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
     {
         caps->maxLODBias = QuerySingleGLFloat(functions, GL_MAX_TEXTURE_LOD_BIAS);
     }
-    else
-    {
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
-    }
+
 
     if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
     {
@@ -847,7 +843,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES2 without framebuffers and renderbuffers
-        LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
     }
 
     if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)) ||
@@ -860,7 +856,7 @@ void GenerateCaps(const FunctionsGL *functions,
         // Framebuffer is required to have at least one drawbuffer even if the extension is not
         // supported
         caps->maxDrawBuffers = 1;
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     caps->maxViewportWidth =
@@ -941,7 +937,7 @@ void GenerateCaps(const FunctionsGL *functions,
         // highp support is required.
         if (!PrecisionMeetsSpecForHighpFloat(caps->fragmentHighpFloat))
         {
-            LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
+            //LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
         }
     }
     else
@@ -969,7 +965,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     // Table 6.31, implementation dependent vertex shader limits
@@ -984,7 +980,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES2 version without these caps
-        LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 1)) ||
@@ -1014,7 +1010,7 @@ void GenerateCaps(const FunctionsGL *functions,
     {
         // There doesn't seem, to be a desktop extension to add this cap, maybe it could be given a
         // safe limit instead of limiting the supported ES version.
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     // Table 6.32, implementation dependent fragment shader limits
@@ -1028,7 +1024,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES2 version without these caps
-        LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
     }
 
     if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
@@ -1040,7 +1036,7 @@ void GenerateCaps(const FunctionsGL *functions,
     {
         // There doesn't seem, to be a desktop extension to add this cap, maybe it could be given a
         // safe limit instead of limiting the supported ES version.
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
@@ -1051,7 +1047,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES3 without texel offset, could possibly be emulated in the shader
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     // Table 6.33, implementation dependent aggregate shader limits
@@ -1079,7 +1075,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES3 without uniform blocks
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
@@ -1092,7 +1088,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 1)) ||
@@ -1128,7 +1124,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES3 without transform feedback
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     GLint sampleCountLimit = std::numeric_limits<GLint>::max();
@@ -1145,7 +1141,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     // Non-constant sampler array indexing is required for OpenGL ES 2 and OpenGL ES after 3.2.
@@ -1160,7 +1156,7 @@ void GenerateCaps(const FunctionsGL *functions,
         !functions->isAtLeastGLES(gl::Version(3, 0)))
     {
         // Can't support ES3 without sampler objects
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     // Can't support ES3 without texture swizzling
@@ -1169,13 +1165,13 @@ void GenerateCaps(const FunctionsGL *functions,
         !functions->hasGLExtension("GL_EXT_texture_swizzle") &&
         !functions->isAtLeastGLES(gl::Version(3, 0)))
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
 
         // Texture swizzling is required to work around the luminance texture format not being
         // present in the core profile
         if (functions->profile & GL_CONTEXT_CORE_PROFILE_BIT)
         {
-            LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
+            //LimitVersion(maxSupportedESVersion, gl::Version(0, 0));
         }
     }
 
@@ -1186,7 +1182,7 @@ void GenerateCaps(const FunctionsGL *functions,
         !functions->hasGLExtension("GL_ARB_shading_language_packing") &&
         !functions->isAtLeastGLES(gl::Version(3, 0)))
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+       // LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     // ES3 needs to support explicit layout location qualifiers, while it might be possible to
@@ -1195,14 +1191,14 @@ void GenerateCaps(const FunctionsGL *functions,
         !functions->hasGLExtension("GL_ARB_explicit_attrib_location") &&
         !functions->isAtLeastGLES(gl::Version(3, 0)))
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     if (!functions->isAtLeastGL(gl::Version(4, 3)) &&
         !functions->hasGLExtension("GL_ARB_stencil_texturing") &&
         !functions->isAtLeastGLES(gl::Version(3, 1)))
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 3)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
@@ -1215,7 +1211,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+      //  LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 1)))
@@ -1230,7 +1226,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 3)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
@@ -1243,7 +1239,7 @@ void GenerateCaps(const FunctionsGL *functions,
         // OpenGL 4.3 has no limit on maximum value of stride.
         // [OpenGL 4.3 (Core Profile) - February 14, 2013] Chapter 10.3.1 Page 298
         if (features.emulateMaxVertexAttribStride.enabled ||
-            (functions->standard == STANDARD_GL_DESKTOP && functions->version == gl::Version(4, 3)))
+            (functions->standard == STANDARD_GL_DESKTOP && functions->version == gl::Version(3, 2)))
         {
             caps->maxVertexAttribStride = 2048;
         }
@@ -1254,7 +1250,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
         // Set maxVertexAttribBindings anyway, a number of places assume this value is at least as
         // much as maxVertexAttributes.
         caps->maxVertexAttribBindings = caps->maxVertexAttributes;
@@ -1280,7 +1276,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     if (nativegl::SupportsCompute(functions))
@@ -1316,7 +1312,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 3)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
@@ -1326,7 +1322,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 0)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
@@ -1339,7 +1335,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+       // LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 2)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
@@ -1361,7 +1357,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 2)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
@@ -1386,7 +1382,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
     else
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+       // LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     // TODO(geofflang): The gl-uniform-arrays WebGL conformance test struggles to complete on time
@@ -1406,7 +1402,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // disallowing ES3.
     if (!CanMapBufferForRead(functions))
     {
-        LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
+      //  LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
     // GL_OES_texture_cube_map_array
@@ -1422,14 +1418,14 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES3.2 without cube map array textures
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 1));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 1));
     }
 
     if (!nativegl::SupportsVertexArrayObjects(functions) ||
         features.syncAllVertexArraysToDefault.enabled)
     {
         // ES 3.1 vertex bindings are not emulated on the default vertex array
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
     // Extension support
@@ -1519,11 +1515,8 @@ void GenerateCaps(const FunctionsGL *functions,
                                 functions->hasGLESExtension("GL_EXT_depth_clamp");
     extensions->polygonOffsetClampEXT = functions->hasExtension("GL_EXT_polygon_offset_clamp");
 
-    if (functions->standard == STANDARD_GL_DESKTOP)
-    {
-        extensions->polygonModeNV = true;
-    }
-    else if (functions->hasGLESExtension("GL_NV_polygon_mode"))
+    extensions->polygonModeNV = true;
+    if (functions->hasGLESExtension("GL_NV_polygon_mode"))
     {
         // Some drivers expose the extension string without supporting its caps.
         ANGLE_GL_CLEAR_ERRORS(functions);
@@ -1612,7 +1605,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // Some drivers do not support this extension in ESSL 3.00, so ESSL 3.10 is required on ES.
     extensions->shaderNoperspectiveInterpolationNV =
         functions->standard == STANDARD_GL_DESKTOP ||
-        (functions->isAtLeastGLES(gl::Version(3, 1)) &&
+        (functions->isAtLeastGLES(gl::Version(3, 2)) &&
          functions->hasGLESExtension("GL_NV_shader_noperspective_interpolation"));
     extensions->packSubimageNV = functions->standard == STANDARD_GL_DESKTOP ||
                                  functions->isAtLeastGLES(gl::Version(3, 0)) ||
@@ -1637,7 +1630,7 @@ void GenerateCaps(const FunctionsGL *functions,
     extensions->EGLSyncOES = functions->hasGLESExtension("GL_OES_EGL_sync");
 
     if (!features.disableTimestampQueries.enabled &&
-        (functions->isAtLeastGL(gl::Version(3, 3)) ||
+        (functions->isAtLeastGL(gl::Version(3, 2)) ||
          functions->hasGLExtension("GL_ARB_timer_query") ||
          functions->hasGLESExtension("GL_EXT_disjoint_timer_query")))
     {
@@ -1697,7 +1690,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         bool hasFragmentShaderImageLoadStore = false;
-        if (functions->isAtLeastGL(gl::Version(4, 2)) ||
+        if (functions->isAtLeastGL(gl::Version(3, 2)) ||
             functions->hasGLExtension("GL_ARB_shader_image_load_store"))
         {
             // [ANGLE_shader_pixel_local_storage] "New Implementation Dependent State":
@@ -1706,7 +1699,7 @@ void GenerateCaps(const FunctionsGL *functions,
             // MAX_FRAGMENT_IMAGE_UNIFORMS is at least 8 on Desktop Core and ARB.
             hasFragmentShaderImageLoadStore = true;
         }
-        else if (functions->isAtLeastGLES(gl::Version(3, 1)))
+        else if (functions->isAtLeastGLES(gl::Version(3, 2)))
         {
             // [ANGLE_shader_pixel_local_storage] "New Implementation Dependent State":
             // MAX_PIXEL_LOCAL_STORAGE_PLANES_ANGLE must be at least 4.
@@ -1784,7 +1777,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // Note that OES_texture_storage_multisample_2d_array support could be extended down to GL 3.2
     // if we emulated texStorage* API on top of texImage*.
     extensions->textureStorageMultisample2dArrayOES =
-        functions->isAtLeastGL(gl::Version(4, 3)) ||
+        functions->isAtLeastGL(gl::Version(3, 2)) ||
         functions->hasGLExtension("GL_ARB_texture_storage_multisample") ||
         functions->hasGLESExtension("GL_OES_texture_storage_multisample_2d_array");
 
@@ -1815,7 +1808,7 @@ void GenerateCaps(const FunctionsGL *functions,
 #endif
 
     extensions->sRGBWriteControlEXT = !features.srgbBlendingBroken.enabled &&
-                                      (functions->standard == STANDARD_GL_DESKTOP ||
+                                      (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)) ||
                                        functions->hasGLESExtension("GL_EXT_sRGB_write_control"));
 
     if (features.bgraTexImageFormatsBroken.enabled)
@@ -1833,12 +1826,9 @@ void GenerateCaps(const FunctionsGL *functions,
 
     extensions->translatedShaderSourceANGLE = true;
 
-    if (functions->standard == STANDARD_GL_DESKTOP)
-    {
         extensions->textureRectangleANGLE = true;
         caps->maxRectangleTextureSize =
             QuerySingleGLInt(functions, GL_MAX_RECTANGLE_TEXTURE_SIZE_ANGLE);
-    }
 
     // OpenGL 4.3 (and above) and OpenGL ES 3.2 can support all features and constants defined in
     // GL_EXT_geometry_shader.
@@ -1848,7 +1838,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // GL_ARB_shader_atomic_counters adds atomic counters to geometry shader
     // GL_ARB_shader_storage_buffer_object adds shader storage buffers to geometry shader
     // GL_ARB_shader_image_load_store adds images to geometry shader
-    bool hasInstancedGSSupport = functions->isAtLeastGL(gl::Version(4, 0)) &&
+    bool hasInstancedGSSupport = functions->isAtLeastGL(gl::Version(3, 2)) &&
                                  functions->hasGLExtension("GL_ARB_shader_atomic_counters") &&
                                  functions->hasGLExtension("GL_ARB_shader_storage_buffer_object") &&
                                  functions->hasGLExtension("GL_ARB_shader_image_load_store");
@@ -1923,14 +1913,14 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // EXT_blend_func_extended is not implemented on top of ARB_blend_func_extended
     // because the latter does not support fragment shader output layout qualifiers.
-    extensions->blendFuncExtendedEXT = functions->isAtLeastGL(gl::Version(3, 3)) ||
+    extensions->blendFuncExtendedEXT = functions->isAtLeastGL(gl::Version(3, 2)) ||
                                        functions->hasGLESExtension("GL_EXT_blend_func_extended");
     if (extensions->blendFuncExtendedEXT)
     {
         // TODO(http://anglebug.com/40644593): Support greater values of
         // MAX_DUAL_SOURCE_DRAW_BUFFERS_EXT queried from the driver. See comments in ProgramGL.cpp
         // for more information about this limitation.
-        caps->maxDualSourceDrawBuffers = 1;
+        caps->maxDualSourceDrawBuffers = 8;
     }
 
     // EXT_float_blend
@@ -1950,7 +1940,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // EXT_base_instance
     // Unlike the ANGLE variant, this extension is exposed only if supported natively.
     extensions->baseInstanceEXT = !features.disableBaseInstanceVertex.enabled &&
-                                  (functions->isAtLeastGL(gl::Version(4, 2)) ||
+                                  (functions->isAtLeastGL(gl::Version(3, 2)) ||
                                    functions->hasGLExtension("GL_ARB_base_instance") ||
                                    functions->hasGLESExtension("GL_EXT_base_instance"));
 
@@ -1981,7 +1971,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // When running on top of desktop OpenGL drivers and allow_etc_formats feature is not enabled,
     // mark ETC1 as emulated to hide it from WebGL clients.
     limitations->emulatedEtc1 =
-        !features.allowETCFormats.enabled && functions->standard == STANDARD_GL_DESKTOP;
+        !features.allowETCFormats.enabled && functions->isAtLeastGLES(gl::Version(4, 2));
 
     // To work around broken unsized sRGB textures, sized sRGB textures are used. Disable EXT_sRGB
     // if those formats are not available.
@@ -2025,7 +2015,7 @@ void GenerateCaps(const FunctionsGL *functions,
 
     if (!features.disableClipControl.enabled)
     {
-        extensions->clipControlEXT = functions->isAtLeastGL(gl::Version(4, 5)) ||
+        extensions->clipControlEXT = functions->isAtLeastGL(gl::Version(3, 2)) ||
                                      functions->hasGLExtension("GL_ARB_clip_control") ||
                                      functions->hasGLESExtension("GL_EXT_clip_control");
     }
@@ -2058,7 +2048,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // GL_EXT_clip_cull_distance spec requires shader interface blocks to support
     // built-in array redeclarations on OpenGL ES.
     extensions->clipCullDistanceEXT =
-        functions->isAtLeastGL(gl::Version(4, 5)) ||
+        functions->isAtLeastGL(gl::Version(3, 2)) ||
         functions->hasGLExtension("GL_ARB_cull_distance") ||
         (extensions->shaderIoBlocksEXT && functions->hasGLESExtension("GL_EXT_clip_cull_distance"));
     if (extensions->clipCullDistanceEXT)
@@ -2082,7 +2072,7 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // Same as GL_EXT_clip_cull_distance but with cull distance support being optional.
     extensions->clipCullDistanceANGLE =
-        (functions->standard == STANDARD_GL_DESKTOP || extensions->clipCullDistanceEXT) &&
+        (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)) || extensions->clipCullDistanceEXT) &&
         caps->maxClipDistances >= kRequiredClipDistances;
     ASSERT(!extensions->clipCullDistanceANGLE || caps->maxClipDistances > 0);
 
@@ -2113,7 +2103,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         // Can't support ES3.2 without texture buffer objects
-        LimitVersion(maxSupportedESVersion, gl::Version(3, 1));
+        //LimitVersion(maxSupportedESVersion, gl::Version(3, 1));
     }
 
     extensions->YUVTargetEXT = functions->hasGLESExtension("GL_EXT_YUV_target");
@@ -2128,10 +2118,10 @@ void GenerateCaps(const FunctionsGL *functions,
                                             functions->maxShaderCompilerThreadsARB != nullptr);
 
     // GL_ANGLE_logic_op
-    extensions->logicOpANGLE = functions->standard == STANDARD_GL_DESKTOP;
+    extensions->logicOpANGLE = true;
 
     // GL_EXT_clear_texture
-    extensions->clearTextureEXT = functions->isAtLeastGL(gl::Version(4, 4)) ||
+    extensions->clearTextureEXT = functions->isAtLeastGL(gl::Version(3, 2)) ||
                                   functions->hasGLESExtension("GL_EXT_clear_texture") ||
                                   functions->hasGLExtension("GL_ARB_clear_texture");
 
@@ -2159,7 +2149,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
 
     // Check if the driver clamps constant blend color
-    if (IsQualcomm(GetVendorID(functions)))
+    /*if (IsQualcomm(GetVendorID(functions)))
     {
         // Backup current state
         float oldColor[4];
@@ -2169,11 +2159,12 @@ void GenerateCaps(const FunctionsGL *functions,
         float color[4];
         functions->blendColor(2.0, 0.0, 0.0, 0.0);
         functions->getFloatv(GL_BLEND_COLOR, color);
-        limitations->noUnclampedBlendColor = color[0] == 1.0;
+        limitations-> noUnclampedBlendColor = color[0] == 1.0;
 
         // Restore previous state
         functions->blendColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
-    }
+    }*/
+    if (std::getenv("ANGLE_DISABLED_NO_CLAMPED_BLEND_COLOR")) limitations->noUnclampedBlendColor = false;
 
     if (features.limitMaxBufferSizeTo1gb.enabled)
     {

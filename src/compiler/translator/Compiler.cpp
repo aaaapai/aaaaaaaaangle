@@ -816,7 +816,12 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
                                     const TParseContext &parseContext,
                                     const ShCompileOptions &compileOptions)
 {
-    ASSERT(!compileOptions.useIR);
+    //ASSERT(!compileOptions.useIR);
+    mValidateASTOptions = {};
+
+    mValidateASTOptions.validatePrecision = false;
+
+    //const bool useIR = compileOptions.useIR;
 
     // Disallow expressions deemed too complex.
     // This needs to be checked before other functions that will traverse the AST
@@ -1259,6 +1264,8 @@ ShCompileOptions TCompiler::adjustOptions(const ShCompileOptions &compileOptions
         compileOptions.clampFragDepth = false;
         compileOptions.retainInactiveFragmentOutputs = false;
     }
+
+    //compileOptions.initGLPosition = true;
 
 #if !defined(ANGLE_IR)
     compileOptions.useIR = false;
