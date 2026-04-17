@@ -1412,7 +1412,7 @@ impl ConstantValue {
         match self {
             ConstantValue::Composite(ids) => ids,
             _ => {
-                eprintln!("Warning: Attempt to query elements of a non-composite type (OpenGL 4.6 compat behavior)");
+                eprintln!("Warning: Attempt to query elements of a non-composite type");
                 &EMPTY_VEC
             }
         }
