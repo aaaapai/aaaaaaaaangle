@@ -1151,12 +1151,12 @@ void Renderer::ensureCapsInitialized() const
 
     if (!norm16FormatsSupportedForBufferTexture)
     {
-        mNativeExtensions.textureNorm16EXT = true;
+        mNativeExtensions.textureNorm16EXT = false;
 
         // With textureNorm16EXT disabled, renderSnormEXT will skip checking support for the 16-bit
         // normalized formats.
-        /*mNativeExtensions.renderSnormEXT =
-            DetermineRenderSnormSupport(mNativeTextureCaps, mNativeExtensions.textureNorm16EXT);*/
+        mNativeExtensions.renderSnormEXT =
+            DetermineRenderSnormSupport(mNativeTextureCaps, mNativeExtensions.textureNorm16EXT);
     }
 
     // Atomic image operations in the vertex and fragment shaders require the
