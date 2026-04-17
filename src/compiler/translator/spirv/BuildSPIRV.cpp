@@ -1594,6 +1594,7 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
         /*case EiifUnspecified:
             return spv::ImageFormatUnknown;*/
         case EiifRGBA32F:
+            if (spirvType.type == EbtInt) return spv::ImageFormatRgba32i;
             return spv::ImageFormatRgba32f;
         case EiifRGBA16F:
             return spv::ImageFormatRgba16f;
@@ -1620,7 +1621,6 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
         case EiifRGBA8_SNORM:
             return spv::ImageFormatRgba8Snorm;
         case EiifUnspecified:
-            if (!std::getenv("ANGLE_APLABEDIT")) return spv::ImageFormatUnknown;
             switch (spirvType.type)
             {
                case EbtFloat:
@@ -1656,8 +1656,41 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
             }
 
         default:
-            UNREACHABLE();
-            return spv::ImageFormatUnknown;
+            //UNREACHABLE();
+            switch (spirvType.type)
+            {
+               case EbtFloat:
+                    if (spirvType.typeSpec.precision == SPIRVPrecisionChoice::UseFP16)
+                        return spv::ImageFormatRgba16f;
+                    return spv::ImageFormatRgba32f;
+            
+               case EbtInt:
+                   return spv::ImageFormatRgba32i;
+            
+               case EbtUInt:
+                   if (spirvType.typeSpec.precision == SPIRVPrecisionChoice::UseFP16)
+                       return spv::ImageFormatRgba16ui;
+                   return spv::ImageFormatRgba32ui;
+      
+               case EbtSampler2D:
+               case EbtSamplerExternalOES:
+               case EbtSampler2DArray:
+               case EbtSamplerCube:
+                   return spv::ImageFormatRgba32f;
+            
+               case EbtISampler2D:
+               case EbtISampler2DArray:
+               case EbtISamplerCube:
+                   return spv::ImageFormatRgba32i;
+            
+               case EbtUSampler2D:
+               case EbtUSampler2DArray:
+               case EbtUSamplerCube:
+                   return spv::ImageFormatRgba32ui;
+               default:
+                   return spv::ImageFormatRgba32f;
+            }
+            //return spv::ImageFormatUnknown;
     }
 }
 
