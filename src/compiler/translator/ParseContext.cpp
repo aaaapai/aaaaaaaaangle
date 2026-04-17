@@ -2638,13 +2638,8 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                       getImageInternalFormatString(layoutQualifier.imageInternalFormat));
                 break;
             case EiifUnspecified:
-              if (!(std::getenv("ANGLE_APLABEDIT"))) {
-                error(identifierLocation, "pixel local storage requires a format specifier",
-                      "layout qualifier");
-              } else {
                 warning(identifierLocation, "pixel local storage requires a format specifier",
                       "layout qualifier");
-              }
                 break;
         }
         checkMemoryQualifierIsNotSpecified(publicType.memoryQualifier, identifierLocation);
@@ -3596,14 +3591,8 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     // identifier must be of type constant, a global, or a temporary
     if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst))
     {
-       if (!(std::getenv("ANGLE_APLABEDIT"))) {
-        error(line, " cannot initialize this type of qualifier ",
-              variable->getType().getQualifierString());
-        return false;
-       } else {
         warning(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
-       }
     }
 
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
@@ -6028,10 +6017,8 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
         {
             // With ESSL 3.00 and above, names of built-in functions cannot be redeclared as
             // functions. Therefore overloading or redefining builtin functions is an error.
-            if (!(std::getenv("ANGLE_APLABEDIT"))) {
-              error(location, "Name of a built-in function cannot be redeclared as function",
-                  function->name());
-            }
+              /*error(location, "Name of a built-in function cannot be redeclared as function",
+                  function->name());*/
         }
     }
     else
@@ -6042,9 +6029,7 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             symbolTable.findBuiltIn(function->getMangledName(), getShaderVersion());
         if (builtIn)
         {
-            if (!(std::getenv("ANGLE_APLABEDIT"))) {
-              error(location, "built-in functions cannot be redefined", function->name());
-            }
+              //error(location, "built-in functions cannot be redefined", function->name());
         }
     }
 
@@ -9191,11 +9176,7 @@ TIntermBranch *TParseContext::addBranch(TOperator op,
         }
         else if (mCurrentFunction->getReturnType() != expression->getType())
         {
-            if (!(std::getenv("ANGLE_APLABEDIT"))) {
-              error(loc, "function return is not matching type:", "return");
-            } else {
-              warning(loc, "function return is not matching type:", "return");
-            }
+            warning(loc, "function return is not matching type:", "return");
         }
         if (!mControlFlow.empty())
         {
@@ -10238,9 +10219,7 @@ void TParseContext::postParseValidateFragmentOutputLocations()
             strstr << (elementCount > 1 ? "output array locations would exceed "
                                         : "output location must be < ")
                    << "MAX_" << (mFragmentOutputIndex1Used ? "DUAL_SOURCE_" : "") << "DRAW_BUFFERS";
-           if (!(std::getenv("ANGLE_APLABEDIT"))) {
             error(variable.line, strstr.str().c_str(), variable.variable->name());
-           }
         }
     }
 
@@ -10267,14 +10246,12 @@ void TParseContext::postParseValidateFragmentOutputLocations()
         mFragmentOutputsWithoutLocation.size() > 1)
     {
         const char *unspecifiedLocationErrorMessage = nullptr;
-        if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
+        /*if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
         {
-            if (!(std::getenv("ANGLE_APLABEDIT"))) {
               unspecifiedLocationErrorMessage =
                 "when EXT_blend_func_extended extension is not enabled, must explicitly specify "
                 "all locations when using multiple fragment outputs";
-            }
-        }
+        }*/
         else if (!mPLSLayouts.empty())
         {
             unspecifiedLocationErrorMessage =
