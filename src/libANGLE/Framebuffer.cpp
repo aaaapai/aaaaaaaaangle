@@ -87,7 +87,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
 
     if (!attachment.isRenderable(context))
     {
-        if (!std::getenv("ANGLE_APLABEDIT")) return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT, err::kFramebufferIncompleteAttachmentNotRenderable);
+        //if (!std::getenv("ANGLE_APLABEDIT")) return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT, err::kFramebufferIncompleteAttachmentNotRenderable);
         WARN() << "err::kFramebufferIncompleteAttachmentNotRenderable";
     }
 
@@ -114,11 +114,11 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
         {
             if (size.depth >= context->getCaps().maxFramebufferLayers)
             {
-                if (!std::getenv("ANGLE_APLABEDIT")) {
+                /*if (!std::getenv("ANGLE_APLABEDIT")) {
                     return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers);
-                }
+                }*/
                 WARN() << "err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers";
             }
         }
