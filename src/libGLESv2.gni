@@ -662,7 +662,7 @@ libglesv2_entry_point_sources = [
   "src/libGLESv2/resource.h",
 ]
 
-libglesv2_sources = [ "src/libGLESv2/libGLESv2_autogen.cpp" ]
+libglesv2_sources = [ "src/libGLESv2/libGLESv2_autogen.cpp", "src/libGLESv1_CM/libGLESv1_CM_autogen.cpp" ]
 
 libglesv2_cl_sources = [
   "src/libGLESv2/cl_dispatch_table.cpp",
