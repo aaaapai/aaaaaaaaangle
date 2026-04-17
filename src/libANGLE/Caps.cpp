@@ -721,8 +721,8 @@ static bool DetermineColorBufferFloatRGBSupport(const TextureCapsMap &textureCap
         GL_RGB32F,
     };
 
-    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
-    return true;
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
+    //return true;
 }
 
 // Check for GL_CHROMIUM_color_buffer_float_rgba support
@@ -732,8 +732,8 @@ static bool DetermineColorBufferFloatRGBASupport(const TextureCapsMap &textureCa
         GL_RGBA32F,
     };
 
-    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
-    return true;
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
+    //return true;
 }
 
 // Check for GL_EXT_color_buffer_float support
@@ -752,9 +752,9 @@ static bool DetermineColorBufferFloatSupport(const TextureCapsMap &textureCaps)
         GL_R11F_G11F_B10F,
     };
 
-    /*return GetFormatSupport(textureCaps, nonBlendableFormats, true, false, true, true, false) &&
-           GetFormatSupport(textureCaps, blendableFormats, true, false, true, true, true);*/
-    return true;
+    return GetFormatSupport(textureCaps, nonBlendableFormats, true, false, true, true, false) &&
+           GetFormatSupport(textureCaps, blendableFormats, true, false, true, true, true);
+    //return true;
 }
 
 // Check for GL_EXT_float_blend support
@@ -766,8 +766,8 @@ static bool DetermineFloatBlendSupport(const TextureCapsMap &textureCaps)
         GL_RGBA32F,
     };
 
-    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
-    return true; // I dont care, but I dont know what will happen, just return true.
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
+    //return true; // I dont care, but I dont know what will happen, just return true.
 }
 
 // Check for GL_EXT_texture_norm16 support
@@ -784,9 +784,9 @@ static bool DetermineTextureNorm16Support(const TextureCapsMap &textureCaps)
         GL_RGBA16_EXT,
     };
 
-    /*return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
-           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);*/
-    return true;
+    return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
+           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);
+    //return true;
 }
 
 // Check for EXT_texture_compression_rgtc support
@@ -886,8 +886,8 @@ bool DetermineRenderSnormSupport(const TextureCapsMap &textureCaps, bool texture
         return true;
     }
 
-    //return GetFormatSupport(textureCaps, requiredSnorm8Formats, false, false, true, true, true);
-    return true;
+    return GetFormatSupport(textureCaps, requiredSnorm8Formats, false, false, true, true, true);
+    //return true;
 }
 
 void Extensions::setTextureExtensionSupport(const TextureCapsMap &textureCaps)
