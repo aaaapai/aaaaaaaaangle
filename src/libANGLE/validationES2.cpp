@@ -5481,13 +5481,13 @@ bool ValidateFramebufferTexture2D(const Context *context,
                 if (attachment != GL_COLOR_ATTACHMENT0)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-                    if (!std::getenv("ANGLE_APLABEDIT")) return false;
+                    //if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
 
                 if (tex->getType() != TextureType::External)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kTextureTargetMismatch);
-                    if (!std::getenv("ANGLE_APLABEDIT")) return false;
+                    //if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
             }
             break;
@@ -5998,8 +5998,8 @@ bool ValidateFramebufferTexture2DMultisampleEXT(const Context *context,
     if (!context->getExtensions().multisampledRenderToTexture2EXT &&
         attachment != GL_COLOR_ATTACHMENT0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-        if (!std::getenv("ANGLE_APLABEDIT")) return false;
+        //ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
+        //if (!std::getenv("ANGLE_APLABEDIT")) return false;
     }
 
     if (!ValidTexture2DDestinationTarget(context, textarget))
