@@ -5091,6 +5091,7 @@ void GL_APIENTRY GL_Uniform1i(GLint location, GLint v0)
     {
         UniformLocation locationPacked = PackParam<UniformLocation>(location);
         SCOPED_SHARE_CONTEXT_LOCK(context);
+
         bool isCallValid = context->skipValidation();
         if (!isCallValid)
         {

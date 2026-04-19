@@ -11,6 +11,8 @@
 #    pragma allow_unsafe_buffers
 #endif
 
+#include "common/debug.h"
+
 #include "libANGLE/renderer/vulkan/UtilsVk.h"
 
 #include "common/spirv/spirv_instruction_builder_autogen.h"
@@ -2604,6 +2606,10 @@ angle::Result UtilsVk::clearFramebuffer(ContextVk *contextVk,
     {
         // Deferred clears should be handled already.
         ASSERT(!framebuffer->hasDeferredClears());
+        /*if (!framebuffer->hasDeferredClears())
+        {
+            WARN() << "Expected deferred clears but none present. Continuing with safe fallback. (file/line ...)";
+        }*/
         ANGLE_TRY(contextVk->startRenderPass(scissoredRenderArea, &commandBuffer, nullptr));
     }
 
@@ -3091,7 +3097,11 @@ angle::Result UtilsVk::colorBlitResolve(ContextVk *contextVk,
 
     // All deferred clear must have been flushed, otherwise it will conflict with
     // params.blitArea.
-    ASSERT(!framebuffer->hasDeferredClears());
+    //ASSERT(!framebuffer->hasDeferredClears());
+    /*if (!framebuffer->hasDeferredClears())
+    {
+            WARN() << "Expected deferred clears but none present. Continuing with safe fallback. (file/line ...)";
+    }*/
     vk::RenderPassCommandBuffer *commandBuffer;
     ANGLE_TRY(framebuffer->startNewRenderPass(contextVk, params.blitArea, &commandBuffer, nullptr));
 

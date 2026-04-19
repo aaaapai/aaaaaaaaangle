@@ -439,6 +439,9 @@ GLenum GLVariablePrecision(const TType &type)
                 return GL_MEDIUM_FLOAT;
             case EbpLow:
                 return GL_LOW_FLOAT;
+            case EbpUndefined:
+                // Desktop specs do not use precision
+                return GL_NONE;
             default:
                 UNREACHABLE();
         }
@@ -453,6 +456,9 @@ GLenum GLVariablePrecision(const TType &type)
                 return GL_MEDIUM_INT;
             case EbpLow:
                 return GL_LOW_INT;
+            case EbpUndefined:
+                // Desktop specs do not use precision
+                return GL_NONE;
             default:
                 UNREACHABLE();
         }

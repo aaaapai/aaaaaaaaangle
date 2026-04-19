@@ -85,6 +85,50 @@ void InitExtensionBehavior(const ShBuiltInResources &resources, TExtensionBehavi
     {
         extBehavior[TExtension::NV_shader_noperspective_interpolation] = EBhUndefined;
     }
+    if (resources.KHR_shader_subgroup)
+    {
+        extBehavior[TExtension::KHR_shader_subgroup] = EBhUndefined;
+    }
+    if (resources.KHR_shader_subgroup_ballot)
+    {
+       extBehavior[TExtension::KHR_shader_subgroup_ballot] = EBhUndefined;
+    }
+    if (resources.KHR_shader_subgroup_shuffle)
+    {
+        extBehavior[TExtension::KHR_shader_subgroup_shuffle] = EBhUndefined;
+    }
+    if (resources.KHR_shader_subgroup_shuffle_relative)
+    {
+        extBehavior[TExtension::KHR_shader_subgroup_shuffle_relative] = EBhUndefined;
+    }
+    if (resources.KHR_shader_subgroup_clustered)
+    {
+        extBehavior[TExtension::KHR_shader_subgroup_clustered] = EBhUndefined;
+    }
+    if (resources.KHR_shader_subgroup_quad)
+    {
+        extBehavior[TExtension::KHR_shader_subgroup_quad] = EBhUndefined;
+    }
+    if (resources.KHR_shader_subgroup_arithmetic)
+    {
+        extBehavior[TExtension::KHR_shader_subgroup_arithmetic] = EBhUndefined;
+    }
+    if (resources.KHR_shader_subgroup_vote)
+    {
+        extBehavior[TExtension::KHR_shader_subgroup_vote] = EBhUndefined;
+    }
+    if (resources.EXT_shader_subgroup_extended_types)
+    {
+        extBehavior[TExtension::EXT_shader_subgroup_extended_types] = EBhUndefined;
+    }
+    if (resources.AMD_shader_ballot)
+    {
+        extBehavior[TExtension::AMD_shader_ballot] = EBhUndefined;
+    }
+    if (resources.NV_shader_subgroup_partitioned)
+    {
+        extBehavior[TExtension::NV_shader_subgroup_partitioned] = EBhUndefined;
+    }
     if (resources.ARM_shader_framebuffer_fetch)
     {
         extBehavior[TExtension::ARM_shader_framebuffer_fetch] = EBhUndefined;

@@ -56,6 +56,17 @@
     OP(EXT_shader_framebuffer_fetch,                   100, 320) \
     OP(EXT_shader_framebuffer_fetch_non_coherent,      100, 320) \
     OP(EXT_shader_non_constant_global_initializers,    100, 320) \
+    OP(KHR_shader_subgroup, 100, 320)                          \
+    OP(KHR_shader_subgroup_ballot, 100, 320)                   \
+    OP(KHR_shader_subgroup_shuffle, 100, 320)                  \
+    OP(KHR_shader_subgroup_shuffle_relative,100,320)         \
+    OP(KHR_shader_subgroup_clustered,100,320)                \
+    OP(KHR_shader_subgroup_quad,100,320)                     \
+    OP(KHR_shader_subgroup_arithmetic,100,320)               \
+    OP(KHR_shader_subgroup_vote,100,320)                     \
+    OP(EXT_shader_subgroup_extended_types,100,320)           \
+    OP(AMD_shader_ballot,100,320)                            \
+    OP(NV_shader_subgroup_partitioned,100,320)               \
     OP(EXT_shader_texture_lod,                         100, 100) \
     OP(EXT_shadow_samplers,                            100, 100) \
     OP(EXT_tessellation_shader,                        310, 320) \

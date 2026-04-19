@@ -1840,7 +1840,6 @@ if (install_prefix != "") {
   install_target("angle") {
     libs = [
       "libEGL",
-      "libGLESv1_CM",
       "libGLESv2",
     ]
     configs = [ ":includes_config" ]
@@ -1850,7 +1849,6 @@ if (install_prefix != "") {
 group("angle") {
   data_deps = [
     ":libEGL",
-    ":libGLESv1_CM",
     ":libGLESv2",
   ]
   if (angle_enable_vulkan) {

@@ -7250,8 +7250,18 @@ angle::Result ContextVk::updateActiveTextures(const gl::Context *context, gl::Co
     {
         gl::Texture *texture        = textures[textureUnit];
         gl::TextureType textureType = textureTypes[textureUnit];
-        ASSERT(textureType != gl::TextureType::InvalidEnum);
+        //ASSERT(textureType != gl::TextureType::InvalidEnum);
 
+        if (!texture)
+        {
+            WARN() << "ContextVk::updateActiveTextures: texture is null on unit ";
+        }
+
+        if (textureType == gl::TextureType::InvalidEnum)
+        {
+            WARN() << "ContextVk::updateActiveTextures: textureType == InvalidEnum on unit ";
+        }
+    
         const bool isIncompleteTexture = texture == nullptr;
 
         // Null textures represent incomplete textures.

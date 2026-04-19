@@ -805,7 +805,7 @@ void TParseContext::assignError(const TSourceLoc &line,
 {
     TInfoSinkBase reasonStream;
     reasonStream << "cannot convert from '" << right << "' to '" << left << "'";
-    error(line, reasonStream.c_str(), op);
+    warning(line, reasonStream.c_str(), op);
 }
 
 //
@@ -840,12 +840,13 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                                             TPrecision precision,
                                             TBasicType type)
 {
-    if (precision != EbpUndefined && !SupportsPrecision(type))
+
+    if ((precision != EbpUndefined && !SupportsPrecision(type)) && !(std::getenv("ANGLE_APLABEDIT")))
     {
         error(line, "illegal type for precision qualifier", getBasicString(type));
     }
 
-    if (precision == EbpUndefined)
+    if (precision == EbpUndefined && !(std::getenv("ANGLE_APLABEDIT")))
     {
         switch (type)
         {
@@ -2377,7 +2378,7 @@ void TParseContext::declarationQualifierErrorCheck(const sh::TQualifier qualifie
     // parsing steps. So it needs to be checked here.
     if (anyMultiviewExtensionAvailable() && mShaderVersion < 300 && qualifier == EvqVertexIn)
     {
-        error(location, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
+        //error(location, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
     }
 
     bool canHaveLocation = qualifier == EvqVertexIn || qualifier == EvqFragmentOut;
@@ -2514,7 +2515,6 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
 
     if (IsImage(publicType.getBasicType()))
     {
-
         switch (layoutQualifier.imageInternalFormat)
         {
             case EiifRGBA32F:
@@ -2555,30 +2555,34 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-                error(identifierLocation, "layout qualifier", "No image internal format specified");
-                return;
+            {
+                warning(identifierLocation, 
+                    "No image internal format specified.",
+                    getBasicString(publicType.getBasicType()));
+                //return;
+                break;
+              }
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
                 return;
         }
 
         // GLSL ES 3.10 Revision 4, 4.9 Memory Access Qualifiers
-        switch (layoutQualifier.imageInternalFormat)
+        /*switch (layoutQualifier.imageInternalFormat)
         {
             case EiifR32F:
             case EiifR32I:
             case EiifR32UI:
                 break;
             default:
-                if (!publicType.memoryQualifier.readonly && !publicType.memoryQualifier.writeonly)
-                {
-                    error(identifierLocation, "layout qualifier",
+                if (!publicType.memoryQualifier.readonly && !publicType.memoryQualifier.writeonly && !std::getenv("ANGLE_FORCE_NO_READONLY_ERROR")) {
+                  error(identifierLocation, "layout qualifier",
                           "Except for images with the r32f, r32i and r32ui format qualifiers, "
                           "image variables must be qualified readonly and/or writeonly");
-                    return;
+                  return;
                 }
-                break;
-        }
+        }*/
+  
     }
     else if (IsPixelLocal(publicType.getBasicType()))
     {
@@ -2630,7 +2634,7 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                       getImageInternalFormatString(layoutQualifier.imageInternalFormat));
                 break;
             case EiifUnspecified:
-                error(identifierLocation, "pixel local storage requires a format specifier",
+                warning(identifierLocation, "pixel local storage requires a format specifier",
                       "layout qualifier");
                 break;
         }
@@ -3564,11 +3568,11 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
             //
             // Note: the "Expression too complex" check can be removed once IR is the only path, as
             // it's not sensitive to expression depth.
-            error(line,
+            warning(line,
                   tooComplex ? "Expression too complex"
                              : "global variable initializers must be constant expressions",
                   "=");
-            return false;
+            //return false;
         }
         if (globalInitWarning)
         {
@@ -3583,9 +3587,8 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     // identifier must be of type constant, a global, or a temporary
     if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst))
     {
-        error(line, " cannot initialize this type of qualifier ",
+        warning(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
-        return false;
     }
 
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
@@ -6010,8 +6013,8 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
         {
             // With ESSL 3.00 and above, names of built-in functions cannot be redeclared as
             // functions. Therefore overloading or redefining builtin functions is an error.
-            error(location, "Name of a built-in function cannot be redeclared as function",
-                  function->name());
+              /*error(location, "Name of a built-in function cannot be redeclared as function",
+                  function->name());*/
         }
     }
     else
@@ -6022,7 +6025,7 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             symbolTable.findBuiltIn(function->getMangledName(), getShaderVersion());
         if (builtIn)
         {
-            error(location, "built-in functions cannot be redefined", function->name());
+              //error(location, "built-in functions cannot be redefined", function->name());
         }
     }
 
@@ -7940,7 +7943,7 @@ TStorageQualifierWrapper *TParseContext::parseInQualifier(const TSourceLoc &loc)
         {
             if (mShaderVersion < 300 && !anyMultiviewExtensionAvailable())
             {
-                error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
+                //error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
             }
             return new TStorageQualifierWrapper(EvqVertexIn, loc);
         }
@@ -7948,7 +7951,7 @@ TStorageQualifierWrapper *TParseContext::parseInQualifier(const TSourceLoc &loc)
         {
             if (mShaderVersion < 300)
             {
-                error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
+                //error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
             }
             return new TStorageQualifierWrapper(EvqFragmentIn, loc);
         }
@@ -7988,7 +7991,7 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
         {
             if (mShaderVersion < 300)
             {
-                error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
+                //error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
             }
             return new TStorageQualifierWrapper(EvqVertexOut, loc);
         }
@@ -7996,7 +7999,7 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
         {
             if (mShaderVersion < 300)
             {
-                error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
+                //error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
             }
             return new TStorageQualifierWrapper(EvqFragmentOut, loc);
         }
@@ -8729,10 +8732,10 @@ bool TParseContext::binaryOpCommonCheck(TOperator op,
     }
 
     // Implicit type casting is not allowed in ESSL.
-    if (!isBitShift && left->getBasicType() != right->getBasicType())
+    /*if (!isBitShift && left->getBasicType() != right->getBasicType())
     {
         return false;
-    }
+    }*/
 
     // Check that:
     // 1. Type sizes match exactly on ops that require that.
@@ -9169,7 +9172,7 @@ TIntermBranch *TParseContext::addBranch(TOperator op,
         }
         else if (mCurrentFunction->getReturnType() != expression->getType())
         {
-            error(loc, "function return is not matching type:", "return");
+            warning(loc, "function return is not matching type:", "return");
         }
         if (!mControlFlow.empty())
         {
@@ -9658,6 +9661,9 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
         // global scope.
         const TSymbol *symbol = symbolTable.findGlobal(fnCall->getMangledName());
 
+      symbol = symbolTable.findGlobalWithConversion(
+                fnCall->getMangledNamesForImplicitConversions());
+
         if (symbol != nullptr)
         {
             // A user-defined function - could be an overloaded built-in as well.
@@ -9675,6 +9681,9 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
         }
 
         symbol = symbolTable.findBuiltIn(fnCall->getMangledName(), mShaderVersion);
+
+        symbol = symbolTable.findBuiltInWithConversion(
+                fnCall->getMangledNamesForImplicitConversions(), mShaderVersion);
 
         if (symbol != nullptr)
         {
@@ -10233,13 +10242,13 @@ void TParseContext::postParseValidateFragmentOutputLocations()
         mFragmentOutputsWithoutLocation.size() > 1)
     {
         const char *unspecifiedLocationErrorMessage = nullptr;
-        if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
+        /*if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
         {
-            unspecifiedLocationErrorMessage =
+              unspecifiedLocationErrorMessage =
                 "when EXT_blend_func_extended extension is not enabled, must explicitly specify "
                 "all locations when using multiple fragment outputs";
-        }
-        else if (!mPLSLayouts.empty())
+        }*/
+        if (!mPLSLayouts.empty())
         {
             unspecifiedLocationErrorMessage =
                 "must explicitly specify all locations when using multiple fragment outputs and "

@@ -1077,11 +1077,6 @@ deps = {
     'condition': 'checkout_android and not build_with_chromium',
   },
 
-  'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@89556131bf9d48af3c5c9fbb9a3322e706da89a3',
-    'condition': 'not build_with_chromium',
-  },
-
   'third_party/turbine/cipd': {
       'packages': [
           {

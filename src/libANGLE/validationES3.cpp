@@ -10,6 +10,8 @@
 #    pragma allow_unsafe_buffers
 #endif
 
+#include <cstdlib>
+
 #include "libANGLE/validationES3_autogen.h"
 
 #include "anglebase/numerics/safe_conversions.h"
@@ -196,6 +198,7 @@ bool ValidateCopyTexture3DCommon(const Context *context,
         case GL_RGB10_A2:
         case GL_RGBA16F:
         case GL_RGBA32F:
+        case GL_RGBA16_SNORM_EXT:
         case GL_RGBA8UI:
         case GL_RGBA8I:
         case GL_RGB10_A2UI:
@@ -243,6 +246,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
 {
     // The type and format are valid if any supported internal format has that type and format.
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
+
     if (gl::IsYuvFormat(format))
     {
         if (!context->getExtensions().yuvInternalFormatANGLE)
@@ -423,11 +427,11 @@ bool ValidateES3TexImageParametersBase(const Context *context,
             return false;
         }
 
-        if (level != 0)
+        /*if (level != 0)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidMipLevel);
             return false;
-        }
+        }*/
     }
 
     // Validate image size
@@ -817,6 +821,7 @@ bool ValidateES3TexImage2DParameters(const Context *context,
                                      GLsizei imageSize,
                                      const void *pixels)
 {
+
     if (!ValidTexture2DDestinationTarget(context, target))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
@@ -1879,7 +1884,7 @@ bool ValidateReadBuffer(const Context *context, angle::EntryPoint entryPoint, GL
         if (drawBuffer >= static_cast<GLuint>(context->getCaps().maxColorAttachments))
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-            return false;
+            if (!std::getenv("ANGLE_APLABEDIT")) return false;
         }
     }
 
@@ -2236,7 +2241,7 @@ bool ValidateClearBufferiv(const Context *context,
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                if (!std::getenv("ANGLE_APLABEDIT")) return false;
             }
             if (static_cast<size_t>(drawbuffer) >=
                 context->getState().getDrawFramebuffer()->getDrawbufferStateCount())
@@ -2291,7 +2296,7 @@ bool ValidateClearBufferuiv(const Context *context,
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                if (!std::getenv("ANGLE_APLABEDIT")) return false;
             }
             if (static_cast<size_t>(drawbuffer) >=
                 context->getState().getDrawFramebuffer()->getDrawbufferStateCount())

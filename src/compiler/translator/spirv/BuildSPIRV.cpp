@@ -1242,7 +1242,7 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
 
         getImageTypeParameters(type.type, &sampledType, &dim, &depth, &arrayed, &multisampled,
                                &sampled);
-        const spv::ImageFormat imageFormat = getImageFormat(type.imageInternalFormat);
+        const spv::ImageFormat imageFormat = getImageFormat(type.imageInternalFormat, type);
 
         typeId = getNewId({});
         spirv::WriteTypeImage(&mSpirvTypeAndConstantDecls, typeId, sampledType, dim, depth, arrayed,
@@ -1587,13 +1587,14 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
     }
 }
 
-spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageInternalFormat)
+spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageInternalFormat, const SpirvType &spirvType)
 {
     switch (imageInternalFormat)
     {
-        case EiifUnspecified:
-            return spv::ImageFormatUnknown;
+        /*case EiifUnspecified:
+            return spv::ImageFormatUnknown;*/
         case EiifRGBA32F:
+            if (spirvType.type == EbtInt) return spv::ImageFormatRgba32i;
             return spv::ImageFormatRgba32f;
         case EiifRGBA16F:
             return spv::ImageFormatRgba16f;
@@ -1619,9 +1620,77 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
             return spv::ImageFormatRgba8;
         case EiifRGBA8_SNORM:
             return spv::ImageFormatRgba8Snorm;
+        case EiifUnspecified:
+            switch (spirvType.type)
+            {
+               case EbtFloat:
+                    if (spirvType.typeSpec.precision == SPIRVPrecisionChoice::UseFP16)
+                        return spv::ImageFormatRgba16f;
+                    return spv::ImageFormatRgba32f;
+            
+               case EbtInt:
+                   return spv::ImageFormatRgba32i;
+            
+               case EbtUInt:
+                   if (spirvType.typeSpec.precision == SPIRVPrecisionChoice::UseFP16)
+                       return spv::ImageFormatRgba16ui;
+                   return spv::ImageFormatRgba32ui;
+      
+               case EbtSampler2D:
+               case EbtSamplerExternalOES:
+               case EbtSampler2DArray:
+               case EbtSamplerCube:
+                   return spv::ImageFormatRgba32f;
+            
+               case EbtISampler2D:
+               case EbtISampler2DArray:
+               case EbtISamplerCube:
+                   return spv::ImageFormatRgba32i;
+            
+               case EbtUSampler2D:
+               case EbtUSampler2DArray:
+               case EbtUSamplerCube:
+                   return spv::ImageFormatRgba32ui;
+               default:
+                   return spv::ImageFormatRgba32f;
+            }
+
         default:
-            UNREACHABLE();
-            return spv::ImageFormatUnknown;
+            //UNREACHABLE();
+            switch (spirvType.type)
+            {
+               case EbtFloat:
+                    if (spirvType.typeSpec.precision == SPIRVPrecisionChoice::UseFP16)
+                        return spv::ImageFormatRgba16f;
+                    return spv::ImageFormatRgba32f;
+            
+               case EbtInt:
+                   return spv::ImageFormatRgba32i;
+            
+               case EbtUInt:
+                   if (spirvType.typeSpec.precision == SPIRVPrecisionChoice::UseFP16)
+                       return spv::ImageFormatRgba16ui;
+                   return spv::ImageFormatRgba32ui;
+      
+               case EbtSampler2D:
+               case EbtSamplerExternalOES:
+               case EbtSampler2DArray:
+               case EbtSamplerCube:
+                   return spv::ImageFormatRgba32f;
+            
+               case EbtISampler2D:
+               case EbtISampler2DArray:
+               case EbtISamplerCube:
+                   return spv::ImageFormatRgba32i;
+            
+               case EbtUSampler2D:
+               case EbtUSampler2DArray:
+               case EbtUSamplerCube:
+                   return spv::ImageFormatRgba32ui;
+               default:
+                   return spv::ImageFormatRgba32f;
+            }
+            //return spv::ImageFormatUnknown;
     }
 }
 
@@ -2414,8 +2483,10 @@ void SPIRVBuilder::writeInterpolationDecoration(TQualifier qualifier,
         case EvqNoPerspective:
         case EvqNoPerspectiveOut:
         case EvqNoPerspectiveIn:
-            WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex,
-                                         &mSpirvDecorations);
+            if(std::getenv("ANGLE_NOPERSPECTIVE_SUPPORT")) {
+                WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex, &mSpirvDecorations);
+            }
+            // Mali G57 MC4 doesn't support it.
             return;
 
         case EvqCentroid:
