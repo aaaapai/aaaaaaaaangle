@@ -357,8 +357,7 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
     }
 
     // GLSL ES 3 explicit location qualifiers need to use an extension before GLSL 330
-    if (getShaderVersion() >= 100 &&
-        getShaderType() != GL_COMPUTE_SHADER)
+    if (getShaderVersion() >= 100)
     {
         sink << "#extension GL_ARB_explicit_attrib_location : enable\n";
     }
@@ -373,12 +372,12 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
             // support index constant sampler array indexing, but don't have the extension or
             // on drivers that don't have the extension at all as it would break WebGL 1 for
             // some users.
-            sink << "#extension GL_ARB_gpu_shader5 : enable\n";
             sink << "#extension GL_OES_gpu_shader5 : enable\n";
             sink << "#extension GL_EXT_gpu_shader5 : enable\n";
         }
-        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 320)
+        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 330)
         {
+            sink << "#extension GL_ARB_gpu_shader5 : enable\n";
             sink << "#extension GL_OES_gpu_shader5 : enable\n";
             sink << "#extension GL_EXT_gpu_shader5 : enable\n";
         }
@@ -388,10 +387,10 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
     {
         if (getOutputType() >= SH_GLSL_150_CORE_OUTPUT && getOutputType() < SH_GLSL_400_CORE_OUTPUT)
         {
-            sink << "#extension GL_ARB_texture_cube_map_array : enable\n";
         }
-        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 320)
+        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 330)
         {
+            sink << "#extension GL_ARB_texture_cube_map_array : enable\n";
             sink << "#extension GL_OES_texture_cube_map_array : enable\n";
             sink << "#extension GL_EXT_texture_cube_map_array : enable\n";
         }
@@ -401,10 +400,10 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
     {
         if (getOutputType() >= SH_GLSL_150_CORE_OUTPUT && getOutputType() < SH_GLSL_400_CORE_OUTPUT)
         {
-            sink << "#extension GL_ARB_texture_buffer_objects : enable\n";
         }
-        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 320)
+        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 330)
         {
+            sink << "#extension GL_ARB_texture_buffer_objects : enable\n";
             sink << "#extension GL_OES_texture_buffer : enable\n";
             sink << "#extension GL_EXT_texture_buffer : enable\n";
         }
