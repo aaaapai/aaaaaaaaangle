@@ -841,12 +841,12 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                                             TBasicType type)
 {
 
-    if ((precision != EbpUndefined && !SupportsPrecision(type)) && !(std::getenv("ANGLE_APLABEDIT")))
+    if ((precision != EbpUndefined && !SupportsPrecision(type)))
     {
         error(line, "illegal type for precision qualifier", getBasicString(type));
     }
 
-    if (precision == EbpUndefined && !(std::getenv("ANGLE_APLABEDIT")))
+    if (precision == EbpUndefined)
     {
         switch (type)
         {
@@ -2556,11 +2556,10 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 break;
             case EiifUnspecified:
             {
-                warning(identifierLocation, 
+                error(identifierLocation, 
                     "No image internal format specified.",
                     getBasicString(publicType.getBasicType()));
-                //return;
-                break;
+                return;
               }
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
@@ -2634,7 +2633,7 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                       getImageInternalFormatString(layoutQualifier.imageInternalFormat));
                 break;
             case EiifUnspecified:
-                warning(identifierLocation, "pixel local storage requires a format specifier",
+                error(identifierLocation, "pixel local storage requires a format specifier",
                       "layout qualifier");
                 break;
         }
@@ -3568,11 +3567,11 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
             //
             // Note: the "Expression too complex" check can be removed once IR is the only path, as
             // it's not sensitive to expression depth.
-            warning(line,
+            error(line,
                   tooComplex ? "Expression too complex"
                              : "global variable initializers must be constant expressions",
                   "=");
-            //return false;
+            return false;
         }
         if (globalInitWarning)
         {
@@ -3587,8 +3586,9 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     // identifier must be of type constant, a global, or a temporary
     if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst))
     {
-        warning(line, " cannot initialize this type of qualifier ",
+        error(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
+        return false;
     }
 
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
@@ -6025,7 +6025,7 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             symbolTable.findBuiltIn(function->getMangledName(), getShaderVersion());
         if (builtIn)
         {
-              //error(location, "built-in functions cannot be redefined", function->name());
+              error(location, "built-in functions cannot be redefined", function->name());
         }
     }
 
@@ -9172,7 +9172,7 @@ TIntermBranch *TParseContext::addBranch(TOperator op,
         }
         else if (mCurrentFunction->getReturnType() != expression->getType())
         {
-            warning(loc, "function return is not matching type:", "return");
+            error(loc, "function return is not matching type:", "return");
         }
         if (!mControlFlow.empty())
         {
@@ -10242,13 +10242,13 @@ void TParseContext::postParseValidateFragmentOutputLocations()
         mFragmentOutputsWithoutLocation.size() > 1)
     {
         const char *unspecifiedLocationErrorMessage = nullptr;
-        /*if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
+        if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
         {
               unspecifiedLocationErrorMessage =
                 "when EXT_blend_func_extended extension is not enabled, must explicitly specify "
                 "all locations when using multiple fragment outputs";
-        }*/
-        if (!mPLSLayouts.empty())
+        }
+        else if (!mPLSLayouts.empty())
         {
             unspecifiedLocationErrorMessage =
                 "must explicitly specify all locations when using multiple fragment outputs and "
