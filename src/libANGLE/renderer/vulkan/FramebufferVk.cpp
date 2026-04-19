@@ -4220,4 +4220,30 @@ bool FramebufferVk::updateLegacyDither(ContextVk *contextVk)
 
     return false;
 }
+
+const vk::ImageHelper *FramebufferVk::getImageWithTileMemory() const
+{
+    RenderTargetVk *depthStencilRenderTarget = getDepthStencilRenderTarget();
+    if (!depthStencilRenderTarget)
+    {
+        return nullptr;
+    }
+
+    const vk::ImageHelper *image = nullptr;
+    if (depthStencilRenderTarget->hasResolveAttachment())
+    {
+        image = &depthStencilRenderTarget->getResolveImageForRenderPass();
+    }
+    else
+    {
+        image = &depthStencilRenderTarget->getImageForRenderPass();
+    }
+
+    if (image->useTileMemory())
+    {
+        return image;
+    }
+
+    return nullptr;
+}
 }  // namespace rx
