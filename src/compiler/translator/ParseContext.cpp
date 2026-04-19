@@ -2555,16 +2555,12 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-              if (!(std::getenv("ANGLE_APLABEDIT"))) {
-                error(identifierLocation, 
-                    "No image internal format specified.",
-                    getBasicString(publicType.getBasicType()));
-                return;
-              } else {
+            {
                 warning(identifierLocation, 
                     "No image internal format specified.",
                     getBasicString(publicType.getBasicType()));
                 //return;
+                break;
               }
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
