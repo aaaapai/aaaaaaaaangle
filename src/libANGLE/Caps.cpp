@@ -883,7 +883,7 @@ bool DetermineRenderSnormSupport(const TextureCapsMap &textureCaps, bool texture
     if (textureNorm16EXT &&
         !GetFormatSupport(textureCaps, requiredSnorm16Formats, false, false, true, true, true))
     {
-        return true;
+        return false;
     }
 
     return GetFormatSupport(textureCaps, requiredSnorm8Formats, false, false, true, true, true);
