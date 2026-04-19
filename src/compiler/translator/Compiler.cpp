@@ -570,11 +570,11 @@ TIntermBlock *TCompiler::compileTreeImpl(angle::Span<const char *const> shaderSt
 
 bool TCompiler::checkShaderVersion(TParseContext *parseContext)
 {
-    if (GetMaxShaderVersionForSpec(mShaderSpec) < mShaderVersion)
+    /*if (GetMaxShaderVersionForSpec(mShaderSpec) < mShaderVersion)
     {
         mDiagnostics.globalError("unsupported shader version");
         return false;
-    }
+    }*/
 
     ASSERT(parseContext);
     switch (mShaderType)
