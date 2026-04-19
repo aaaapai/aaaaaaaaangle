@@ -1774,7 +1774,7 @@ bool Program::linkValidateShaders()
         if (!shaders[ShaderType::Compute]->localSize.isDeclared())
         {
             mState.mExecutable->mPod.computeShaderLocalSize.fill(1);
-            mState.mInfoLog << "Work group size is not specified. Using default work group size (1,1,1)";
+            printf("Work group size is not specified. Using default work group size (1,1,1) \n");
         }
 
     }
