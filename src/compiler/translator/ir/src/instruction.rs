@@ -555,7 +555,7 @@ mod const_fold {
             } else if is_vector {
                 construct_vector_from_multiple(ir_meta, args, result_type_id)
             } else if is_matrix {
-                construct_vector_from_multiple(ir_meta, args, result_type_id)
+                construct_matrix_from_multiple(ir_meta, args, result_type_id)
             } else {
                 // The type cast is enough to satisfy scalar constructors.
                 args[0]
