@@ -1945,7 +1945,7 @@ void GenerateCaps(const FunctionsGL *functions,
                                    functions->hasGLESExtension("GL_EXT_base_instance"));
 
     // ANGLE_base_vertex_base_instance_shader_builtin
-    extensions->baseVertexBaseInstanceShaderBuiltinANGLE = extensions->baseVertexBaseInstanceANGLE;
+    extensions->baseVertexBaseInstanceShaderBuiltinANGLE = true /*extensions->baseVertexBaseInstanceANGLE*/ ;
 
     // OES_draw_elements_base_vertex
     extensions->drawElementsBaseVertexOES =
