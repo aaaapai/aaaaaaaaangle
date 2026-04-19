@@ -10252,7 +10252,7 @@ void TParseContext::postParseValidateFragmentOutputLocations()
                 "when EXT_blend_func_extended extension is not enabled, must explicitly specify "
                 "all locations when using multiple fragment outputs";
         }*/
-        else if (!mPLSLayouts.empty())
+        if (!mPLSLayouts.empty())
         {
             unspecifiedLocationErrorMessage =
                 "must explicitly specify all locations when using multiple fragment outputs and "
