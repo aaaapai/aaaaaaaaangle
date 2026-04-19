@@ -75,8 +75,7 @@ cflags_c = [
   "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-fwhole-program-vtables",
-  "-flto",
-  "-fno-emulated-tls",
+  "-flto"
 ]
 
 cflags_cc = [
@@ -116,8 +115,7 @@ cflags_cc = [
   "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-fwhole-program-vtables",
-  "-flto",
-  "-fno-emulated-tls",
+  "-flto"
 ]
 
 ldflags = [
@@ -125,9 +123,8 @@ ldflags = [
   "-Wl,--gc-sections",
   "-flto",
   "-Wl,--lto-O3",
-  "-Wl,-plugin-opt=-emulated-tls=0",
   "-Wl,-O3",
-  "-Wl,--as-needed",
+  "-Wl,--as-needed"
 ]
 
 treat_warnings_as_errors = false
@@ -155,7 +152,7 @@ cc_wrapper="ccache"
 enable_unused_resource_stripping = true
 exclude_unwind_tables = true
 use_clang_coverage = false
-angle_force_context_check_every_call = false
+angle_force_context_check_every_call = true
 use_lld = true
 
 angle_use_android_tls_slot = true
@@ -165,11 +162,6 @@ optimize_for_fuzzing = false
 use_custom_libcxx = true
 use_rtti = false
 use_dummy_lastchange = false
-enable_cpp_api_from_rust = true
-enable_rust_clippy_eager = false
-enable_rust = true
 
-use_thin_lto = false
 
-toolchain_supports_rust_thin_lto = false
 rust_lto = "fat"
