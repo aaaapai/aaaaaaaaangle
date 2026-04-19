@@ -713,7 +713,7 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
 
         // COLOR_LOGIC_OP is in GLES1, but exposed through an ANGLE extension.
         case GL_COLOR_LOGIC_OP:
-            return state.getClientVersion() < Version(2, 0) || state.getExtensions().logicOpANGLE;
+            return state.getExtensions().logicOpANGLE;
 
         case GL_FETCH_PER_SAMPLE_ARM:
             return state.getExtensions().shaderFramebufferFetchARM;
