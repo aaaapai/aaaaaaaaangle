@@ -246,11 +246,11 @@ ANGLE_INLINE bool ValidateUniformCommonBase(const Context *context,
     const ProgramExecutable &executable = program->getExecutable();
     const auto &uniformLocations        = executable.getUniformLocations();
     size_t castedLocation               = static_cast<size_t>(location.value);
-    if (ANGLE_UNLIKELY(castedLocation >= uniformLocations.size()))
+    /*if (ANGLE_UNLIKELY(castedLocation >= uniformLocations.size()))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, err::kInvalidUniformLocation);
         return false;
-    }
+    }*/
 
     const auto &uniformLocation = uniformLocations[castedLocation];
     if (uniformLocation.ignored)
