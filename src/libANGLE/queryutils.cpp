@@ -13,6 +13,7 @@
 #include "libANGLE/queryutils.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 #include "common/utilities.h"
 
@@ -298,6 +299,9 @@ void QueryTexParameterBase(const Context *context,
         case GL_TEXTURE_MAX_LEVEL:
             *params = CastFromGLintStateValue<ParamType>(pname, texture->getMaxLevel());
             break;
+        case GL_TEXTURE_LOD_BIAS_QCOM:
+            *params = CastFromStateValue<ParamType>(pname, texture->getLodBias());
+            break;
         case GL_TEXTURE_MIN_LOD:
             *params = CastFromSpecialValue<isGLfixed, ParamType>(pname, texture->getMinLod());
             break;
@@ -466,6 +470,9 @@ void SetTexParameterBase(Context *context, Texture *texture, GLenum pname, const
             texture->setMaxLevel(context,
                                  clampCast<GLuint>(CastQueryValueTo<GLint>(pname, params[0])));
             break;
+        case GL_TEXTURE_LOD_BIAS_QCOM:
+            texture->setLodBias(context, CastQueryValueTo<GLfloat>(pname, params[0]));
+            break;
         case GL_TEXTURE_MIN_LOD:
             texture->setMinLod(context, CastQueryValueTo<GLfloat>(pname, params[0]));
             break;
@@ -567,6 +574,9 @@ void QuerySamplerParameterBase(const Sampler *sampler,
         case SamplerParameter::SrgbDecode:
             *params = static_cast<ParamType>(sampler->getSRGBDecode());
             break;
+        case SamplerParameter::LodBiasQCOM:
+            *params = CastFromStateValue<ParamType>(0, sampler->getLodBias());
+            break;
         default:
             UNREACHABLE();
             break;
@@ -616,6 +626,9 @@ void SetSamplerParameterBase(Context *context,
             break;
         case SamplerParameter::SrgbDecode:
             sampler->setSRGBDecode(context, ConvertToGLenum(params[0]));
+            break;
+        case SamplerParameter::LodBiasQCOM:
+            sampler->setLodBias(context, static_cast<GLfloat>(params[0]));
             break;
         default:
             UNREACHABLE();
@@ -3455,11 +3468,11 @@ bool GetQueryParameterInfo(const State &glState,
         }
         case GL_COLOR_LOGIC_OP:
         {
-            if (clientVersion < ES_2_0)
+            /*if (clientVersion < ES_2_0)
             {
                 // Handle logicOp in GLES1 through GLES1 state management.
                 break;
-            }
+            }*/
 
             if (!extensions.logicOpANGLE)
             {
@@ -3890,7 +3903,6 @@ bool GetQueryParameterInfo(const State &glState,
         return true;
     }
 
-    if (glState.getClientVersion() < Version(2, 0))
     {
         switch (pname)
         {

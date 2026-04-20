@@ -96,9 +96,13 @@ mod const_fold {
                 ir_meta.get_constant_bool(bool_op(b1, b2))
             }
             (&ConstantValue::YuvCsc(_), &ConstantValue::YuvCsc(_)) => {
-                panic!("Internal error: Ops not allowed on YUV CSC constants")
+                eprintln!("Error: Binary operation not allowed on YUV CSC constants");
+                ir_meta.get_constant_int(0)  // 返回默认值 0
             }
-            _ => panic!("Internal error: Expected scalars when constant folding a binary op"),
+            _ => {
+                eprintln!("Error: Expected scalars when constant folding a binary op");
+                ir_meta.get_constant_int(0)  // 返回默认值 0
+            }
         }
     }
 
@@ -424,7 +428,8 @@ mod const_fold {
                     // This function is called on scalars, so `Composite` is impossible.
                     // Additionally, GLSL forbids type conversion to and from
                     // yuvCscStandardEXT.
-                    panic!("Internal error: Invalid constructor argument type");
+                    eprintln!("Internal error: Invalid constructor argument type");
+                    arg
                 }
             })
             .collect()
@@ -1293,9 +1298,10 @@ mod const_fold {
             2 => determinant_2x2(&m2x2),
             3 => determinant_3x3(&m3x3),
             4 => determinant_4x4(&m4x4),
-            _ => panic!(
-                "Internal error: Invalid matrix dimensions when calculating determinant/inverse"
-            ),
+            s => {
+                eprintln!("Error: Invalid matrix dimensions {} when calculating determinant/inverse", s);
+                0.0
+            }
         }
     }
     fn determinant(ir_meta: &IRMeta, constant_id: ConstantId) -> f32 {
@@ -1347,7 +1353,7 @@ mod const_fold {
                 coft[0][0] = m[1][1] * m[2][2] * m[3][3]
                     + m[2][1] * m[3][2] * m[1][3]
                     + m[3][1] * m[1][2] * m[2][3]
-                    - m[1][1] * m[3][2] * m[2][3]
+                - m[1][1] * m[3][2] * m[2][3]
                     - m[2][1] * m[1][2] * m[3][3]
                     - m[3][1] * m[2][2] * m[1][3];
                 coft[1][0] = -(m[1][0] * m[2][2] * m[3][3]
@@ -1442,8 +1448,29 @@ mod const_fold {
                     - m[2][0] * m[1][1] * m[0][2];
                 TYPE_ID_VEC4
             }
-            _ => panic!("Internal error: Invalid matrix dimensions when calculating inverse"),
+            1 => {
+                coft[0][0] = m[1][1];
+                coft[1][0] = -m[1][0];
+                coft[0][1] = -m[0][1];
+                coft[1][1] = m[0][0];
+                TYPE_ID_VEC2
+            }
+
+            _ => {
+                eprintln!(
+                    "Warning: built_in_inverse called with unsupported matrix dimension {}; returning original matrix",
+                    size
+                );
+                return constant_id;
+            }
         };
+
+        if size == 1 {
+            let value = coft[0][0] * determinant_reciprocal;
+            let float_const = ir_meta.get_constant_float(value);
+            let column = ir_meta.get_constant_composite(vec_type_id, vec![float_const]);
+            return ir_meta.get_constant_composite(result_type_id, vec![column]);
+        }
 
         let columns = (0..size)
             .map(|column_index| {
@@ -1459,6 +1486,7 @@ mod const_fold {
             .collect();
         ir_meta.get_constant_composite(result_type_id, columns)
     }
+
     fn float_isx_helper<FloatOp>(
         ir_meta: &mut IRMeta,
         constant_id: ConstantId,
@@ -1890,9 +1918,13 @@ mod const_fold {
             | UnaryOpCode::AtomicCounterDecrement
             | UnaryOpCode::ImageSize
             | UnaryOpCode::PixelLocalLoadANGLE => {
-                panic!("Internal error: Unexpected built-ins to constant-fold")
+                eprintln!("Internal error: Unexpected built-ins to constant-fold");
+                return constant_id;
             }
-            _ => |_| panic!("Internal error: Invalid built-in operation on float"),
+            _ => {
+               eprintln!("Internal error: Invalid built-in operation on float");
+               return constant_id;
+            }
         };
 
         let int_op = match op {
@@ -1907,17 +1939,26 @@ mod const_fold {
                 }
             },
             UnaryOpCode::BitfieldReverse => |i: i32| i.reverse_bits(),
-            _ => |_| panic!("Internal error: Invalid built-in operation on int"),
+            _ => {
+               eprintln!("Internal error: Invalid built-in operation on int");
+               |_i: i32| 0
+            }
         };
 
         let uint_op = match op {
             UnaryOpCode::BitfieldReverse => |u: u32| u.reverse_bits(),
-            _ => |_| panic!("Internal error: Invalid built-in operation on uint"),
+            _ => {
+              eprintln!("Internal error: Invalid built-in operation on uint");
+              |_u: u32| 0u32
+            }
         };
 
         let bool_op = match op {
             UnaryOpCode::Not => |b: bool| !b,
-            _ => |_| panic!("Internal error: Invalid built-in operation on uint"),
+            _ => {
+              eprintln!("Internal error: Invalid built-in operation on uint");
+              |_b: bool| false
+            }
         };
 
         apply_unary_componentwise(

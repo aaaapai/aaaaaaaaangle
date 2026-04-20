@@ -54,7 +54,7 @@ default_args = {
   tests_have_location_tags = false
 
   # Use base level API level 29 support for AHardwareBuffer ANGLE tests.
-  android_ndk_api_level = 29
+  android_ndk_api_level = 26
 
   vma_vulkan_headers_dir = "//third_party/vulkan-headers/src"
 
@@ -67,9 +67,6 @@ default_args = {
   # Enable Rust usage
   enable_rust = true
   enable_rust_cxx = true
-
-  # Angle must stay in C++20 for longer due to some downstream dependencies.
-  use_cxx23 = false
 }
 
 no_check_targets = [ "third_party/dawn/*" ]

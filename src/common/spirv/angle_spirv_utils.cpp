@@ -6,6 +6,7 @@
 //   Helper SPIR-V functions.
 
 #include "spirv_types.h"
+#include <cstdlib>
 
 // SPIR-V tools include for AST validation.
 #include <spirv-tools/libspirv.hpp>
@@ -33,6 +34,11 @@ void ValidateSpirvMessage(spv_message_level_t level,
 
 spv_target_env GetEnv(const Blob &blob)
 {
+
+    if (std::getenv("ANGLE_VK10")) {
+      return SPV_ENV_VULKAN_1_0;
+    }
+
     switch (blob[kHeaderIndexVersion])
     {
         case kVersion_1_4:

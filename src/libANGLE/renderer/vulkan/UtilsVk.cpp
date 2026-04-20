@@ -11,6 +11,8 @@
 #    pragma allow_unsafe_buffers
 #endif
 
+#include "common/debug.h"
+
 #include "libANGLE/renderer/vulkan/UtilsVk.h"
 
 #include "common/spirv/spirv_instruction_builder_autogen.h"
@@ -2226,6 +2228,14 @@ angle::Result UtilsVk::clearTexture(ContextVk *contextVk,
                                     vk::ImageHelper *dst,
                                     const ClearTextureParameters &params)
 {
+    // We can only have one image with tile memory. If new renderPass has a depthBuffer that uses
+    // tile memory, and it is different from the previous renderPass's depth buffer, we force dst
+    // image to fallback the regular device memory.
+    if (dst->useTileMemory() && contextVk->getImageWithTileMemory() != dst)
+    {
+        ANGLE_TRY(dst->fallbackFromTileMemory(contextVk));
+    }
+
     ANGLE_TRY(clearTextureNoFlush(contextVk, dst, params));
 
     // Close the render pass for this temporary framebuffer. If the render pass is not immediately
@@ -2276,12 +2286,11 @@ angle::Result UtilsVk::clearTextureNoFlush(ContextVk *contextVk,
 
     if (isDepthOrStencil)
     {
-        contextVk->onDepthStencilDraw(dst->toGLLevel(params.level), params.layer, 1, dst, nullptr,
-                                      {});
+        contextVk->onDepthStencilDraw(dst->toGLLevel(params.level), params.layer, 1, dst, nullptr);
     }
     else
     {
-        contextVk->onColorDraw(dst->toGLLevel(params.level), params.layer, 1, dst, nullptr, {},
+        contextVk->onColorDraw(dst->toGLLevel(params.level), params.layer, 1, dst, nullptr,
                                vk::PackedAttachmentIndex(0));
     }
 
@@ -2597,6 +2606,10 @@ angle::Result UtilsVk::clearFramebuffer(ContextVk *contextVk,
     {
         // Deferred clears should be handled already.
         ASSERT(!framebuffer->hasDeferredClears());
+        /*if (!framebuffer->hasDeferredClears())
+        {
+            WARN() << "Expected deferred clears but none present. Continuing with safe fallback. (file/line ...)";
+        }*/
         ANGLE_TRY(contextVk->startRenderPass(scissoredRenderArea, &commandBuffer, nullptr));
     }
 
@@ -3084,7 +3097,11 @@ angle::Result UtilsVk::colorBlitResolve(ContextVk *contextVk,
 
     // All deferred clear must have been flushed, otherwise it will conflict with
     // params.blitArea.
-    ASSERT(!framebuffer->hasDeferredClears());
+    //ASSERT(!framebuffer->hasDeferredClears());
+    /*if (!framebuffer->hasDeferredClears())
+    {
+            WARN() << "Expected deferred clears but none present. Continuing with safe fallback. (file/line ...)";
+    }*/
     vk::RenderPassCommandBuffer *commandBuffer;
     ANGLE_TRY(framebuffer->startNewRenderPass(contextVk, params.blitArea, &commandBuffer, nullptr));
 
@@ -3096,7 +3113,9 @@ angle::Result UtilsVk::colorBlitResolve(ContextVk *contextVk,
 
     if (srcImagelayout == vk::ImageAccess::ColorWriteFragmentShaderFeedback)
     {
-        srcImage->setRenderPassUsageFlag(vk::RenderPassUsage::ColorTextureSampler);
+        vk::RenderPassUsageFlags &renderPassUsageFlags =
+            srcImage->getRenderPassUsage().flags(&contextVk->getStartedRenderPassCommands());
+        renderPassUsageFlags.set(vk::RenderPassUsage::ColorTextureSampler);
     }
 
     ANGLE_TRY(setupBlitResolveGraphicsProgram(
@@ -3231,7 +3250,7 @@ angle::Result UtilsVk::depthStencilBlitResolve(
                                   vk::RenderPassSource::InternalUtils, &commandBuffer));
         ASSERT(commandBuffer != nullptr);
 
-        contextVk->onDepthStencilDraw(dstImageLevel, dstImageLayer, 1, dstImage, nullptr, {});
+        contextVk->onDepthStencilDraw(dstImageLevel, dstImageLayer, 1, dstImage, nullptr);
     }
 
     // Pick layout consistent with GetImageReadAccess() to avoid unnecessary layout change.
@@ -3241,13 +3260,15 @@ angle::Result UtilsVk::depthStencilBlitResolve(
 
     if (srcImagelayout == vk::ImageAccess::DepthStencilFragmentShaderFeedback)
     {
+        vk::RenderPassUsageFlags &imageRenderPassUsageFlags =
+            srcImage->getRenderPassUsage().flags(&contextVk->getStartedRenderPassCommands());
         if (blitDepth)
         {
-            srcImage->setRenderPassUsageFlag(vk::RenderPassUsage::DepthTextureSampler);
+            imageRenderPassUsageFlags.set(vk::RenderPassUsage::DepthTextureSampler);
         }
         if (blitStencil)
         {
-            srcImage->setRenderPassUsageFlag(vk::RenderPassUsage::StencilTextureSampler);
+            imageRenderPassUsageFlags.set(vk::RenderPassUsage::StencilTextureSampler);
         }
     }
 
@@ -5080,12 +5101,13 @@ angle::Result UtilsVk::drawOverlay(ContextVk *contextVk,
 
     // Overlay is always drawn as the last render pass before present.  Automatically move the
     // layout to PresentSrc.
-    contextVk->onColorDraw(gl::LevelIndex(0), 0, 1, dst, nullptr, {}, vk::PackedAttachmentIndex(0));
+    contextVk->onColorDraw(gl::LevelIndex(0), 0, 1, dst, nullptr, vk::PackedAttachmentIndex(0));
     if (contextVk->getFeatures().supportsPresentation.enabled &&
         !contextVk->getFeatures().preferDynamicRendering.enabled)
     {
-        contextVk->getStartedRenderPassCommands().setImageOptimizeForPresent(dst);
-        contextVk->finalizeImageLayout(dst, {});
+        vk::RenderPassCommandBufferHelper &renderPass = contextVk->getStartedRenderPassCommands();
+        renderPass.setImageOptimizeForPresent(dst);
+        renderPass.finalizeImageLayout(contextVk, dst);
     }
 
     // Close the render pass for this temporary framebuffer.

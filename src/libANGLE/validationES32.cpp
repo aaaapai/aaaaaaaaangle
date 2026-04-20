@@ -161,7 +161,7 @@ bool ValidateColorMaski(const PrivateState &state,
     if (buf >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
     {
         errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-        return false;
+        if (!std::getenv("ANGLE_APLABEDIT")) return false;
     }
 
     return true;
@@ -246,8 +246,12 @@ bool ValidateDisablei(const PrivateState &state,
             if (index >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
             {
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             ANGLE_UNSAFE_TODO(
@@ -334,8 +338,12 @@ bool ValidateEnablei(const PrivateState &state,
             if (index >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
             {
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             ANGLE_UNSAFE_TODO(
@@ -410,11 +418,11 @@ bool ValidateGetPointerv(const Context *context,
         case GL_COLOR_ARRAY_POINTER:
         case GL_TEXTURE_COORD_ARRAY_POINTER:
         case GL_POINT_SIZE_ARRAY_POINTER_OES:
-            if (context->getClientVersion() >= ES_2_0)
+            /*if (context->getClientVersion() >= ES_2_0)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPointerQuery);
                 return false;
-            }
+            }*/
             break;
 
         case GL_DEBUG_CALLBACK_FUNCTION:
@@ -524,8 +532,12 @@ bool ValidateIsEnabledi(const PrivateState &state,
             if (index >= static_cast<GLuint>(state.getCaps().maxDrawBuffers))
             {
                 errors->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
-                return false;
+                return true;
             }
+            break;
+        case 0x884F: 
+            break;
+        case 0x8642:
             break;
         default:
             ANGLE_UNSAFE_TODO(

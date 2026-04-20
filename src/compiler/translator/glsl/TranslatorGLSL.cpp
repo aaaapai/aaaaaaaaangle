@@ -14,6 +14,8 @@
 #include "compiler/translator/glsl/VersionGLSL.h"
 #include "compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.h"
 #include "compiler/translator/tree_ops/PreTransformTextureCubeGradDerivatives.h"
+#include "compiler/translator/tree_ops/RemoveDynamicIndexing.h"
+#include "compiler/translator/tree_ops/RemoveInvariantDeclaration.h"
 #include "compiler/translator/tree_ops/RewriteTexelFetchOffset.h"
 #include "compiler/translator/tree_ops/glsl/apple/RewriteRowMajorMatrices.h"
 
@@ -46,8 +48,16 @@ bool TranslatorGLSL::translate(TIntermBlock *root,
     // variables. It should be harmless to do this twice in the case that the shader also explicitly
     // did this. However, it's important to emit invariant qualifiers only for those built-in
     // variables that are actually used, to avoid affecting the behavior of the shader.
-    if (compileOptions.flattenPragmaSTDGLInvariantAll && getPragma().stdgl.invariantAll &&
-        !sh::RemoveInvariant(getShaderType(), getShaderVersion(), getOutputType(), compileOptions))
+    const bool removeInvariant =
+        RemoveInvariant(getShaderType(), getShaderVersion(), getOutputType(), compileOptions);
+    if (removeInvariant)
+    {
+        if (!RemoveInvariantDeclaration(this, root))
+        {
+            return false;
+        }
+    }
+    else if (compileOptions.flattenPragmaSTDGLInvariantAll && getPragma().stdgl.invariantAll)
     {
         switch (getShaderType())
         {
@@ -109,6 +119,14 @@ bool TranslatorGLSL::translate(TIntermBlock *root,
     if (compileOptions.rewriteRowMajorMatrices && getShaderVersion() >= 300)
     {
         if (!RewriteRowMajorMatrices(this, root, &getSymbolTable()))
+        {
+            return false;
+        }
+    }
+
+    if (compileOptions.removeDynamicIndexingOfSwizzledVector)
+    {
+        if (!sh::RemoveDynamicIndexingOfSwizzledVector(this, root, &getSymbolTable(), nullptr))
         {
             return false;
         }
@@ -339,10 +357,9 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
     }
 
     // GLSL ES 3 explicit location qualifiers need to use an extension before GLSL 330
-    if (getShaderVersion() >= 300 && getOutputType() < SH_GLSL_330_CORE_OUTPUT &&
-        getShaderType() != GL_COMPUTE_SHADER)
+    if (getShaderVersion() >= 100)
     {
-        sink << "#extension GL_ARB_explicit_attrib_location : require\n";
+        sink << "#extension GL_ARB_explicit_attrib_location : enable\n";
     }
 
     // Need to enable gpu_shader5 to have index constant sampler array indexing
@@ -355,12 +372,12 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
             // support index constant sampler array indexing, but don't have the extension or
             // on drivers that don't have the extension at all as it would break WebGL 1 for
             // some users.
-            sink << "#extension GL_ARB_gpu_shader5 : enable\n";
             sink << "#extension GL_OES_gpu_shader5 : enable\n";
             sink << "#extension GL_EXT_gpu_shader5 : enable\n";
         }
-        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 320)
+        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 330)
         {
+            sink << "#extension GL_ARB_gpu_shader5 : enable\n";
             sink << "#extension GL_OES_gpu_shader5 : enable\n";
             sink << "#extension GL_EXT_gpu_shader5 : enable\n";
         }
@@ -370,10 +387,10 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
     {
         if (getOutputType() >= SH_GLSL_150_CORE_OUTPUT && getOutputType() < SH_GLSL_400_CORE_OUTPUT)
         {
-            sink << "#extension GL_ARB_texture_cube_map_array : enable\n";
         }
-        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 320)
+        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 330)
         {
+            sink << "#extension GL_ARB_texture_cube_map_array : enable\n";
             sink << "#extension GL_OES_texture_cube_map_array : enable\n";
             sink << "#extension GL_EXT_texture_cube_map_array : enable\n";
         }
@@ -383,10 +400,10 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root,
     {
         if (getOutputType() >= SH_GLSL_150_CORE_OUTPUT && getOutputType() < SH_GLSL_400_CORE_OUTPUT)
         {
-            sink << "#extension GL_ARB_texture_buffer_objects : enable\n";
         }
-        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 320)
+        else if (getOutputType() == SH_ESSL_OUTPUT && getShaderVersion() < 330)
         {
+            sink << "#extension GL_ARB_texture_buffer_objects : enable\n";
             sink << "#extension GL_OES_texture_buffer : enable\n";
             sink << "#extension GL_EXT_texture_buffer : enable\n";
         }

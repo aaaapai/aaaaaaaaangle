@@ -9636,6 +9636,151 @@ TEST_P(VulkanPerformanceCounterTest_TileMemory,
     EXPECT_PIXEL_RECT_EQ(0, 0, getWindowWidth(), getWindowHeight(), GLColor::green);
 }
 
+// Regression test for UAF in finalizeImageWithTileMemory after readPixels triggered
+// fallbackFromTileMemory.
+TEST_P(VulkanPerformanceCounterTest_TileMemory, DepthBufferPBOReadThenDelete)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled(kPerfMonitorExtensionName));
+    ANGLE_SKIP_TEST_IF(!isFeatureEnabled(Feature::SimulateTileMemoryForTesting) &&
+                       !isFeatureEnabled(Feature::SupportsTileMemoryHeap));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_NV_read_depth_stencil"));
+
+    setupPrograms();
+
+    GLenum depthStencilFormat = GL_DEPTH24_STENCIL8;
+    constexpr GLsizei kWidth  = 256;
+    constexpr GLsizei kHeight = 256;
+
+    uint64_t tileMemoryImageCountBefore = getPerfCounters().tileMemoryImages;
+
+    GLTexture colorTexture;
+    GLRenderbuffer depthStencil;
+    setupColorTextureAndDepthBuffer(colorTexture, depthStencil, depthStencilFormat, kWidth,
+                                    kHeight);
+    GLFramebuffer fbo;
+    setupFBO(colorTexture, depthStencil, depthStencil, fbo, kWidth, kHeight);
+
+    GLfloat depthValue = 0.0f;
+    // Clear color/depth/stencil buffers
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearDepthf(depthValue * 0.5f + 0.5f);
+    glClearStencil(0x55);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    drawQuadToVerifyDepthValue(drawGreen, drawRed, depthValue);
+    EXPECT_EQ(1u, getPerfCounters().tileMemoryImages - tileMemoryImageCountBefore);
+
+    // PBO read
+    GLBuffer pbo;
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+    glBufferData(GL_PIXEL_PACK_BUFFER, kWidth * kHeight * sizeof(uint32_t), nullptr,
+                 GL_DYNAMIC_READ);
+    glReadPixels(0, 0, kWidth, kHeight, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    EXPECT_GL_NO_ERROR();
+
+    // Delete depthBuffer
+    depthStencil.reset();
+
+    std::array<GLenum, 2> attachments = {GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT};
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
+
+    // For completeness, verify rendering results.
+    EXPECT_PIXEL_RECT_EQ(0, 0, kWidth, kHeight, GLColor::green);
+    EXPECT_GL_NO_ERROR();
+}
+
+// Test blit depth buffer works, similar to
+// dEQP-GLES3.functional.fbo.blit.depth_stencil.depth32_basic.
+TEST_P(VulkanPerformanceCounterTest_TileMemory, BlitGradientDepthBuffer)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled(kPerfMonitorExtensionName));
+    ANGLE_SKIP_TEST_IF(!isFeatureEnabled(Feature::SimulateTileMemoryForTesting) &&
+                       !isFeatureEnabled(Feature::SupportsTileMemoryHeap));
+
+    constexpr GLsizei kWidth  = 128;
+    constexpr GLsizei kHeight = 128;
+
+    setupPrograms();
+
+    GLTexture srcColorTexture, dstColorTexture;
+    GLRenderbuffer srcDepthStencil, dstDepthStencil;
+    setupColorTexturesAndDepthBuffer(srcColorTexture, dstColorTexture, srcDepthStencil,
+                                     GL_DEPTH_COMPONENT32F, kWidth, kHeight);
+    glBindRenderbuffer(GL_RENDERBUFFER, dstDepthStencil);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32F, kWidth, kHeight);
+
+    // Create frame buffers and clear depth to 1.0f
+    GLFramebuffer srcFbo, dstFbo;
+    setupFBO(srcColorTexture, srcDepthStencil, 0, srcFbo, kWidth, kHeight);
+    glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
+    setupFBO(dstColorTexture, dstDepthStencil, 0, dstFbo, kWidth, kHeight);
+    glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
+
+    // Fill source with gradient depth value: depth = [-1..1]
+    const std::array<angle::Vector3, 4> kGradientQuadVertices = {
+        {angle::Vector3(-1.0f, -1.0f, -1.0f), angle::Vector3(-1.0f, 1.0f, 0.0f),
+         angle::Vector3(1.0f, -1.0f, 0.0f), angle::Vector3(1.0f, 1.0f, 1.0f)}};
+    const uint16_t indices[] = {0, 1, 2, 2, 1, 3};
+    glBindFramebuffer(GL_FRAMEBUFFER, srcFbo);
+    glViewport(0, 0, kWidth, kHeight);
+    glEnable(GL_DEPTH_TEST);
+    glUseProgram(drawRed);
+    int32_t posLoc = glGetAttribLocation(drawRed, essl1_shaders::PositionAttrib());
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 0, kGradientQuadVertices.data());
+    glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_SHORT,
+                   &indices[0]);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, dstFbo);
+    drawQuad(drawGreen, essl1_shaders::PositionAttrib(), 0.0f);
+
+    // Perform copy.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFbo);
+    glBlitFramebuffer(0, 0, kWidth, kHeight, 0, 0, kWidth, kHeight, GL_DEPTH_BUFFER_BIT,
+                      GL_NEAREST);
+
+    // Render blue color where depth < 0, decrement on depth failure.
+    glBindFramebuffer(GL_FRAMEBUFFER, dstFbo);
+    drawQuad(drawBlue, essl1_shaders::PositionAttrib(), 0.0f);
+    EXPECT_GL_NO_ERROR();
+
+    std::vector<GLColor> resultData(kWidth * kHeight);
+    glReadPixels(0, 0, kWidth, kHeight, GL_RGBA, GL_UNSIGNED_BYTE, resultData.data());
+
+    // The top left triangle should fail depth test, thus keep the dstFbo color which is
+    // gradientData.
+    bool topLeftTriangleIsGreen = true;
+    for (int y = 0; y < kHeight && topLeftTriangleIsGreen; y++)
+    {
+        for (int x = 0; x < (kWidth - y); x++)
+        {
+            if (resultData[y * kWidth + x] != GLColor::green)
+            {
+                topLeftTriangleIsGreen = false;
+                break;
+            }
+        }
+    }
+    EXPECT_EQ(topLeftTriangleIsGreen, true);
+
+    // The bottom right triangle should pass depth test, thus render blue.
+    bool bottomRightTriangleIsBlue = true;
+    for (int y = 0; y < kHeight && bottomRightTriangleIsBlue; y++)
+    {
+        for (int x = (kWidth - y); x < kWidth; x++)
+        {
+            if (resultData[y * kWidth + x] != GLColor::blue)
+            {
+                bottomRightTriangleIsBlue = false;
+                break;
+            }
+        }
+    }
+    EXPECT_EQ(bottomRightTriangleIsBlue, true);
+}
+
 class VulkanPerformanceCounterTest_Dither : public VulkanPerformanceCounterTest
 {};
 
