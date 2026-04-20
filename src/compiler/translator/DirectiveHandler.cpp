@@ -308,8 +308,6 @@ void TDirectiveHandler::handleVersion(const angle::pp::SourceLocation &loc,
                                       ShShaderSpec spec,
                                       angle::pp::MacroSet *macro_set)
 {
-    if (version == 100 || version == 300 || version == 310 || version == 320)
-    {
         mContext.onShaderVersionDeclared(version);
 
         // Add macros for supported extensions
@@ -325,14 +323,7 @@ void TDirectiveHandler::handleVersion(const angle::pp::SourceLocation &loc,
                 PredefineMacro(macro_set, GetExtensionNameString(iter.first), 1);
             }
         }
-    }
-    else
-    {
-        std::stringstream stream = sh::InitializeStream<std::stringstream>();
-        stream << version;
-        std::string str = stream.str();
-        mDiagnostics.error(loc, "client/version number not supported", str.c_str());
-    }
+
 }
 
 }  // namespace sh

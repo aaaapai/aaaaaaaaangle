@@ -722,6 +722,7 @@ static bool DetermineColorBufferFloatRGBSupport(const TextureCapsMap &textureCap
     };
 
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
+    //return true;
 }
 
 // Check for GL_CHROMIUM_color_buffer_float_rgba support
@@ -732,6 +733,7 @@ static bool DetermineColorBufferFloatRGBASupport(const TextureCapsMap &textureCa
     };
 
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
+    //return true;
 }
 
 // Check for GL_EXT_color_buffer_float support
@@ -752,6 +754,7 @@ static bool DetermineColorBufferFloatSupport(const TextureCapsMap &textureCaps)
 
     return GetFormatSupport(textureCaps, nonBlendableFormats, true, false, true, true, false) &&
            GetFormatSupport(textureCaps, blendableFormats, true, false, true, true, true);
+    //return true;
 }
 
 // Check for GL_EXT_float_blend support
@@ -764,6 +767,7 @@ static bool DetermineFloatBlendSupport(const TextureCapsMap &textureCaps)
     };
 
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
+    //return true; // I dont care, but I dont know what will happen, just return true.
 }
 
 // Check for GL_EXT_texture_norm16 support
@@ -782,6 +786,7 @@ static bool DetermineTextureNorm16Support(const TextureCapsMap &textureCaps)
 
     return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
            GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);
+    //return true;
 }
 
 // Check for EXT_texture_compression_rgtc support
@@ -882,6 +887,7 @@ bool DetermineRenderSnormSupport(const TextureCapsMap &textureCaps, bool texture
     }
 
     return GetFormatSupport(textureCaps, requiredSnorm8Formats, false, false, true, true, true);
+    //return true;
 }
 
 void Extensions::setTextureExtensionSupport(const TextureCapsMap &textureCaps)
@@ -1005,8 +1011,6 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
     caps.maxColorAttachments = 1;
 
     // GLES1 emulation (Minimums taken from Table 6.20 / 6.22 (ES 1.1 spec))
-    if (clientVersion < Version(2, 0))
-    {
         caps.maxMultitextureUnits = 2;
         caps.maxLights            = 8;
         caps.maxClipPlanes        = 1;
@@ -1017,7 +1021,6 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
 
         caps.minSmoothPointSize = 1.0f;
         caps.maxSmoothPointSize = 1.0f;
-    }
 
     if (clientVersion >= Version(2, 0))
     {

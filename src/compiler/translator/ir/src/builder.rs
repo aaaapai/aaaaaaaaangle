@@ -168,25 +168,32 @@ impl CFGBuilder {
         if !self.current_block.new_instructions_are_dead_code {
             self.current_block.block.add_variable_declaration(variable_id);
         } else {
-            // GLSL supports declaring a variable in one case and using it in the next, even if the
-            // declaration is in dead code!  To support this, the variable declaration is added to
-            // the block anyway if inside a switch case.
-            let mut non_merge_blocks =
-                self.interm_blocks.iter().rev().filter(|&block| !block.is_merge_block);
-            // If this is the first block of the first `case`, the parent would be the `switch`.
-            let parent_is_switch = matches!(
-                non_merge_blocks.next().unwrap().block.get_terminating_op(),
-                OpCode::Switch(..)
-            );
-            // Otherwise the grandparent is the `switch`.
-            let grandparent = non_merge_blocks.next();
-            let grandparent_is_switch = grandparent
-                .map(|block| matches!(block.block.get_terminating_op(), OpCode::Switch(..)))
-                .unwrap_or(false);
-            if parent_is_switch || grandparent_is_switch {
-                self.current_block.block.add_variable_declaration(variable_id);
-            }
+
+        // GLSL supports declaring a variable in one case and using it in the next, even if the
+        // declaration is in dead code! To support this, the variable declaration is added to
+        // the block anyway if inside a switch case.
+        let mut non_merge_blocks =
+            self.interm_blocks.iter().rev().filter(|&block| !block.is_merge_block);
+
+        let first_block = match non_merge_blocks.next() {
+            Some(block) => block,
+            None => return,
+        };
+
+        let parent_is_switch = matches!(
+            first_block.block.get_terminating_op(),
+            OpCode::Switch(..)
+        );
+
+        let grandparent_is_switch = non_merge_blocks
+            .next()
+            .map(|block| matches!(block.block.get_terminating_op(), OpCode::Switch(..)))
+            .unwrap_or(false);
+
+        if parent_is_switch || grandparent_is_switch {
+            self.current_block.block.add_variable_declaration(variable_id);
         }
+       }
     }
 
     // Add an instruction to the current block.  This may be a break, continue, return or discard,

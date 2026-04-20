@@ -1619,6 +1619,7 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
             return spv::ImageFormatRgba8;
         case EiifRGBA8_SNORM:
             return spv::ImageFormatRgba8Snorm;
+
         default:
             UNREACHABLE();
             return spv::ImageFormatUnknown;
@@ -2414,8 +2415,10 @@ void SPIRVBuilder::writeInterpolationDecoration(TQualifier qualifier,
         case EvqNoPerspective:
         case EvqNoPerspectiveOut:
         case EvqNoPerspectiveIn:
-            WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex,
-                                         &mSpirvDecorations);
+            if(std::getenv("ANGLE_NOPERSPECTIVE_SUPPORT")) {
+                WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex, &mSpirvDecorations);
+            }
+            // Mali G57 MC4 doesn't support it.
             return;
 
         case EvqCentroid:

@@ -2807,19 +2807,6 @@ void RenderPassDesc::packColorAttachment(size_t colorIndexGL, angle::FormatID fo
     SetBitField(mColorAttachmentRange, std::max<size_t>(mColorAttachmentRange, colorIndexGL + 1));
 }
 
-void RenderPassDesc::packColorAttachmentGap(size_t colorIndexGL)
-{
-    ASSERT(colorIndexGL < mAttachmentFormats.size());
-    static_assert(angle::kNumANGLEFormats < std::numeric_limits<uint8_t>::max(),
-                  "Too many ANGLE formats to fit in uint8_t");
-    // Force the user to pack the depth/stencil attachment last.
-    ASSERT(!hasDepthStencilAttachment());
-
-    // Use NONE as a flag for gaps in GL color attachments.
-    uint8_t &packedFormat = mAttachmentFormats[colorIndexGL];
-    SetBitField(packedFormat, angle::FormatID::NONE);
-}
-
 void RenderPassDesc::packDepthStencilAttachment(angle::FormatID formatID)
 {
     ASSERT(!hasDepthStencilAttachment());
@@ -5697,6 +5684,15 @@ void SamplerDesc::update(Renderer *renderer,
     else if (featuresVk.forceTextureLodOffset4.enabled)
     {
         mMipLodBias = 4.0f;
+    }
+    else
+    {
+        mMipLodBias = samplerState.getLodBias();
+        // According to GL_QCOM_texture_lod_bias spec, the lodBias parameter is clamped between the
+        // positive and negative values of the implementation defined constant
+        // MAX_TEXTURE_LOD_BIAS_EXT (mapped to Vulkan's maxSamplerLodBias).
+        float maxSamplerLodBias = renderer->getNativeCaps().maxLODBias;
+        mMipLodBias             = gl::clamp(mMipLodBias, -maxSamplerLodBias, maxSamplerLodBias);
     }
 
     mMaxAnisotropy = samplerState.getMaxAnisotropy();

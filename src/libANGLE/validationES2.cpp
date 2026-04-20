@@ -241,7 +241,10 @@ bool IsValidCopyTextureSourceTarget(const Context *context, TextureType type)
     }
 }
 
-bool IsValidCopyTextureSourceLevel(const Context *context, TextureType type, GLint level)
+bool IsValidCopyTextureSourceLevel(const Context *context,
+                                   const Texture *texture,
+                                   TextureType type,
+                                   GLint level)
 {
     if (!ValidMipLevel(context, type, level))
     {
@@ -249,6 +252,12 @@ bool IsValidCopyTextureSourceLevel(const Context *context, TextureType type, GLi
     }
 
     if (level > 0 && context->getClientVersion() < ES_3_0)
+    {
+        return false;
+    }
+
+    if (level < 0 || static_cast<GLuint>(level) < texture->getBaseLevel() ||
+        static_cast<GLuint>(level) > texture->getMaxLevel())
     {
         return false;
     }
@@ -704,7 +713,7 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
 
         // COLOR_LOGIC_OP is in GLES1, but exposed through an ANGLE extension.
         case GL_COLOR_LOGIC_OP:
-            return state.getClientVersion() < Version(2, 0) || state.getExtensions().logicOpANGLE;
+            return state.getExtensions().logicOpANGLE;
 
         case GL_FETCH_PER_SAMPLE_ARM:
             return state.getExtensions().shaderFramebufferFetchARM;
@@ -720,10 +729,10 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
     }
 
     // GLES1 emulation: GLES1-specific caps after this point
-    if (state.getClientVersion() >= ES_2_0)
+    /*if (state.getClientVersion() >= ES_2_0)
     {
         return false;
-    }
+    }*/
 
     switch (cap)
     {
@@ -754,15 +763,13 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
         case GL_FOG:
         case GL_POINT_SMOOTH:
         case GL_LINE_SMOOTH:
-            return state.getClientVersion() < Version(2, 0);
+            return true;
         case GL_POINT_SIZE_ARRAY_OES:
-            return state.getClientVersion() < Version(2, 0) &&
-                   state.getExtensions().pointSizeArrayOES;
+            return state.getExtensions().pointSizeArrayOES;
         case GL_TEXTURE_CUBE_MAP:
-            return state.getClientVersion() < Version(2, 0) &&
-                   state.getExtensions().textureCubeMapOES;
+            return state.getExtensions().textureCubeMapOES;
         case GL_POINT_SPRITE_OES:
-            return state.getClientVersion() < Version(2, 0) && state.getExtensions().pointSpriteOES;
+            return state.getExtensions().pointSpriteOES;
         default:
             return false;
     }
@@ -959,7 +966,6 @@ bool ValidateES2TexImageParametersBase(const Context *context,
                                        GLsizei imageSize,
                                        const void *pixels)
 {
-
     TextureType texType = TextureTargetToType(target);
     if (!ValidImageSizeParameters(context, entryPoint, texType, level, width, height, 1,
                                   isSubImage))
@@ -1488,7 +1494,7 @@ bool ValidateES2TexImageParametersBase(const Context *context,
                     }
                     if (context->getExtensions().requiredInternalformatOES &&
                         context->getExtensions().textureType2101010REVEXT &&
-                        GL_UNSIGNED_INT_2_10_10_10_REV_EXT && format == GL_RGB)
+                        type == GL_UNSIGNED_INT_2_10_10_10_REV_EXT && format == GL_RGB)
                     {
                         nonEqualFormatsAllowed = true;
                     }
@@ -1502,7 +1508,7 @@ bool ValidateES2TexImageParametersBase(const Context *context,
                     }
                     if (context->getExtensions().requiredInternalformatOES &&
                         context->getExtensions().textureType2101010REVEXT &&
-                        GL_UNSIGNED_INT_2_10_10_10_REV_EXT && format == GL_RGB)
+                        type == GL_UNSIGNED_INT_2_10_10_10_REV_EXT && format == GL_RGB)
                     {
                         nonEqualFormatsAllowed = true;
                     }
@@ -3288,7 +3294,7 @@ bool ValidateCopyTextureCHROMIUM(const Context *context,
     ASSERT(sourceType != TextureType::CubeMap);
     TextureTarget sourceTarget = NonCubeTextureTypeToTarget(sourceType);
 
-    if (!IsValidCopyTextureSourceLevel(context, sourceType, sourceLevel))
+    if (!IsValidCopyTextureSourceLevel(context, source, sourceType, sourceLevel))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidSourceTextureLevel);
         return false;
@@ -3367,6 +3373,12 @@ bool ValidateCopyTextureCHROMIUM(const Context *context,
         return false;
     }
 
+    if (source == dest && sourceLevel == destLevel)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidSourceTextureSameAsDestTexture);
+        return false;
+    }
+
     return true;
 }
 
@@ -3404,7 +3416,7 @@ bool ValidateCopySubTextureCHROMIUM(const Context *context,
     ASSERT(sourceType != TextureType::CubeMap);
     TextureTarget sourceTarget = NonCubeTextureTypeToTarget(sourceType);
 
-    if (!IsValidCopyTextureSourceLevel(context, sourceType, sourceLevel))
+    if (!IsValidCopyTextureSourceLevel(context, source, sourceType, sourceLevel))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidMipLevel);
         return false;
@@ -3509,6 +3521,12 @@ bool ValidateCopySubTextureCHROMIUM(const Context *context,
         return false;
     }
 
+    if (source == dest && sourceLevel == destLevel)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidSourceTextureSameAsDestTexture);
+        return false;
+    }
+
     return true;
 }
 
@@ -3560,6 +3578,12 @@ bool ValidateCompressedCopyTextureCHROMIUM(const Context *context,
     if (dest->getImmutableFormat())
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kDestinationImmutable);
+        return false;
+    }
+
+    if (source == dest)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidSourceTextureSameAsDestTexture);
         return false;
     }
 
@@ -3846,7 +3870,7 @@ bool ValidateAttachShader(const Context *context,
         return false;
     }
 
-    if (programObject->getAttachedShader(shaderObject->getType()))
+    if (programObject->getAttachedShader(shaderObject->getType()) && (!std::getenv("ANGLE_APLABEDIT")))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kShaderAttachmentHasShader);
         return false;
@@ -4569,6 +4593,7 @@ bool ValidateGetBooleanv(const Context *context,
                          const GLboolean *data)
 {
     return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
+    //return true;
 }
 
 bool ValidateGetError(const Context *context, angle::EntryPoint entryPoint)
@@ -4773,11 +4798,11 @@ bool ValidateHint(const PrivateState &state,
         case GL_POINT_SMOOTH_HINT:
         case GL_LINE_SMOOTH_HINT:
         case GL_FOG_HINT:
-            if (state.getClientVersion() >= ES_2_0)
+            /*if (state.getClientVersion() >= ES_2_0)
             {
                 errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
                 return false;
-            }
+            }*/
             break;
 
         default:
@@ -5474,13 +5499,13 @@ bool ValidateFramebufferTexture2D(const Context *context,
                 if (attachment != GL_COLOR_ATTACHMENT0)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidAttachment);
-                    return false;
+                    //if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
 
                 if (tex->getType() != TextureType::External)
                 {
                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kTextureTargetMismatch);
-                    return false;
+                    //if (!std::getenv("ANGLE_APLABEDIT")) return false;
                 }
             }
             break;
@@ -5911,11 +5936,18 @@ bool ValidateMultiDrawArraysANGLE(const Context *context,
     }
     for (GLsizei drawID = 0; drawID < drawcount; ++drawID)
     {
-        if (!ValidateDrawArrays(context, entryPoint, mode, firsts[drawID], counts[drawID]))
+        if (!ValidateDrawArraysCommon(context, entryPoint, mode, firsts[drawID], counts[drawID], 1))
         {
             return false;
         }
     }
+
+    if (!ValidateDrawArraysTransformFeedbackBufferSize(context, entryPoint, counts, nullptr,
+                                                       drawcount))
+    {
+        return false;
+    }
+
     return true;
 }
 
@@ -5984,8 +6016,8 @@ bool ValidateFramebufferTexture2DMultisampleEXT(const Context *context,
     if (!context->getExtensions().multisampledRenderToTexture2EXT &&
         attachment != GL_COLOR_ATTACHMENT0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-        return false;
+        //ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
+        //if (!std::getenv("ANGLE_APLABEDIT")) return false;
     }
 
     if (!ValidTexture2DDestinationTarget(context, textarget))

@@ -1436,12 +1436,13 @@ bool ValidateBindImageTexture(const Context *context,
             return false;
         }
 
-        if (!tex->getImmutableFormat() && tex->getType() != gl::TextureType::Buffer)
+        /*if (tex->getType() != gl::TextureType::External &&
+            tex->getType() != gl::TextureType::Buffer && !tex->getImmutableFormat())
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION,
                                    kTextureIsNeitherImmutableNorTextureBuffer);
             return false;
-        }
+        }*/
 
         if (context->getExtensions().textureStorageCompressionEXT &&
             tex->getType() != gl::TextureType::Buffer)
@@ -2621,7 +2622,7 @@ bool ValidateTexBufferBase(const Context *context,
             if (!context->getExtensions().textureNorm16EXT)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTextureBufferInternalFormat);
-                return false;
+                return true;
             }
             break;
         }

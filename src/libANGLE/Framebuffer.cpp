@@ -16,6 +16,7 @@
 #include "common/Optional.h"
 #include "common/bitset_utils.h"
 #include "common/utilities.h"
+#include "common/debug.h"
 #include "libANGLE/Config.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Display.h"
@@ -81,12 +82,13 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
     {
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                                              err::kFramebufferIncompleteAttachmentZeroSize);
+        //WARN() << "err::kFramebufferIncompleteAttachmentZeroSize";
     }
 
     if (!attachment.isRenderable(context))
     {
-        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                                             err::kFramebufferIncompleteAttachmentNotRenderable);
+        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT, err::kFramebufferIncompleteAttachmentNotRenderable);
+        //WARN() << "err::kFramebufferIncompleteAttachmentNotRenderable";
     }
 
     if (attachment.type() == GL_TEXTURE)
@@ -99,6 +101,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
         {
             if (attachment.layer() >= size.depth)
             {
+                //WARN() << "err::kFramebufferIncompleteAttachmentLayerGreaterThanDepth";
                 return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentLayerGreaterThanDepth);
@@ -114,6 +117,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers);
+                //WARN() << "err::kFramebufferIncompleteAttachmentDepthGreaterThanMaxLayers";
             }
         }
 
@@ -129,6 +133,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
             return FramebufferStatus::Incomplete(
                 GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                 err::kFramebufferIncompleteAttachmentNotCubeComplete);
+            //WARN() << "err::kFramebufferIncompleteAttachmentNotCubeComplete";
         }
 
         if (!texture->getImmutableFormat())
@@ -151,6 +156,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentLevelOutOfBaseMaxLevelRange);
+                //WARN() << "err::kFramebufferIncompleteAttachmentZeroSize";
             }
 
             // Form the ES 3.0 spec, pg 213/214:
@@ -164,6 +170,7 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                 return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentLevelNotBaseLevelForIncompleteMipTexture);
+                //WARN() << "err::kFramebufferIncompleteAttachmentLevelNotBaseLevelForIncompleteMipTexture";
             }
         }
     }

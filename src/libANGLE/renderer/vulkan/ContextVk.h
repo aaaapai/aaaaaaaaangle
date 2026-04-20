@@ -548,35 +548,32 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                      uint32_t layerCount,
                      vk::ImageHelper *image,
                      vk::ImageHelper *resolveImage,
-                     UniqueSerial imageSiblingSerial,
                      vk::PackedAttachmentIndex packedAttachmentIndex)
     {
         ASSERT(mRenderPassCommands->started());
         mRenderPassCommands->colorImagesDraw(level, layerStart, layerCount, image, resolveImage,
-                                             imageSiblingSerial, packedAttachmentIndex);
+                                             packedAttachmentIndex);
     }
     void onColorResolve(gl::LevelIndex level,
                         uint32_t layerStart,
                         uint32_t layerCount,
                         vk::ImageHelper *image,
                         VkImageView view,
-                        UniqueSerial imageSiblingSerial,
                         size_t colorIndexGL)
     {
         ASSERT(mRenderPassCommands->started());
         mRenderPassCommands->addColorResolveAttachment(colorIndexGL, image, view, level, layerStart,
-                                                       layerCount, imageSiblingSerial);
+                                                       layerCount);
     }
     void onDepthStencilDraw(gl::LevelIndex level,
                             uint32_t layerStart,
                             uint32_t layerCount,
                             vk::ImageHelper *image,
-                            vk::ImageHelper *resolveImage,
-                            UniqueSerial imageSiblingSerial)
+                            vk::ImageHelper *resolveImage)
     {
         ASSERT(mRenderPassCommands->started());
         mRenderPassCommands->depthStencilImagesDraw(level, layerStart, layerCount, image,
-                                                    resolveImage, imageSiblingSerial);
+                                                    resolveImage);
 
         if (image && image->useTileMemory())
         {
@@ -592,16 +589,15 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                uint32_t layerCount,
                                VkImageAspectFlags aspects,
                                vk::ImageHelper *image,
-                               VkImageView view,
-                               UniqueSerial imageSiblingSerial)
+                               VkImageView view)
     {
         ASSERT(mRenderPassCommands->started());
         if (image && image->useTileMemory())
         {
             addImageWithTileMemory(image);
         }
-        mRenderPassCommands->addDepthStencilResolveAttachment(
-            image, view, aspects, level, layerStart, layerCount, imageSiblingSerial);
+        mRenderPassCommands->addDepthStencilResolveAttachment(image, view, aspects, level,
+                                                              layerStart, layerCount);
     }
 
     void onFragmentShadingRateRead(vk::ImageHelper *image)
@@ -610,7 +606,14 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         mRenderPassCommands->fragmentShadingRateImageRead(image);
     }
 
-    void finalizeImageLayout(vk::ImageHelper *image, UniqueSerial imageSiblingSerial);
+    bool finalizeImageLayout(vk::ImageHelper *image)
+    {
+        if (mRenderPassCommands->started())
+        {
+            return mRenderPassCommands->finalizeImageLayout(this, image);
+        }
+        return false;
+    }
 
     angle::Result getOutsideRenderPassCommandBuffer(
         const vk::CommandResources &resources,
@@ -909,9 +912,9 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     uint32_t getCurrentFrameCount() const { return mShareGroupVk->getCurrentFrameCount(); }
 
-    bool isImageWithTileMemoryFinalized(const vk::ImageHelper *image) const;
     void addImageWithTileMemory(vk::ImageHelper *imageToAdd);
     void removeImageWithTileMemory(const vk::ImageHelper *imageToRemove);
+    const vk::ImageHelper *getImageWithTileMemory() const { return mImageWithTileMemory; }
 
     // Restore all graphics state based on current gl::State.
     void restoreAllGraphicsState();
@@ -1437,7 +1440,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     void generateOutsideRenderPassCommandsQueueSerial();
     void generateRenderPassCommandsQueueSerial(QueueSerial *queueSerialOut);
 
-    angle::Result finalizeImagesWithTileMemory();
+    angle::Result finalizeImageWithTileMemory();
 
     angle::ImageLoadContext mImageLoadContext;
 
@@ -1572,7 +1575,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     gl::AttribArray<vk::DynamicBuffer> mStreamedVertexBuffers;
     gl::AttributesMask mHasInFlightStreamedVertexBuffers;
 
-    std::vector<vk::ImageHelper *> mImagesWithTileMemory;
+    vk::ImageHelper *mImageWithTileMemory;
 
     // We use a single pool for recording commands. We also keep a free list for pool recycling.
     vk::SecondaryCommandPools mCommandPools;

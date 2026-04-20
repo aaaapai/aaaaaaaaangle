@@ -2239,7 +2239,7 @@ angle::Result TextureVk::setStorageExternalMemory(const gl::Context *context,
 
     releaseAndDeleteImageAndViews(contextVk);
 
-    setImageHelper(contextVk, new vk::ImageHelper(), gl::TextureType::InvalidEnum, 0, 0, true, {});
+    setImageHelper(contextVk, new vk::ImageHelper(), gl::TextureType::InvalidEnum, 0, 0, true);
 
     mImage->setTilingMode(gl_vk::GetTilingMode(mState.getTilingMode()));
 
@@ -2390,9 +2390,8 @@ angle::Result TextureVk::setEGLImageTarget(const gl::Context *context,
 
     releaseAndDeleteImageAndViews(contextVk);
 
-    UniqueSerial siblingSerial = imageVk->generateSiblingSerial();
     setImageHelper(contextVk, imageVk->getImage(), imageVk->getImageTextureType(),
-                   imageVk->getImageLevel().get(), imageVk->getImageLayer(), false, siblingSerial);
+                   imageVk->getImageLevel().get(), imageVk->getImageLayer(), false);
 
     // Update ImageViewHelper's colorspace related state
     EGLenum imageColorspaceAttribute = image->getColorspaceAttribute();
@@ -2537,8 +2536,7 @@ angle::Result TextureVk::ensureImageAllocated(ContextVk *contextVk, const vk::Fo
 {
     if (mImage == nullptr)
     {
-        setImageHelper(contextVk, new vk::ImageHelper(), gl::TextureType::InvalidEnum, 0, 0, true,
-                       {});
+        setImageHelper(contextVk, new vk::ImageHelper(), gl::TextureType::InvalidEnum, 0, 0, true);
     }
 
     initImageUsageFlags(contextVk, format.getIntendedFormat(),
@@ -2552,16 +2550,13 @@ void TextureVk::setImageHelper(ContextVk *contextVk,
                                gl::TextureType eglImageNativeType,
                                uint32_t imageLevelOffset,
                                uint32_t imageLayerOffset,
-                               bool selfOwned,
-                               UniqueSerial siblingSerial)
+                               bool selfOwned)
 {
     ASSERT(mImage == nullptr);
 
     mImageObserverBinding.bind(imageHelper);
 
-    ASSERT(selfOwned == !siblingSerial.valid());
     mOwnsImage          = selfOwned;
-    mImageSiblingSerial = siblingSerial;
     // If image is shared between other container objects, force it to renderable format since we
     // don't know if other container object will render or not.
     if (!mOwnsImage && !imageHelper->isBackedByExternalMemory())
@@ -3278,10 +3273,8 @@ angle::Result TextureVk::bindTexImage(const gl::Context *context, egl::Surface *
 
     // eglBindTexImage can only be called with pbuffer (offscreen) surfaces
     OffscreenSurfaceVk *offscreenSurface = GetImplAs<OffscreenSurfaceVk>(surface);
-    // Surface can only have single target. Just generate valid serial with throw-away generator.
-    UniqueSerial siblingSerial = UniqueSerialFactory().generate();
     setImageHelper(contextVk, offscreenSurface->getColorAttachmentImage(),
-                   gl::TextureType::InvalidEnum, 0, 0, false, siblingSerial);
+                   gl::TextureType::InvalidEnum, 0, 0, false);
 
     ASSERT(mImage->getLayerCount() == 1);
     return initImageViews(contextVk, getImageViewLevelCount());
@@ -3536,7 +3529,7 @@ void TextureVk::initSingleLayerRenderTargets(ContextVk *contextVk,
     for (uint32_t layerIndex = 0; layerIndex < layerCount; ++layerIndex)
     {
         renderTargets[layerIndex].init(drawImage, drawImageViews, resolveImage, resolveImageViews,
-                                       mImageSiblingSerial, getNativeImageLevel(levelIndex),
+                                       getNativeImageLevel(levelIndex),
                                        getNativeImageLayer(layerIndex), 1, transience);
     }
 }
@@ -3564,7 +3557,7 @@ RenderTargetVk *TextureVk::getMultiLayerRenderTarget(ContextVk *contextVk,
         rt = std::make_unique<RenderTargetVk>();
     }
 
-    rt->init(mImage, imageViews, nullptr, nullptr, mImageSiblingSerial, getNativeImageLevel(level),
+    rt->init(mImage, imageViews, nullptr, nullptr, getNativeImageLevel(level),
              getNativeImageLayer(layerIndex), layerCount, RenderTargetTransience::Default);
 
     return rt.get();
@@ -3959,8 +3952,6 @@ void TextureVk::releaseOwnershipOfImage(const gl::Context *context)
 {
     ContextVk *contextVk = vk::GetImpl(context);
 
-    ASSERT(!mImageSiblingSerial.valid());
-
     mOwnsImage = false;
     releaseAndDeleteImageAndViews(contextVk);
 }
@@ -4220,9 +4211,9 @@ angle::Result TextureVk::initImage(ContextVk *contextVk,
             supportsMSRTTUsageActualFormat && supportsMSRTTUsageAdditionalFormat;
         if (ANGLE_UNLIKELY(mState.hasBeenBoundToMSRTTFramebuffer() && !supportsMSRTTUsage))
         {
-            ERR() << "Texture bound to EXT_multisampled_render_to_texture framebuffer, "
-                  << "but this device does not support this format.";
-            ANGLE_VK_TRY(contextVk, VK_ERROR_FORMAT_NOT_SUPPORTED);
+            std::cout << "Texture bound to EXT_multisampled_render_to_texture framebuffer, "
+                  << "but this device does not support this format.\n";
+            // ANGLE_VK_TRY(contextVk, VK_ERROR_FORMAT_NOT_SUPPORTED);
         }
 
         // Note: If we ever fail the following check, we should use the emulation path for this
@@ -4368,19 +4359,19 @@ angle::Result TextureVk::initImageViews(ContextVk *contextVk, uint32_t levelCoun
 
 void TextureVk::releaseImage(ContextVk *contextVk)
 {
-    vk::Renderer *renderer = contextVk->getRenderer();
+    ShareGroupVk *shareGroupVk = contextVk->getShareGroup();
 
     releaseImageViews(contextVk);
 
     if (mImage)
     {
+        shareGroupVk->finalizeImageLayoutInAllSharedContexts(mImage);
         if (mOwnsImage)
         {
-            mImage->releaseImageFromShareContexts(renderer, contextVk, mImageSiblingSerial);
+            mImage->releaseImage(contextVk);
         }
         else
         {
-            mImage->finalizeImageLayoutInShareContexts(renderer, contextVk, mImageSiblingSerial);
             mImageObserverBinding.bind(nullptr);
             mImage = nullptr;
         }
@@ -4394,7 +4385,8 @@ void TextureVk::releaseImage(ContextVk *contextVk)
             {
                 if (image.valid())
                 {
-                    image.releaseImageFromShareContexts(renderer, contextVk, mImageSiblingSerial);
+                    shareGroupVk->finalizeImageLayoutInAllSharedContexts(&image);
+                    image.releaseImage(contextVk);
                 }
             }
         }
@@ -4403,8 +4395,8 @@ void TextureVk::releaseImage(ContextVk *contextVk)
 
     if (mRgbDrawImageForYuvResolve)
     {
-        mRgbDrawImageForYuvResolve->releaseImageFromShareContexts(renderer, contextVk,
-                                                                  mImageSiblingSerial);
+        shareGroupVk->finalizeImageLayoutInAllSharedContexts(mRgbDrawImageForYuvResolve.get());
+        mRgbDrawImageForYuvResolve->releaseImage(contextVk);
         mRgbDrawImageForYuvResolve.reset();
     }
 
@@ -4970,8 +4962,6 @@ void TextureVk::stageSelfAsSubresourceUpdates(ContextVk *contextVk)
     // imageViews first as we want to use current image.mUse to keep track of imageViews' resource
     // lifetime.
     releaseImageViews(contextVk);
-    // Make the image stage itself as updates to its levels.
-    ASSERT(!mImageSiblingSerial.valid());
     mImage->stageSelfAsSubresourceUpdates(contextVk, mImage->getLevelCount(), mState.getType(),
                                           mRedefinedLevels);
 }

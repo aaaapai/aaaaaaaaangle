@@ -4965,6 +4965,8 @@ void GL_APIENTRY glTexBufferRangeEXT(GLenum target,
 
 // GL_EXT_texture_format_sRGB_override
 
+// GL_EXT_texture_lod_bias
+
 // GL_EXT_texture_mirror_clamp_to_edge
 
 // GL_EXT_texture_norm16
@@ -5964,6 +5966,8 @@ void GL_APIENTRY glTextureFoveationParametersQCOM(GLuint texture,
     return GL_TextureFoveationParametersQCOM(texture, layer, focalPoint, focalX, focalY, gainX,
                                              gainY, foveaArea);
 }
+
+// GL_QCOM_texture_lod_bias
 
 // GL_QCOM_tiled_rendering
 void GL_APIENTRY glEndTilingQCOM(GLbitfield preserveMask)
