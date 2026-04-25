@@ -54,7 +54,7 @@ default_args = {
   tests_have_location_tags = false
 
   # Use base level API level 29 support for AHardwareBuffer ANGLE tests.
-  android_ndk_api_level = 29
+  android_ndk_api_level = 26
 
   vma_vulkan_headers_dir = "//third_party/vulkan-headers/src"
 
@@ -62,14 +62,14 @@ default_args = {
   use_siso = true
 
   # TODO(439777063): llvm and Dawn need to fix includes
-  use_clang_modules = false
+  use_clang_modules = true
 
   # Enable Rust usage
   enable_rust = true
   enable_rust_cxx = true
 
   # Angle must stay in C++20 for longer due to some downstream dependencies.
-  use_cxx23 = false
+  use_cxx23 = true
 }
 
 no_check_targets = [ "third_party/dawn/*" ]
