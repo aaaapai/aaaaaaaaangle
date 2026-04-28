@@ -2379,10 +2379,10 @@ void TParseContext::declarationQualifierErrorCheck(const sh::TQualifier qualifie
 
     // If multiview extension is enabled, "in" qualifier is allowed in the vertex shader in previous
     // parsing steps. So it needs to be checked here.
-    if (anyMultiviewExtensionAvailable() && mShaderVersion < 300 && qualifier == EvqVertexIn)
+    /*if (anyMultiviewExtensionAvailable() && mShaderVersion < 300 && qualifier == EvqVertexIn)
     {
         error(location, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
-    }
+    }*/
 
     bool canHaveLocation = qualifier == EvqVertexIn || qualifier == EvqFragmentOut;
     if (mShaderVersion >= 300 &&
@@ -2576,10 +2576,10 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
             default:
                 if (!publicType.memoryQualifier.readonly && !publicType.memoryQualifier.writeonly)
                 {
-                    error(identifierLocation, "layout qualifier",
+                    warning(identifierLocation, "layout qualifier",
                           "Except for images with the r32f, r32i and r32ui format qualifiers, "
                           "image variables must be qualified readonly and/or writeonly");
-                    return;
+                    //return;
                 }
                 break;
         }
@@ -7942,18 +7942,18 @@ TStorageQualifierWrapper *TParseContext::parseInQualifier(const TSourceLoc &loc)
     {
         case GL_VERTEX_SHADER:
         {
-            if (mShaderVersion < 300 && !anyMultiviewExtensionAvailable())
+            /*if (mShaderVersion < 300 && !anyMultiviewExtensionAvailable())
             {
                 error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
-            }
+            }*/
             return new TStorageQualifierWrapper(EvqVertexIn, loc);
         }
         case GL_FRAGMENT_SHADER:
         {
-            if (mShaderVersion < 300)
+            /*if (mShaderVersion < 300)
             {
                 error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
-            }
+            }*/
             return new TStorageQualifierWrapper(EvqFragmentIn, loc);
         }
         case GL_COMPUTE_SHADER:
@@ -7990,18 +7990,18 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
     {
         case GL_VERTEX_SHADER:
         {
-            if (mShaderVersion < 300)
+            /*if (mShaderVersion < 300)
             {
                 error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
-            }
+            }*/
             return new TStorageQualifierWrapper(EvqVertexOut, loc);
         }
         case GL_FRAGMENT_SHADER:
         {
-            if (mShaderVersion < 300)
+            /*if (mShaderVersion < 300)
             {
                 error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
-            }
+            }*/
             return new TStorageQualifierWrapper(EvqFragmentOut, loc);
         }
         case GL_COMPUTE_SHADER:
@@ -8033,10 +8033,10 @@ TStorageQualifierWrapper *TParseContext::parseInOutQualifier(const TSourceLoc &l
 {
     if (!declaringFunction())
     {
-        if (mShaderVersion < 300)
+        /*if (mShaderVersion < 300)
         {
             error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "inout");
-        }
+        }*/
 
         if (getShaderType() != GL_FRAGMENT_SHADER)
         {
@@ -8733,10 +8733,10 @@ bool TParseContext::binaryOpCommonCheck(TOperator op,
     }
 
     // Implicit type casting is not allowed in ESSL.
-    if (!isBitShift && left->getBasicType() != right->getBasicType())
+    /*if (!isBitShift && left->getBasicType() != right->getBasicType())
     {
         return false;
-    }
+    }*/
 
     // Check that:
     // 1. Type sizes match exactly on ops that require that.
@@ -9662,6 +9662,8 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
         // global scope.
         const TSymbol *symbol = symbolTable.findGlobal(fnCall->getMangledName());
 
+        symbol = symbolTable.findGlobalWithConversion(
+                fnCall->getMangledNamesForImplicitConversions());
         if (symbol != nullptr)
         {
             // A user-defined function - could be an overloaded built-in as well.
@@ -9680,6 +9682,8 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
 
         symbol = symbolTable.findBuiltIn(fnCall->getMangledName(), mShaderVersion);
 
+        symbol = symbolTable.findBuiltInWithConversion(
+                fnCall->getMangledNamesForImplicitConversions(), mShaderVersion);
         if (symbol != nullptr)
         {
             // A built-in function.
