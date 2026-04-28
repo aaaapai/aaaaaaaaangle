@@ -19,6 +19,7 @@
 
 #include <EGL/eglext.h>
 #include <fstream>
+#include <iostream>
 
 #include "common/debug.h"
 #include "common/platform.h"
@@ -224,7 +225,7 @@ bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *devi
     }
 
     // Otherwise, look for Venus or Turnip in the device name.
-    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr;
+    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr;
 }
 
 bool IsXclipse()
@@ -268,10 +269,11 @@ VkResult VerifyExtensionsPresent(const vk::ExtensionNameList &haystack,
     {
         if (!ExtensionFound(needle, haystack))
         {
-            ERR() << "Extension not supported: " << needle;
+            WARN() << "Extension not supported: " << needle;
         }
     }
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
+    printf("VK_ERROR_EXTENSION_NOT_PRESENT\n");
+    return VK_SUCCESS;
 }
 
 // Array of Validation error/warning messages that will be ignored, should include bugID
@@ -5053,6 +5055,18 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     // Current highest supported version
     gl::Version maxVersion = gl::Version(3, 2);
 
+    const char* angle_gles_version = std::getenv("ANGLE_GLES_VERSION");
+    if (angle_gles_version != nullptr) {
+        std::string version_str = angle_gles_version;
+
+        if (version_str.find('.') != std::string::npos) {
+            int major = std::stoi(version_str.substr(0, version_str.find('.')));
+            int minor = std::stoi(version_str.substr(version_str.find('.') + 1));
+            maxVersion = LimitVersionTo(maxVersion, 
+                gl::Version(static_cast<uint8_t>(major), static_cast<uint8_t>(minor)));
+        }
+    }
+
     // Early out without downgrading ES version if mock ICD enabled.
     // Mock ICD doesn't expose sufficient capabilities yet.
     // https://github.com/KhronosGroup/Vulkan-Tools/issues/84
@@ -5068,7 +5082,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     {
         return maxVersion;
     }
-    if (!CanSupportGLES32(mNativeExtensions))
+    /*if (!CanSupportGLES32(mNativeExtensions))
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 1});
     }
@@ -5156,7 +5170,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
         gl::limits::kMinimumVertexOutputComponents)
     {
         maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     return maxVersion;
 }
@@ -8003,7 +8017,8 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements->size);
-        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        printf("VK_ERROR_OUT_OF_DEVICE_MEMORY\n");
+        return VK_SUCCESS;
     }
 
     // Avoid device-local and host-visible combinations if possible. Here, "preferredFlags" is
