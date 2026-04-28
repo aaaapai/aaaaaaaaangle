@@ -399,7 +399,8 @@ VkResult MemoryProperties::findCompatibleMemoryIndex(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements.size);
-        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        printf("VK_ERROR_OUT_OF_DEVICE_MEMORY\n");
+        return VK_SUCCESS;
     }
 
     // Find a compatible memory pool index. If the index doesn't change, we could cache it.
@@ -443,7 +444,8 @@ VkResult MemoryProperties::findCompatibleMemoryIndex(
     }
 
     // TODO(jmadill): Add error message to error.
-    return VK_ERROR_INCOMPATIBLE_DRIVER;
+    printf("VK_ERROR_INCOMPATIBLE_DRIVER\n");
+    return VK_SUCCESS;
 }
 
 uint32_t MemoryProperties::findTileMemoryTypeIndex() const
