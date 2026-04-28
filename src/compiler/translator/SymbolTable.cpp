@@ -464,6 +464,9 @@ void TSymbolTable::initializeBuiltIns(sh::GLenum type,
     // We need just one precision stack level for predefined precisions.
     mPrecisionStack.emplace_back(new PrecisionStackLevel);
 
+    setDefaultPrecision(EbtInt, EbpUndefined);
+    setDefaultPrecision(EbtFloat, EbpUndefined);
+
     switch (type)
     {
         case GL_FRAGMENT_SHADER:
