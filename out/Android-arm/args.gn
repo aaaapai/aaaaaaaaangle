@@ -1,0 +1,126 @@
+target_os = "android"
+target_cpu = "arm"
+is_component_build = false
+is_debug = false
+angle_build_all = false
+angle_expose_non_conformant_extensions_and_versions = true
+jobs = 6
+enable_iterator_debugging = false
+symbol_level = 0
+use_goma = false
+dcheck_always_on = false
+angle_assert_always_on = false
+is_clang = true
+android_ndk_api_level = 26
+strip_debug_info = true
+generate_debug_info = false
+enable_resource_allowlist_generation = false
+angle_enable_vulkan = true
+angle_enable_vulkan_validation_layers = false
+angle_enable_gl = true
+angle_enable_d3d9 = false
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_wgpu = false
+angle_enable_swiftshader = false
+angle_enable_metal = false
+angle_enable_essl = true
+angle_enable_glsl = true
+
+angle_expose_non_conformant_extensions_and_versions = true
+build_angle_deqp_tests = false
+arm_use_neon = true
+arm_version = 7
+angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
+angle_enable_vulkan_validation_layers = false
+angle_enable_trace = false
+
+use_lto = true
+
+angle_build_tests = false
+
+cflags_c = [
+  "-Wno-unused-variable",
+  "-Wno-error=unused-variable",
+  "-Wno-error",
+  "-O3",
+  "-march=armv7-a+neon",
+  "-mllvm",
+  "-hot-cold-split=true",
+  "-fdata-sections",
+  "-ffunction-sections",
+  "-fmerge-all-constants",
+  "-ftree-vectorize",
+  "-fvectorize",
+  "-fslp-vectorize",
+  "-pipe",
+  "-integrated-as",
+  "-flto"
+]
+
+cflags_cc = [
+  "-Wno-unused-variable",
+  "-Wno-error=unused-variable",
+  "-Wno-error",
+  "-O3",
+  "-march=armv7-a+neon",
+  "-mllvm",
+  "-hot-cold-split=true",
+  "-fdata-sections",
+  "-ffunction-sections",
+  "-fmerge-all-constants",
+  "-ftree-vectorize",
+  "-fvectorize",
+  "-fslp-vectorize",
+  "-pipe",
+  "-integrated-as",
+  "-flto"
+]
+
+ldflags = [
+  "-fuse-ld=lld",
+  "-Wl,--gc-sections",
+  "-flto",
+  "-Wl,--lto-O3",
+  "-Wl,-O3",
+  "-Wl,--as-needed"
+]
+
+treat_warnings_as_errors = false
+libcxx_abi_unstable = true
+android_ndk_root = "/usr/local/lib/android/sdk/ndk/29.0.14206865"
+android_ndk_version = "r29"
+
+# Whether the ANGLE translator should be built with IR instead
+# THIS IS CURRENTLY EXPERIMENTAL.
+angle_ir = true
+
+angle_enable_perf_counter_output = false
+
+angle_standalone = true
+
+angle_has_frame_capture = false
+
+enable_stripping = true
+
+use_cxx23 = true
+
+c_wrapper="ccache"
+cc_wrapper="ccache"
+
+enable_unused_resource_stripping = true
+exclude_unwind_tables = true
+use_clang_coverage = false
+angle_force_context_check_every_call = true
+use_lld = true
+
+angle_use_android_tls_slot = true
+
+use_custom_libcxx_for_host = false
+optimize_for_fuzzing = false
+use_custom_libcxx = true
+use_rtti = false
+use_dummy_lastchange = false
+
+
+rust_lto = "fat"
