@@ -90,10 +90,12 @@
 42265137 VULKAN : UniformTest.UnusedStructInlineUniform/* = SKIP
 42265137 VULKAN : UniformTest.UnusedStructInlineUniformWithSampler/* = SKIP
 42265405 VULKAN : Texture2DTestES3.TextureRGBUpdateWithPBO/ES3_Vulkan* = SKIP
+506193593 VULKAN : Texture2DTestES3.YUVTexSubImage2DNonZeroOffset_3Plane/* = SKIP
 42265226 VULKAN : GLSLTest_ES3.GLVertexIDIntegerTextureDrawElementsU8Line/* = SKIP
 42265226 VULKAN : GLSLTest_ES3.GLVertexIDIntegerTextureDrawElementsU8LineIds/* = SKIP
 235877059 VULKAN : MultisampleTestES3.ResolveToFBO/ES3_Vulkan_EmulatedPrerotation180 = SKIP
 235877059 VULKAN : MultisampleTestES3.ResolveToFBO/ES3_Vulkan_EmulatedPrerotation270 = SKIP
+506165684 VULKAN : RobustResourceInitTest.SampleReinitSampleRGB/* = SKIP
 // ANGLE is broken if a context is made current before a surface is created in the presence of multiple queue families
 42266900 VULKAN : EGLContextSharingTestNoFixture.*/*ForceDelayedDeviceCreationForTesting* = SKIP
 42266900 VULKAN : EGLSurfacelessContextTest.*/*ForceDelayedDeviceCreationForTesting* = SKIP
@@ -1184,6 +1186,7 @@
 480069042 PIXEL10 GLES : GLSLTest_ES31.IOBlockInvariantAll/* = SKIP
 498083624 PIXEL10 GLES : CopyTextureTestES3.SRGBWithPackParameters/* = SKIP
 489579953 PIXEL10 GLES : ETCTextureTest.PBOWithMisalignedOffset/* = SKIP
+498904293 PIXEL10 GLES : CopyTextureTestES3.PBOSynchronization/* = SKIP
 
 480069042 PIXEL10 VULKAN : ClearTextureEXTTestES31Unrenderable.Clear/ES3_1_Vulkan*__GL_RG16_SNORM_EXT_GL_RG_GL_SHORT_GL_TEXTURE_2D_ARRAY = SKIP
 480069042 PIXEL10 VULKAN : ClearTextureEXTTestES31Unrenderable.Clear/ES3_1_Vulkan*__GL_RGB32UI_GL_RGB_INTEGER_GL_UNSIGNED_INT_GL_TEXTURE_2D_ARRAY = SKIP
@@ -1258,6 +1261,7 @@
 491488985 PIXEL10 VULKAN : GLSLTest_ES31.HelperInvocationsAfterDiscard/* = SKIP
 497884154 PIXEL10 VULKAN : ClearTextureEXTTest.DrawThenClearPartiallyThenDraw/* = SKIP
 500930576 PIXEL10 VULKAN : ReadPixelsTest.LargeTexture/* = SKIP
+497637277 PIXEL10 VULKAN : VulkanExternalImageTest.TextureFormatCompatChromiumNoStorageFd/* = SKIP
 
 // Some Metal tests fail on iOS Intel simulator
 40096874 IOS METAL : CubeMapTextureTest.SampleCoordinateTransformGrad/* = SKIP
