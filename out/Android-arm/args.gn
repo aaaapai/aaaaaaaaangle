@@ -55,7 +55,11 @@ cflags_c = [
   "-fslp-vectorize",
   "-pipe",
   "-integrated-as",
-  "-flto"
+  "-flto",
+  "-marm",
+  "-D_FILE_OFFSET_BITS=64",
+  "-D__USE_BSD",
+  "-D_ALLBSD_SOURCE"
 ]
 
 cflags_cc = [
@@ -74,7 +78,11 @@ cflags_cc = [
   "-fslp-vectorize",
   "-pipe",
   "-integrated-as",
-  "-flto"
+  "-flto",
+  "-marm",
+  "-D_FILE_OFFSET_BITS=64",
+  "-D__USE_BSD",
+  "-D_ALLBSD_SOURCE"
 ]
 
 ldflags = [
@@ -83,7 +91,8 @@ ldflags = [
   "-flto",
   "-Wl,--lto-O3",
   "-Wl,-O3",
-  "-Wl,--as-needed"
+  "-Wl,--as-needed",
+  "-fsigned-char"
 ]
 
 treat_warnings_as_errors = false
