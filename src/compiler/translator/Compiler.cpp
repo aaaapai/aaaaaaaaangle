@@ -818,6 +818,8 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
 {
     ASSERT(!compileOptions.useIR);
 
+    mValidateASTOptions.validatePrecision = false;
+
     // Disallow expressions deemed too complex.
     // This needs to be checked before other functions that will traverse the AST
     // to prevent potential stack overflow crashes.
