@@ -2413,11 +2413,15 @@ void SPIRVBuilder::writeInterpolationDecoration(TQualifier qualifier,
 
         case EvqNoPerspective:
         case EvqNoPerspectiveOut:
-        case EvqNoPerspectiveIn:
+        case EvqNoPerspectiveIn: {
+            if(std::getenv("ANGLE_NOPERSPECTIVE_SUPPORT")) {
+            // Mali G57 MC4 doesn't support it.
             WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex,
-                                         &mSpirvDecorations);
+                                      &mSpirvDecorations);
+            }
             return;
-
+        }
+        
         case EvqCentroid:
         case EvqCentroidOut:
         case EvqCentroidIn:
