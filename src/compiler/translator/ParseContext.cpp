@@ -812,7 +812,7 @@ void TParseContext::assignError(const TSourceLoc &line,
 {
     TInfoSinkBase reasonStream;
     reasonStream << "cannot convert from '" << right << "' to '" << left << "'";
-    error(line, reasonStream.c_str(), op);
+    warning(line, reasonStream.c_str(), op);
 }
 
 //
@@ -847,7 +847,7 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                                             TPrecision precision,
                                             TBasicType type)
 {
-    if (precision != EbpUndefined && !SupportsPrecision(type))
+    /*if (precision != EbpUndefined && !SupportsPrecision(type))
     {
         error(line, "illegal type for precision qualifier", getBasicString(type));
     }
@@ -871,7 +871,7 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                     return;
                 }
         }
-    }
+    }*/
 }
 
 void TParseContext::markStaticUseIfSymbol(TIntermNode *node)
@@ -6021,8 +6021,8 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
         {
             // With ESSL 3.00 and above, names of built-in functions cannot be redeclared as
             // functions. Therefore overloading or redefining builtin functions is an error.
-            error(location, "Name of a built-in function cannot be redeclared as function",
-                  function->name());
+            /*error(location, "Name of a built-in function cannot be redeclared as function",
+                  function->name());*/
         }
     }
     else
@@ -6033,7 +6033,7 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             symbolTable.findBuiltIn(function->getMangledName(), getShaderVersion());
         if (builtIn)
         {
-            error(location, "built-in functions cannot be redefined", function->name());
+            //error(location, "built-in functions cannot be redefined", function->name());
         }
     }
 
