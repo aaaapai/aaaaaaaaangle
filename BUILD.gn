@@ -1641,50 +1641,6 @@ angle_executable("angle_shader_translator") {
   }
 }
 
-if (angle_standalone || build_with_chromium ||
-    build_angle_end2end_tests_library) {
-  config("angle_feature_support_config") {
-    include_dirs = [
-      "include",
-      "src",
-    ]
-    defines = [ "LIBFEATURE_SUPPORT_IMPLEMENTATION" ]
-    if (is_debug) {
-      defines += [ "ANGLE_FEATURE_UTIL_LOG_VERBOSE" ]
-    }
-  }
-
-  angle_shared_library("libfeature_support") {
-    output_name = "libfeature_support${angle_libs_suffix}"
-
-    if (is_android) {
-      libs = [ "log" ]
-    }
-
-    configs += [
-      ":angle_feature_support_config",
-      "${angle_jsoncpp_dir}:jsoncpp_config",
-    ]
-
-    if (is_apple && !is_component_build) {
-      ldflags = [
-        "-install_name",
-        "@rpath/${target_name}.dylib",
-      ]
-    }
-
-    sources = [
-      "src/feature_support_util/feature_support_util.cpp",
-      "src/feature_support_util/feature_support_util.h",
-    ]
-
-    deps = [
-      ":angle_gpu_info_util",
-      "${angle_jsoncpp_dir}:jsoncpp",
-    ]
-  }
-}
-
 if (angle_enable_cgl) {
   config("supports_automatic_graphics_switching") {
     # For discussion about config, inputs, etc, see:
