@@ -2195,6 +2195,9 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
             *params = contextFlags;
         }
         break;
+        case GL_CONTEXT_PROFILE_MASK:
+            *params = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
+        break;
 
         // GL_ANGLE_request_extension
         case GL_NUM_REQUESTABLE_EXTENSIONS_ANGLE:
@@ -4242,19 +4245,16 @@ void Context::initCaps()
     *extensions            = mSupportedExtensions;
 
     // GLES1 emulation: Initialize caps (Table 6.20 / 6.22 in the ES 1.1 spec)
-    if (getClientVersion() < Version(2, 0))
-    {
-        caps->maxMultitextureUnits          = 4;
-        caps->maxClipPlanes                 = 6;
-        caps->maxLights                     = 8;
-        caps->maxModelviewMatrixStackDepth  = Caps::GlobalMatrixStackDepth;
-        caps->maxProjectionMatrixStackDepth = Caps::GlobalMatrixStackDepth;
-        caps->maxTextureMatrixStackDepth    = Caps::GlobalMatrixStackDepth;
-        caps->minSmoothPointSize            = 1.0f;
-        caps->maxSmoothPointSize            = 1.0f;
-        caps->minSmoothLineWidth            = 1.0f;
-        caps->maxSmoothLineWidth            = 1.0f;
-    }
+    caps->maxMultitextureUnits          = 4;
+    caps->maxClipPlanes                 = 6;
+    caps->maxLights                     = 8;
+    caps->maxModelviewMatrixStackDepth  = Caps::GlobalMatrixStackDepth;
+    caps->maxProjectionMatrixStackDepth = Caps::GlobalMatrixStackDepth;
+    caps->maxTextureMatrixStackDepth    = Caps::GlobalMatrixStackDepth;
+    caps->minSmoothPointSize            = 1.0f;
+    caps->maxSmoothPointSize            = 1.0f;
+    caps->minSmoothLineWidth            = 1.0f;
+    caps->maxSmoothLineWidth            = 1.0f;
 
     caps->maxDebugMessageLength   = 1024;
     caps->maxDebugLoggedMessages  = 1024;
