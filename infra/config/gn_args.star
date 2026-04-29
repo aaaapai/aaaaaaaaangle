@@ -38,6 +38,13 @@ gn_args.config(
 )
 
 gn_args.config(
+    name = "arm",
+    args = {
+        "target_cpu": "arm",
+    },
+)
+
+gn_args.config(
     name = "arm64",
     args = {
         "target_cpu": "arm64",
@@ -62,6 +69,13 @@ gn_args.config(
     name = "component",
     args = {
         "is_component_build": True,
+    },
+)
+
+gn_args.config(
+    name = "dcheck_off",
+    args = {
+        "dcheck_always_on": False,
     },
 )
 
