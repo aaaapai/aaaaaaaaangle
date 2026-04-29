@@ -123,12 +123,13 @@ ldflags = [
   "-flto",
   "-Wl,--lto-O3",
   "-Wl,-O3",
-  "-Wl,--as-needed"
+  "-Wl,--as-needed",
+  "-Wl,--exclude-libs,ALL"
 ]
 
 treat_warnings_as_errors = false
 libcxx_abi_unstable = true
-android_ndk_root = "/usr/local/lib/android/sdk/ndk/27.3.13750724"
+android_ndk_path = "/usr/local/lib/android/sdk/ndk/27.3.13750724"
 android_ndk_version = "r27d"
 
 # Whether the ANGLE translator should be built with IR instead
@@ -164,3 +165,5 @@ use_dummy_lastchange = false
 
 
 rust_lto = "fat"
+
+angle_has_frame_capture = false
