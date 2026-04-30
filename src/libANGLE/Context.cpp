@@ -167,6 +167,13 @@ constexpr state::DirtyObjects kTilingDirtyObjectsBase{state::DIRTY_OBJECT_DRAW_F
 
 constexpr bool kEnableAEPRequirementLogging = false;
 
+// A helper to return strings as const GLubyte *, adding safety that the reinterpret_cast is applied
+// only to const char *.
+const GLubyte *AsGLubytePtr(const char *str)
+{
+    return reinterpret_cast<const GLubyte *>(str);
+}
+
 egl::ShareGroup *AllocateOrGetShareGroup(egl::Display *display, const gl::Context *shareContext)
 {
     if (shareContext)
@@ -3564,6 +3571,17 @@ void Context::programParameteri(ShaderProgramID program, GLenum pname, GLint val
     SetProgramParameteri(this, programObject, pname, value);
 }
 
+const char *Context::makeStaticString(const std::string &str)
+{
+    auto it = mStaticStrings.find(str);
+    if (it != mStaticStrings.end())
+    {
+        return it->c_str();
+    }
+
+    return mStaticStrings.insert(str).first->c_str();
+}
+
 void Context::initRendererString()
 {
     std::ostringstream frontendRendererString;
@@ -3599,7 +3617,7 @@ void Context::initRendererString()
         frontendRendererString << ")";
     }
 
-    mRendererString = MakeStaticString(frontendRendererString.str());
+    mRendererString = makeStaticString(frontendRendererString.str());
 }
 
 void Context::initVendorString()
@@ -3621,7 +3639,7 @@ void Context::initVendorString()
         vendorString << mDisplay->getVendorString();
     }
 
-    mVendorString = MakeStaticString(vendorString.str());
+    mVendorString = makeStaticString(vendorString.str());
 }
 
 void Context::initVersionStrings()
@@ -3647,29 +3665,29 @@ void Context::initVersionStrings()
                       << angle::GetANGLEVersionString() << ")";
     }
 
-    mVersionString = MakeStaticString(versionString.str());
+    mVersionString = makeStaticString(versionString.str());
 
     std::ostringstream shadingLanguageVersionString;
     shadingLanguageVersionString << "OpenGL ES GLSL ES ";
     shadingLanguageVersionString << (clientVersion.getMajor() == 2 ? 1 : clientVersion.getMajor())
                                  << "." << clientVersion.getMinor() << "0 (ANGLE "
                                  << angle::GetANGLEVersionString() << ")";
-    mShadingLanguageString = MakeStaticString(shadingLanguageVersionString.str());
+    mShadingLanguageString = makeStaticString(shadingLanguageVersionString.str());
 }
 
 void Context::initExtensionStrings()
 {
-    auto mergeExtensionStrings = [](const std::vector<const char *> &strings) {
+    auto mergeExtensionStrings = [this](const std::vector<const char *> &strings) {
         std::ostringstream combinedStringStream;
         std::copy(strings.begin(), strings.end(),
                   std::ostream_iterator<const char *>(combinedStringStream, " "));
-        return MakeStaticString(combinedStringStream.str());
+        return makeStaticString(combinedStringStream.str());
     };
 
     mExtensionStrings.clear();
     for (const auto &extensionString : mState.getExtensions().getStrings())
     {
-        mExtensionStrings.push_back(MakeStaticString(extensionString));
+        mExtensionStrings.push_back(makeStaticString(extensionString));
     }
     mExtensionString = mergeExtensionStrings(mExtensionStrings);
 
@@ -3680,7 +3698,7 @@ void Context::initExtensionStrings()
             !(mState.getExtensions().*(extensionInfo.second.ExtensionsMember)) &&
             mSupportedExtensions.*(extensionInfo.second.ExtensionsMember))
         {
-            mRequestableExtensionStrings.push_back(MakeStaticString(extensionInfo.first));
+            mRequestableExtensionStrings.push_back(makeStaticString(extensionInfo.first));
         }
     }
     mRequestableExtensionString = mergeExtensionStrings(mRequestableExtensionStrings);
@@ -3701,28 +3719,28 @@ const GLubyte *Context::getString(GLenum name) const
     switch (name)
     {
         case GL_VENDOR:
-            return reinterpret_cast<const GLubyte *>(mVendorString);
+            return AsGLubytePtr(mVendorString);
 
         case GL_RENDERER:
-            return reinterpret_cast<const GLubyte *>(mRendererString);
+            return AsGLubytePtr(mRendererString);
 
         case GL_VERSION:
-            return reinterpret_cast<const GLubyte *>(mVersionString);
+            return AsGLubytePtr(mVersionString);
 
         case GL_SHADING_LANGUAGE_VERSION:
-            return reinterpret_cast<const GLubyte *>(mShadingLanguageString);
+            return AsGLubytePtr(mShadingLanguageString);
 
         case GL_EXTENSIONS:
-            return reinterpret_cast<const GLubyte *>(mExtensionString);
+            return AsGLubytePtr(mExtensionString);
 
         case GL_REQUESTABLE_EXTENSIONS_ANGLE:
-            return reinterpret_cast<const GLubyte *>(mRequestableExtensionString);
+            return AsGLubytePtr(mRequestableExtensionString);
 
         case GL_SERIALIZED_CONTEXT_STRING_ANGLE:
             if (angle::SerializeContextToString(this, &mCachedSerializedStateString) ==
                 angle::Result::Continue)
             {
-                return reinterpret_cast<const GLubyte *>(mCachedSerializedStateString.c_str());
+                return AsGLubytePtr(mCachedSerializedStateString.c_str());
             }
             else
             {
@@ -3740,10 +3758,10 @@ const GLubyte *Context::getStringi(GLenum name, GLuint index) const
     switch (name)
     {
         case GL_EXTENSIONS:
-            return reinterpret_cast<const GLubyte *>(mExtensionStrings[index]);
+            return AsGLubytePtr(mExtensionStrings[index]);
 
         case GL_REQUESTABLE_EXTENSIONS_ANGLE:
-            return reinterpret_cast<const GLubyte *>(mRequestableExtensionStrings[index]);
+            return AsGLubytePtr(mRequestableExtensionStrings[index]);
 
         default:
             UNREACHABLE();
@@ -4410,6 +4428,11 @@ void Context::initCaps()
     ANGLE_LIMIT_CAP(caps->maxViews, IMPLEMENTATION_ANGLE_MULTIVIEW_MAX_VIEWS);
 
     ANGLE_LIMIT_CAP(caps->maxDualSourceDrawBuffers, IMPLEMENTATION_MAX_DUAL_SOURCE_DRAW_BUFFERS);
+
+    // Disallow using UINT_MAX as an index. This would allow for a draw count of UINT_MAX + 1,
+    // overflowing a 32-bit integer.
+    constexpr GLint64 kMaxElementIndex = std::numeric_limits<GLuint>::max() - 1;
+    ANGLE_LIMIT_CAP(caps->maxElementIndex, kMaxElementIndex);
 
     // WebGL compatibility
     extensions->webglCompatibilityANGLE = mWebGLContext;

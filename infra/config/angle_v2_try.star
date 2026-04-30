@@ -140,6 +140,18 @@ angle_linux_functional_cq_tester(
 )
 
 angle_linux_functional_cq_tester(
+    name = "angle-cq-linux-x64-asan",
+    description_html = ("Tests release ANGLE on Linux/x64 on multiple " +
+                        "hardware configs with ASan, LSan, and UBSan " +
+                        "enabled. Blocks CL submission."),
+    mirrors = [
+        "ci/angle-linux-x64-builder-asan",
+        "ci/angle-linux-x64-sws-asan",
+    ],
+    gn_args = "ci/angle-linux-x64-builder-asan",
+)
+
+angle_linux_functional_cq_tester(
     name = "angle-cq-linux-x64-dbg",
     description_html = "Compiles all debug ANGLE targets for Linux/x64. Blocks CL submission.",
     mirrors = [
