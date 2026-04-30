@@ -7347,7 +7347,7 @@ bool ValidateTexParameterBase(const Context *context,
         return false;
     }
 
-    if ((context->getClientVersion() < ES_2_0 && !IsValidGLES1TextureParameter(pname))
+    if (context->getClientVersion() < ES_2_0 && !IsValidGLES1TextureParameter(pname))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
         return false;
