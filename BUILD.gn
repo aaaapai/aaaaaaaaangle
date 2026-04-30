@@ -1656,63 +1656,6 @@ if (angle_enable_cgl) {
   }
 }
 
-if (is_android && symbol_level != 0 &&
-    (angle_standalone || build_with_chromium)) {
-  action_foreach("compressed_symbols") {
-    sources = []
-    foreach(_library, angle_libraries) {
-      sources += [ "$root_out_dir/$_library$angle_libs_suffix$shlib_extension" ]
-    }
-    if (angle_enable_vulkan_validation_layers) {
-      foreach(_layer, vulkan_validation_layers) {
-        sources += [ "$root_out_dir/lib$_layer$shlib_extension" ]
-      }
-    }
-
-    if (angle_enable_vulkan_api_dump_layer &&
-        current_toolchain == default_toolchain) {
-      sources += [ "$root_out_dir/libVkLayer_lunarg_api_dump$shlib_extension" ]
-    }
-
-    script = rebase_path("${root_build_dir}/android/compress_symbols.py",
-                         root_build_dir)
-
-    deps = []
-    foreach(_library, angle_libraries) {
-      deps += [ ":$_library" ]
-    }
-
-    if (angle_enable_vulkan_validation_layers) {
-      foreach(_layer, vulkan_validation_layers) {
-        deps += [ "$angle_vulkan_validation_layers_dir:${_layer}" ]
-      }
-    }
-
-    if (angle_enable_vulkan_api_dump_layer &&
-        current_toolchain == default_toolchain) {
-      deps += [ "$angle_lunarg_vulkantools_dir:VkLayer_lunarg_api_dump" ]
-    }
-
-    outputs = [ "$root_out_dir/lib.compressed/{{source_file_part}}" ]
-
-    android_nm = "${android_tool_prefix}nm"
-    android_strip = "${android_tool_prefix}strip"
-
-    args = [
-      "--objcopy",
-      rebase_path(android_objcopy, root_build_dir),
-      "--nm",
-      rebase_path(android_nm, root_build_dir),
-      "--strip",
-      rebase_path(android_strip, root_build_dir),
-      "--unstrippedsofile",
-      "{{source_dir}}/lib.unstripped/{{source_file_part}}",
-      "--output",
-      "{{source_dir}}/lib.compressed/{{source_file_part}}",
-    ]
-  }
-}
-
 if (install_prefix != "") {
   template("install_target") {
     install_deps = []
