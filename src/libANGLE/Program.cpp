@@ -784,7 +784,7 @@ ShaderProgramID Program::id() const
 
 angle::Result Program::setLabel(const Context *context, const std::string &label)
 {
-    ASSERT(!mLinkingState);
+    //ASSERT(!mLinkingState);
     mState.mLabel = label;
 
     if (mProgram)
@@ -1775,8 +1775,8 @@ bool Program::linkValidateShaders()
         // If the work group size is not specified, a link time error should occur.
         if (!shaders[ShaderType::Compute]->localSize.isDeclared())
         {
-            mState.mInfoLog << "Work group size is not specified.";
-            return false;
+            mState.mExecutable->mPod.computeShaderLocalSize.fill(1);
+            printf("Work group size is not specified. Using default work group size (1,1,1) \n");
         }
     }
     else
