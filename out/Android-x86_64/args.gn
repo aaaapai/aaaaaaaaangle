@@ -129,8 +129,7 @@ ldflags = [
 
 treat_warnings_as_errors = false
 libcxx_abi_unstable = true
-android_ndk_path = "/usr/local/lib/android/sdk/ndk/29.0.14206865"
-android_ndk_version = "r29"
+android_ndk_version = "r30-beta1"
 
 # Whether the ANGLE translator should be built with IR instead
 # THIS IS CURRENTLY EXPERIMENTAL.
