@@ -1014,8 +1014,6 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
     caps.maxColorAttachments = 1;
 
     // GLES1 emulation (Minimums taken from Table 6.20 / 6.22 (ES 1.1 spec))
-    if (clientVersion < Version(2, 0))
-    {
         caps.maxMultitextureUnits = 2;
         caps.maxLights            = 8;
         caps.maxClipPlanes        = 1;
@@ -1026,7 +1024,6 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
 
         caps.minSmoothPointSize = 1.0f;
         caps.maxSmoothPointSize = 1.0f;
-    }
 
     if (clientVersion >= Version(2, 0))
     {
