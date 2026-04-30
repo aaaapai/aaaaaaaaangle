@@ -8774,7 +8774,7 @@ bool TParseContext::binaryOpCommonCheck(TOperator op,
             if ((left->getNominalSize() != right->getNominalSize()) ||
                 (left->getSecondarySize() != right->getSecondarySize()))
             {
-                error(loc, "dimension mismatch", GetOperatorString(op));
+                warning(loc, "dimension mismatch", GetOperatorString(op));
                 return false;
             }
             break;
