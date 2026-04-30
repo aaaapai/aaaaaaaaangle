@@ -2566,8 +2566,8 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-                error(identifierLocation, "layout qualifier", "No image internal format specified");
-                return;
+                warning(identifierLocation, "layout qualifier", "No image internal format specified");
+                break;
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
                 return;
