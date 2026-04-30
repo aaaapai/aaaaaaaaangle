@@ -1371,7 +1371,7 @@ bool UniformLinker::flattenUniformsAndCheckCapsForShader(
         }
 
         LogUniformsExceedLimit(shaderType, UniformType::Variable, maxUniforms, infoLog);
-        return false;
+        //return false;
     }
 
     if (shaderUniformCount.samplerCount >
@@ -1379,7 +1379,7 @@ bool UniformLinker::flattenUniformsAndCheckCapsForShader(
     {
         LogUniformsExceedLimit(shaderType, UniformType::Sampler,
                                caps.maxShaderTextureImageUnits[shaderType], infoLog);
-        return false;
+        //return false;
     }
 
     if (shaderUniformCount.imageCount >
@@ -1387,7 +1387,7 @@ bool UniformLinker::flattenUniformsAndCheckCapsForShader(
     {
         LogUniformsExceedLimit(shaderType, UniformType::Image,
                                caps.maxShaderImageUniforms[shaderType], infoLog);
-        return false;
+        //return false;
     }
 
     if (shaderUniformCount.atomicCounterCount >
@@ -1395,7 +1395,7 @@ bool UniformLinker::flattenUniformsAndCheckCapsForShader(
     {
         LogUniformsExceedLimit(shaderType, UniformType::AtomicCounter,
                                caps.maxShaderAtomicCounters[shaderType], infoLog);
-        return false;
+        //return false;
     }
 
     return true;
