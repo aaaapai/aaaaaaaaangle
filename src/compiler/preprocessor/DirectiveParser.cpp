@@ -789,12 +789,12 @@ void DirectiveParser::parseVersion(Token *token)
         mTokenizer->lex(token);
     }
 
-    if (valid && (state != VERSION_ENDLINE))
+    /*if (valid && (state != VERSION_ENDLINE))
     {
         mDiagnostics->report(Diagnostics::PP_INVALID_VERSION_DIRECTIVE, token->location,
                              token->text);
         valid = false;
-    }
+    }*/
 
     if (valid && version >= 300 && token->location.line > 1)
     {
