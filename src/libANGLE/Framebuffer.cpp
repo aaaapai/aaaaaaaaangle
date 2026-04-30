@@ -77,11 +77,11 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
     ASSERT(attachment.isAttached());
 
     const Extents &size = attachment.getSize();
-    if (size.width == 0 || size.height == 0)
+    /*if (size.width == 0 || size.height == 0)
     {
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                                              err::kFramebufferIncompleteAttachmentZeroSize);
-    }
+    }*/
 
     if (!attachment.isRenderable(context))
     {
