@@ -498,7 +498,7 @@ class SPIRVBuilder : angle::NonCopyable
                                 spirv::LiteralInteger *arrayedOut,
                                 spirv::LiteralInteger *multisampledOut,
                                 spirv::LiteralInteger *sampledOut);
-    spv::ImageFormat getImageFormat(TLayoutImageInternalFormat imageInternalFormat);
+    spv::ImageFormat getImageFormat(TLayoutImageInternalFormat imageInternalFormat, const SpirvType &spirvType);
 
     spirv::IdRef getBasicConstantHelper(uint32_t value,
                                         TBasicType type,
