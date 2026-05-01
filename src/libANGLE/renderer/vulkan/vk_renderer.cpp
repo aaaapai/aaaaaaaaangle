@@ -195,7 +195,7 @@ bool IsVulkan11(uint32_t apiVersion)
 bool IsRADV(uint32_t vendorId, uint32_t driverId, const char *deviceName)
 {
     // Check against RADV driver id first.
-    if (driverId == VK_DRIVER_ID_MESA_RADV)
+    if (driverId == VK_DRIVER_ID_MESA_RADV || std::getenv("ANGLE_IsRADV"))
     {
         return true;
     }
@@ -208,7 +208,7 @@ bool IsRADV(uint32_t vendorId, uint32_t driverId, const char *deviceName)
 bool IsMesaPanVK(uint32_t driverId)
 {
     // rely on VkDriverId alone to identify MESA PanVK driver
-    return driverId == VK_DRIVER_ID_MESA_PANVK;
+    return (driverId == VK_DRIVER_ID_MESA_PANVK || (std::getenv("AMGLE_IsMesaPanVK")));
 }
 
 bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *deviceName)
@@ -225,7 +225,7 @@ bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *devi
     }
 
     // Otherwise, look for Venus or Turnip in the device name.
-    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr;
+    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr || (std::getenv("ANGLE_IsQualcommOpenSource"));
 }
 
 bool IsXclipse()
