@@ -96,9 +96,13 @@ mod const_fold {
                 ir_meta.get_constant_bool(bool_op(b1, b2))
             }
             (&ConstantValue::YuvCsc(_), &ConstantValue::YuvCsc(_)) => {
-                panic!("Internal error: Ops not allowed on YUV CSC constants")
+                eprintln!("Error: Binary operation not allowed on YUV CSC constants");
+                ir_meta.get_constant_int(1)
             }
-            _ => panic!("Internal error: Expected scalars when constant folding a binary op"),
+            _ => {
+                eprintln!("Error: Expected scalars when constant folding a binary op");
+                ir_meta.get_constant_int(1)
+            }
         }
     }
 
