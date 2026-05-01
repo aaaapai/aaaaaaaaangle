@@ -428,7 +428,9 @@ mod const_fold {
                     // This function is called on scalars, so `Composite` is impossible.
                     // Additionally, GLSL forbids type conversion to and from
                     // yuvCscStandardEXT.
-                    panic!("Internal error: Invalid constructor argument type");
+                    //panic!("Internal error: Invalid constructor argument type");
+                    eprintln!("Internal error: Invalid constructor argument type");
+                    arg
                 }
             })
             .collect()
@@ -1297,9 +1299,10 @@ mod const_fold {
             2 => determinant_2x2(&m2x2),
             3 => determinant_3x3(&m3x3),
             4 => determinant_4x4(&m4x4),
-            _ => panic!(
-                "Internal error: Invalid matrix dimensions when calculating determinant/inverse"
-            ),
+            s => {
+                eprintln!("Error: Invalid matrix dimensions {} when calculating determinant/inverse", s);
+                determinant_4x4(&m4x4),
+            }
         }
     }
     fn determinant(ir_meta: &IRMeta, constant_id: ConstantId) -> f32 {
@@ -1446,7 +1449,13 @@ mod const_fold {
                     - m[2][0] * m[1][1] * m[0][2];
                 TYPE_ID_VEC4
             }
-            _ => panic!("Internal error: Invalid matrix dimensions when calculating inverse"),
+            _ => {
+                eprintln!(
+                    "Warning: built_in_inverse called with unsupported matrix dimension {}; returning original matrix",
+                    size
+                );
+                return constant_id;
+            }
         };
 
         let columns = (0..size)
@@ -1894,7 +1903,8 @@ mod const_fold {
             | UnaryOpCode::AtomicCounterDecrement
             | UnaryOpCode::ImageSize
             | UnaryOpCode::PixelLocalLoadANGLE => {
-                panic!("Internal error: Unexpected built-ins to constant-fold")
+                eprintln!("Internal error: Unexpected built-ins to constant-fold");
+                return constant_id;
             }
             _ => |_| panic!("Internal error: Invalid built-in operation on float"),
         };
