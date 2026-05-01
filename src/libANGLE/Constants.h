@@ -90,10 +90,10 @@ enum
     IMPLEMENTATION_MAX_UNIFORM_BLOCK_SIZE = 65536,
 
     // Maximum number of slots allocated for atomic counter buffers.
-    IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS = 8,
+    IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS = 1999,
 
     // Implementation upper limits, real maximums depend on the hardware.
-    IMPLEMENTATION_MAX_SHADER_STORAGE_BUFFER_BINDINGS = 64,
+    IMPLEMENTATION_MAX_SHADER_STORAGE_BUFFER_BINDINGS = 666,
 
     // Implementation upper limits of max number of clip distances (minimum required per spec)
     IMPLEMENTATION_MAX_CLIP_DISTANCES = 8,
