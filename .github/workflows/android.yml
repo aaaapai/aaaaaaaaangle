@@ -84,15 +84,7 @@ jobs:
         uses: hendrikmuhs/ccache-action@main
         with:
           key: angle-ccache
-          max-size: 5G
-
-      - name: Setup ccache path
-        shell: bash
-        run: |
-         echo "$HOME/.local/bin" >> $GITHUB_PATH
-         echo "/usr/lib/ccache" >> $GITHUB_PATH
-         which ccache || echo "ccache not found"
-         ccache --version
+          max-size: 6G
 
       - name: Build ANGLE
         shell: bash
