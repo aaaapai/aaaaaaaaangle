@@ -1379,7 +1379,7 @@ bool UniformLinker::flattenUniformsAndCheckCapsForShader(
     {
         LogUniformsExceedLimit(shaderType, UniformType::Sampler,
                                caps.maxShaderTextureImageUnits[shaderType], infoLog);
-        return true;
+        return false;
     }
 
     if (shaderUniformCount.imageCount >
