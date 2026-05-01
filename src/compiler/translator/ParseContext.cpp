@@ -9685,12 +9685,10 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
             return callNode;
         }
 
-        symbol = symbolTable.findBuiltIn(fnCall->getMangledName(), mShaderVersion);
+        //symbol = symbolTable.findBuiltIn(fnCall->getMangledName(), mShaderVersion);
 
         symbol = symbolTable.findBuiltInWithConversion(
                 fnCall->getMangledNamesForImplicitConversions(), mShaderVersion);
-
-        checkAtomicMemoryBuiltinFunctions(callNode);
 
         if (symbol != nullptr)
         {
@@ -9746,6 +9744,7 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
                 mUsesDerivatives = true;
             }
 
+            checkAtomicMemoryBuiltinFunctions(callNode);
             checkTextureOffset(callNode);
             checkTextureGather(callNode);
             checkInterpolationFS(callNode);
