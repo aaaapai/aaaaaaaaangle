@@ -5373,19 +5373,19 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         return;
     }
 
-    const bool isAMD      = IsAMD(mPhysicalDeviceProperties.vendorID);
-    const bool isApple    = IsAppleGPU(mPhysicalDeviceProperties.vendorID);
-    const bool isARM      = IsARM(mPhysicalDeviceProperties.vendorID);
+    const bool isAMD      = (IsAMD(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isAMD"));
+    const bool isApple    = (IsAppleGPU(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isApple"));
+    const bool isARM      = (IsARM(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isARM"));
     const bool isIntel    = IsIntel(mPhysicalDeviceProperties.vendorID);
-    const bool isNvidia   = IsNvidia(mPhysicalDeviceProperties.vendorID);
-    const bool isPowerVR  = IsPowerVR(mPhysicalDeviceProperties.vendorID);
-    const bool isQualcomm = IsQualcomm(mPhysicalDeviceProperties.vendorID);
+    const bool isNvidia   = (IsNvidia(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isNV"));
+    const bool isPowerVR  = (IsPowerVR(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isPowerVR"));
+    const bool isQualcomm = (IsQualcomm(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isQualcomm"));
     const bool isBroadcom = IsBroadcom(mPhysicalDeviceProperties.vendorID);
     const bool isSamsung  = IsSamsung(mPhysicalDeviceProperties.vendorID);
     const bool isSwiftShader =
-        IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
+        (IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) || std::getenv("AMGLE_isSwiftShader"));
     const bool isLavapipe =
-        IsLavapipe(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
+        (IsLavapipe(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) || std::getenv("AMGLE_isLavapipe"));
     const bool isSoftwareRenderer = isSwiftShader || isLavapipe;
 
     const bool isGalaxyS23 =
