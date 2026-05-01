@@ -103,6 +103,7 @@ mod const_fold {
                 eprintln!("Error: Expected scalars when constant folding a binary op");
                 ir_meta.get_constant_int(1)
             }
+            
         }
     }
 
@@ -1301,7 +1302,7 @@ mod const_fold {
             4 => determinant_4x4(&m4x4),
             s => {
                 eprintln!("Error: Invalid matrix dimensions {} when calculating determinant/inverse", s);
-                determinant_4x4(&m4x4)
+                0.0
             }
         }
     }
