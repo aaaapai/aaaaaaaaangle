@@ -3597,7 +3597,7 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_CLIP_DISTANCE7_EXT:
             *type      = (pname == GL_MAX_CLIP_DISTANCES_EXT) ? GL_INT : GL_BOOL;
             *numParams = 1;
-            return true;
+            break;
         case GL_MAX_CULL_DISTANCES_EXT:
         case GL_MAX_COMBINED_CLIP_AND_CULL_DISTANCES_EXT:
             if (!extensions.clipCullDistanceAny())
