@@ -9651,6 +9651,102 @@ TIntermTyped *TParseContext::addMethod(TFunctionLookup *fnCall, const TSourceLoc
     return CreateZeroNode(TType(EbtInt, EbpUndefined, EvqConst));
 }
 
+
+    TIntermTyped *HandleAtomicBuiltin(TParseContext *context,
+                                      TFunctionLookup *fnCall,
+                                      const TSourceLoc &loc)
+    {
+        const ImmutableString &funcName = fnCall->name();
+        const size_t argCount = fnCall->arguments().size();
+
+        if (funcName.compare(0, 6, "atomic") != 0)
+            return nullptr;
+
+        if (argCount < 1)
+            return nullptr;
+        TIntermTyped *firstArg = fnCall->arguments()[0]->getAsTyped();
+        if (!firstArg)
+            return nullptr;
+        TBasicType basicType = firstArg->getType().getBasicType();
+        if (basicType != EbtInt && basicType != EbtUInt)
+            return nullptr;
+
+        TBasicType returnType = EbtVoid;
+        std::vector<TBasicType> paramTypes;
+        std::vector<TQualifier> paramQualifiers;
+
+        if (funcName == "atomicLoad")
+        {
+            if (argCount != 1) return nullptr;
+            paramTypes = {basicType};           // inout
+            paramQualifiers = {EvqParamInOut};
+            returnType = basicType;
+        }
+        else if (funcName == "atomicStore")
+        {
+            if (argCount != 2) return nullptr;
+            TIntermTyped *secondArg = fnCall->arguments()[1]->getAsTyped();
+            if (!secondArg || secondArg->getType().getBasicType() != basicType)
+                return nullptr;
+            paramTypes = {basicType, basicType}; // inout, in
+            paramQualifiers = {EvqParamInOut, EvqParamIn};
+            returnType = EbtVoid;
+        }
+        else if (funcName == "atomicCompSwap")
+        {
+            if (argCount != 3) return nullptr;
+            for (size_t i = 1; i < 3; ++i)
+            {
+                TIntermTyped *arg = fnCall->arguments()[i]->getAsTyped();
+                if (!arg || arg->getType().getBasicType() != basicType)
+                    return nullptr;
+            }
+            paramTypes = {basicType, basicType, basicType}; // inout, in, in
+            paramQualifiers = {EvqParamInOut, EvqParamIn, EvqParamIn};
+            returnType = basicType;
+        }
+        else  // atomicAdd, atomicExchange, atomicMin, atomicMax, atomicAnd, atomicOr, atomicXor...
+        {
+            if (argCount != 2) return nullptr;
+            TIntermTyped *secondArg = fnCall->arguments()[1]->getAsTyped();
+            if (!secondArg || secondArg->getType().getBasicType() != basicType)
+                return nullptr;
+            paramTypes = {basicType, basicType}; // inout, in
+            paramQualifiers = {EvqParamInOut, EvqParamIn};
+            returnType = basicType;
+        }
+
+        TFunction *dummyFunc = new TFunction(TSymbolUniqueId(&context->symbolTable, 0),
+                                             NewPoolTString(funcName.c_str()),
+                                             SymbolType::BuiltIn);
+
+        for (size_t i = 0; i < paramTypes.size(); ++i)
+        {
+            TType *paramType = new TType(paramTypes[i]);
+            paramType->setQualifier(paramQualifiers[i]);
+            dummyFunc->addParameter(new TConstParameter(paramType));
+        }
+
+        if (returnType != EbtVoid)
+        {
+            TType *retType = new TType(returnType);
+            dummyFunc->setReturnType(*retType);
+        }
+
+        dummyFunc->setBuiltInOp(EOpCallBuiltInFunction);
+
+        TIntermAggregate *callNode =
+            TIntermAggregate::CreateBuiltInFunctionCall(*dummyFunc, &fnCall->arguments());
+        callNode->setLine(loc);
+
+        context->checkAtomicMemoryBuiltinFunctions(callNode);
+        context->functionCallRValueLValueErrorCheck(dummyFunc, callNode);
+
+        context->mIRBuilder.builtIn(EOpCallBuiltInFunction, static_cast<int>(argCount));
+
+        return callNode;
+    }
+
 TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *fnCall,
                                                                const TSourceLoc &loc)
 {
@@ -9761,6 +9857,10 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
         }
         else
         {
+            TIntermTyped *atomic_handled = HandleAtomicBuiltin(this, fnCall, loc);
+            if (atomic_handled)
+               return atomic_handled;
+
             error(loc, "no matching overloaded function found", fnCall->name());
         }
     }
