@@ -132,11 +132,47 @@ const char *GetOperatorString(TOperator op)
         case EOpBitwiseOrAssign:
             return "|=";
 
+        case EOpAtomicAdd:
+            return "atomicAdd";
+        case EOpAtomicMin:
+            return "atomicMin";
+        case EOpAtomicMax:
+            return "atomicMax";
+        case EOpAtomicAnd:
+            return "atomicAnd";
+        case EOpAtomicOr:
+            return "atomicOr";
+        case EOpAtomicXor:
+            return "atomicXor";
+        case EOpAtomicExchange:
+            return "atomicExchange";
+        case EOpAtomicCompSwap:
+            return "atomicCompSwap";
+
         default:
             UNREACHABLE();
             break;
     }
     return "";
+}
+
+
+bool IsAtomicFunction(TOperator op)
+{
+    switch (op)
+    {
+        case EOpAtomicAdd:
+        case EOpAtomicMin:
+        case EOpAtomicMax:
+        case EOpAtomicAnd:
+        case EOpAtomicOr:
+        case EOpAtomicXor:
+        case EOpAtomicExchange:
+        case EOpAtomicCompSwap:
+            return true;
+        default:
+            return false;
+    }
 }
 
 bool IsAssignment(TOperator op)
