@@ -9689,6 +9689,9 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
 
         symbol = symbolTable.findBuiltInWithConversion(
                 fnCall->getMangledNamesForImplicitConversions(), mShaderVersion);
+
+        checkAtomicMemoryBuiltinFunctions(callNode);
+
         if (symbol != nullptr)
         {
             // A built-in function.
@@ -9743,7 +9746,6 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
                 mUsesDerivatives = true;
             }
 
-            checkAtomicMemoryBuiltinFunctions(callNode);
             checkTextureOffset(callNode);
             checkTextureGather(callNode);
             checkInterpolationFS(callNode);
