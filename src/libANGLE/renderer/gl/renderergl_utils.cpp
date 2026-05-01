@@ -1500,16 +1500,16 @@ void GenerateCaps(const FunctionsGL *functions,
         !features.disableMultisampledRenderToTexture.enabled &&
         extensions->multisampledRenderToTextureEXT &&
         functions->hasGLESExtension("GL_EXT_multisampled_render_to_texture2");
-    extensions->standardDerivativesOES = functions->standard == STANDARD_GL_DESKTOP ||
+    extensions->standardDerivativesOES = functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                          functions->hasGLESExtension("GL_OES_standard_derivatives");
-    extensions->shaderTextureLodEXT = functions->standard == STANDARD_GL_DESKTOP ||
+    extensions->shaderTextureLodEXT = functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                       functions->hasGLESExtension("GL_EXT_shader_texture_lod");
-    extensions->fragDepthEXT = functions->standard == STANDARD_GL_DESKTOP ||
+    extensions->fragDepthEXT = functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                functions->hasGLESExtension("GL_EXT_frag_depth");
-    extensions->conservativeDepthEXT = functions->isAtLeastGL(gl::Version(4, 2)) ||
+    extensions->conservativeDepthEXT = functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                        functions->hasGLExtension("GL_ARB_conservative_depth") ||
                                        functions->hasGLESExtension("GL_EXT_conservative_depth");
-    extensions->depthClampEXT = functions->standard == STANDARD_GL_DESKTOP ||
+    extensions->depthClampEXT = functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                 functions->hasGLESExtension("GL_EXT_depth_clamp");
     extensions->polygonOffsetClampEXT = functions->hasExtension("GL_EXT_polygon_offset_clamp");
 
@@ -1577,7 +1577,7 @@ void GenerateCaps(const FunctionsGL *functions,
 
     extensions->textureBorderClampEXT =
         !features.disableTextureClampToBorder.enabled &&
-        (functions->standard == STANDARD_GL_DESKTOP ||
+        (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 2)) ||
          functions->hasGLESExtension("GL_EXT_texture_border_clamp") ||
          functions->hasGLESExtension("GL_OES_texture_border_clamp") ||
          functions->hasGLESExtension("GL_NV_texture_border_clamp"));
@@ -1587,7 +1587,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // strings are not listed there for historical reasons.
     extensions->textureMirrorClampToEdgeEXT =
         !features.disableTextureMirrorClampToEdge.enabled &&
-        (IsMac() || functions->isAtLeastGL(gl::Version(4, 4)) ||
+        (IsMac() || functions->isAtLeastGLES(gl::Version(3, 2)) ||
          functions->hasGLExtension("GL_ARB_texture_mirror_clamp_to_edge") ||
          functions->hasGLExtension("GL_EXT_texture_mirror_clamp") ||
          functions->hasGLExtension("GL_ATI_texture_mirror_once") ||
@@ -1631,7 +1631,7 @@ void GenerateCaps(const FunctionsGL *functions,
     extensions->EGLSyncOES = functions->hasGLESExtension("GL_OES_EGL_sync");
 
     if (!features.disableTimestampQueries.enabled &&
-        (functions->isAtLeastGL(gl::Version(3, 3)) ||
+        (functions->isAtLeastGLES(gl::Version(3, 2)) ||
          functions->hasGLExtension("GL_ARB_timer_query") ||
          functions->hasGLESExtension("GL_EXT_disjoint_timer_query")))
     {
@@ -1651,7 +1651,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // to earlier versions so therefore we're only checking for the extension string
     // and not the specific GLES version.
     extensions->multisampleCompatibilityEXT =
-        functions->standard == STANDARD_GL_DESKTOP ||
+        functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 2)) ||
         functions->hasGLESExtension("GL_EXT_multisample_compatibility");
 
     extensions->framebufferMixedSamplesCHROMIUM =
@@ -1691,7 +1691,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         bool hasFragmentShaderImageLoadStore = false;
-        if (functions->isAtLeastGL(gl::Version(4, 2)) ||
+        if (functions->isAtLeastGLES(gl::Version(3, 2)) ||
             functions->hasGLExtension("GL_ARB_shader_image_load_store"))
         {
             // [ANGLE_shader_pixel_local_storage] "New Implementation Dependent State":
@@ -1738,8 +1738,7 @@ void GenerateCaps(const FunctionsGL *functions,
                     ShFragmentSynchronizationType::FragmentShaderInterlock_ARB_GL;
             }
             // OpenGL ES only allows read/write access to "r32*" images.
-            plsOptions->supportsNativeRGBA8ImageFormats =
-                functions->standard != StandardGL::STANDARD_GL_ES;
+            plsOptions->supportsNativeRGBA8ImageFormats = true;
         }
         else if (features.supportsShaderFramebufferFetchNonCoherentEXT.enabled)
         {
@@ -1753,8 +1752,7 @@ void GenerateCaps(const FunctionsGL *functions,
             extensions->shaderPixelLocalStorageANGLE = true;
             plsOptions->type                         = ShPixelLocalStorageType::ImageLoadStore;
             // OpenGL ES only allows read/write access to "r32*" images.
-            plsOptions->supportsNativeRGBA8ImageFormats =
-                functions->standard != StandardGL::STANDARD_GL_ES;
+            plsOptions->supportsNativeRGBA8ImageFormats = true;
         }
         plsOptions->supportsNoncoherent = true;
     }
@@ -1778,7 +1776,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // Note that OES_texture_storage_multisample_2d_array support could be extended down to GL 3.2
     // if we emulated texStorage* API on top of texImage*.
     extensions->textureStorageMultisample2dArrayOES =
-        functions->isAtLeastGL(gl::Version(4, 3)) ||
+        functions->isAtLeastGLES(gl::Version(3, 2)) ||
         functions->hasGLExtension("GL_ARB_texture_storage_multisample") ||
         functions->hasGLESExtension("GL_OES_texture_storage_multisample_2d_array");
 
@@ -1809,7 +1807,7 @@ void GenerateCaps(const FunctionsGL *functions,
 #endif
 
     extensions->sRGBWriteControlEXT = !features.srgbBlendingBroken.enabled &&
-                                      (functions->standard == STANDARD_GL_DESKTOP ||
+                                      (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                        functions->hasGLESExtension("GL_EXT_sRGB_write_control"));
 
     if (features.bgraTexImageFormatsBroken.enabled)
@@ -1827,12 +1825,9 @@ void GenerateCaps(const FunctionsGL *functions,
 
     extensions->translatedShaderSourceANGLE = true;
 
-    if (functions->standard == STANDARD_GL_DESKTOP)
-    {
         extensions->textureRectangleANGLE = true;
         caps->maxRectangleTextureSize =
             QuerySingleGLInt(functions, GL_MAX_RECTANGLE_TEXTURE_SIZE_ANGLE);
-    }
 
     // OpenGL 4.3 (and above) and OpenGL ES 3.2 can support all features and constants defined in
     // GL_EXT_geometry_shader.
@@ -1842,7 +1837,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // GL_ARB_shader_atomic_counters adds atomic counters to geometry shader
     // GL_ARB_shader_storage_buffer_object adds shader storage buffers to geometry shader
     // GL_ARB_shader_image_load_store adds images to geometry shader
-    bool hasInstancedGSSupport = functions->isAtLeastGL(gl::Version(4, 0)) &&
+    bool hasInstancedGSSupport = functions->isAtLeastGLES(gl::Version(3, 2)) &&
                                  functions->hasGLExtension("GL_ARB_shader_atomic_counters") &&
                                  functions->hasGLExtension("GL_ARB_shader_storage_buffer_object") &&
                                  functions->hasGLExtension("GL_ARB_shader_image_load_store");
@@ -1917,7 +1912,7 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // EXT_blend_func_extended is not implemented on top of ARB_blend_func_extended
     // because the latter does not support fragment shader output layout qualifiers.
-    extensions->blendFuncExtendedEXT = functions->isAtLeastGL(gl::Version(3, 3)) ||
+    extensions->blendFuncExtendedEXT = functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                        functions->hasGLESExtension("GL_EXT_blend_func_extended");
     if (extensions->blendFuncExtendedEXT)
     {
@@ -1944,7 +1939,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // EXT_base_instance
     // Unlike the ANGLE variant, this extension is exposed only if supported natively.
     extensions->baseInstanceEXT = !features.disableBaseInstanceVertex.enabled &&
-                                  (functions->isAtLeastGL(gl::Version(4, 2)) ||
+                                  (functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                    functions->hasGLExtension("GL_ARB_base_instance") ||
                                    functions->hasGLESExtension("GL_EXT_base_instance"));
 
@@ -1975,7 +1970,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // When running on top of desktop OpenGL drivers and allow_etc_formats feature is not enabled,
     // mark ETC1 as emulated to hide it from WebGL clients.
     limitations->emulatedEtc1 =
-        !features.allowETCFormats.enabled && functions->standard == STANDARD_GL_DESKTOP;
+        !features.allowETCFormats.enabled;
 
     // To work around broken unsized sRGB textures, sized sRGB textures are used. Disable EXT_sRGB
     // if those formats are not available.
@@ -1985,7 +1980,7 @@ void GenerateCaps(const FunctionsGL *functions,
         extensions->sRGBEXT = false;
     }
 
-    extensions->provokingVertexANGLE = functions->standard == STANDARD_GL_DESKTOP;
+    extensions->provokingVertexANGLE = true;
 
     extensions->textureExternalUpdateANGLE = true;
     extensions->texture3DOES               = functions->standard == STANDARD_GL_DESKTOP ||
@@ -2019,14 +2014,9 @@ void GenerateCaps(const FunctionsGL *functions,
 
     if (!features.disableClipControl.enabled)
     {
-        extensions->clipControlEXT = functions->isAtLeastGL(gl::Version(4, 5)) ||
+        extensions->clipControlEXT = functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                      functions->hasGLExtension("GL_ARB_clip_control") ||
                                      functions->hasGLESExtension("GL_EXT_clip_control");
-    }
-
-    if (features.disableRenderSnorm.enabled)
-    {
-        extensions->renderSnormEXT = false;
     }
 
     constexpr uint32_t kRequiredClipDistances                = 8;
@@ -2035,7 +2025,7 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // GL_APPLE_clip_distance cannot be implemented on top of GL_EXT_clip_cull_distance,
     // so require either native support or desktop GL.
-    extensions->clipDistanceAPPLE = functions->standard == STANDARD_GL_DESKTOP ||
+    extensions->clipDistanceAPPLE = functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                     functions->hasGLESExtension("GL_APPLE_clip_distance");
     if (extensions->clipDistanceAPPLE)
     {
@@ -2052,7 +2042,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // GL_EXT_clip_cull_distance spec requires shader interface blocks to support
     // built-in array redeclarations on OpenGL ES.
     extensions->clipCullDistanceEXT =
-        functions->isAtLeastGL(gl::Version(4, 5)) ||
+        functions->isAtLeastGLES(gl::Version(3, 2)) ||
         functions->hasGLExtension("GL_ARB_cull_distance") ||
         (extensions->shaderIoBlocksEXT && functions->hasGLESExtension("GL_EXT_clip_cull_distance"));
     if (extensions->clipCullDistanceEXT)
@@ -2076,7 +2066,7 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // Same as GL_EXT_clip_cull_distance but with cull distance support being optional.
     extensions->clipCullDistanceANGLE =
-        (functions->standard == STANDARD_GL_DESKTOP || extensions->clipCullDistanceEXT) &&
+        (functions->isAtLeastGLES(gl::Version(3, 2)) || extensions->clipCullDistanceEXT) &&
         caps->maxClipDistances >= kRequiredClipDistances;
     ASSERT(!extensions->clipCullDistanceANGLE || caps->maxClipDistances > 0);
 
@@ -2122,10 +2112,10 @@ void GenerateCaps(const FunctionsGL *functions,
                                             functions->maxShaderCompilerThreadsARB != nullptr);
 
     // GL_ANGLE_logic_op
-    extensions->logicOpANGLE = functions->standard == STANDARD_GL_DESKTOP;
+    extensions->logicOpANGLE = true;
 
     // GL_EXT_clear_texture
-    extensions->clearTextureEXT = functions->isAtLeastGL(gl::Version(4, 4)) ||
+    extensions->clearTextureEXT = functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                   functions->hasGLESExtension("GL_EXT_clear_texture") ||
                                   functions->hasGLExtension("GL_ARB_clear_texture");
 
