@@ -97,11 +97,11 @@ mod const_fold {
             }
             (&ConstantValue::YuvCsc(_), &ConstantValue::YuvCsc(_)) => {
                 eprintln!("Error: Binary operation not allowed on YUV CSC constants");
-                ir_meta.get_constant_int(1)
+                ir_meta.get_constant_int(0)
             }
             _ => {
                 eprintln!("Error: Expected scalars when constant folding a binary op");
-                ir_meta.get_constant_int(1)
+                ir_meta.get_constant_int(0)
             }
             
         }
@@ -1907,7 +1907,10 @@ mod const_fold {
                 eprintln!("Internal error: Unexpected built-ins to constant-fold");
                 return constant_id;
             }
-            _ => |_| panic!("Internal error: Invalid built-in operation on float"),
+            _ => {
+               eprintln!("Internal error: Invalid built-in operation on float");
+               return constant_id;
+            }
         };
 
         let int_op = match op {
@@ -1922,17 +1925,26 @@ mod const_fold {
                 }
             },
             UnaryOpCode::BitfieldReverse => |i: i32| i.reverse_bits(),
-            _ => |_| panic!("Internal error: Invalid built-in operation on int"),
+            _ => {
+               eprintln!("Internal error: Invalid built-in operation on int");
+               |_i: i32| 0
+            }
         };
 
         let uint_op = match op {
             UnaryOpCode::BitfieldReverse => |u: u32| u.reverse_bits(),
-            _ => |_| panic!("Internal error: Invalid built-in operation on uint"),
+            _ => {
+              eprintln!("Internal error: Invalid built-in operation on uint");
+              |_u: u32| 0u32
+            }
         };
 
         let bool_op = match op {
             UnaryOpCode::Not => |b: bool| !b,
-            _ => |_| panic!("Internal error: Invalid built-in operation on uint"),
+            _ => {
+              eprintln!("Internal error: Invalid built-in operation on uint");
+              |_b: bool| false
+            }
         };
 
         apply_unary_componentwise(
