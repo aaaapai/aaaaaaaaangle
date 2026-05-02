@@ -3872,7 +3872,11 @@ void Context::beginTransformFeedback(PrimitiveMode primitiveMode)
     ASSERT(!transformFeedback->isPaused());
 
     // TODO: http://anglebug.com/42265705: Handle PPOs
-    ANGLE_CONTEXT_TRY(transformFeedback->begin(this, primitiveMode, mState.getProgram()));
+    // Since programs should override PPOs, no PPO is passed to the transform feedback if a program
+    // is active.
+    Program *program                 = mState.getProgram();
+    ProgramPipeline *programPipeline = program == nullptr ? mState.getProgramPipeline() : nullptr;
+    ANGLE_CONTEXT_TRY(transformFeedback->begin(this, primitiveMode, program, programPipeline));
     onActiveTransformFeedbackChange();
 }
 
@@ -5217,6 +5221,26 @@ void Context::readPixelsRobust(GLint x,
                                void *pixels)
 {
     ANGLE_CONTEXT_TRY(readPixelsImpl(x, y, width, height, format, type, pixels));
+
+    if (length != nullptr)
+    {
+        if (mState.getTargetBuffer(BufferBinding::PixelPack) == nullptr)
+        {
+            const InternalFormat &formatInfo = GetInternalFormatInfo(format, type);
+
+            GLuint endByte   = 0;
+            const bool valid = formatInfo.computePackUnpackEndByte(
+                type, Extents(width, height, 1), mState.getPackState(), false, &endByte);
+            ASSERT(valid);
+            ASSERT(endByte <= static_cast<GLuint>(std::numeric_limits<GLsizei>::max()));
+
+            *length = static_cast<GLsizei>(endByte);
+        }
+        else
+        {
+            *length = 0;
+        }
+    }
 
     GLsizei columnsValue = 0;
     GLsizei rowsValue    = 0;
@@ -6777,7 +6801,7 @@ angle::ScratchBuffer *Context::getScratchBuffer() const
 }
 
 bool Context::getZeroFilledBuffer(size_t requstedSizeBytes,
-                                  angle::MemoryBuffer **zeroBufferOut) const
+                                  const angle::MemoryBuffer **zeroBufferOut) const
 {
     if (!mZeroFilledBuffer.valid())
     {
@@ -6785,7 +6809,15 @@ bool Context::getZeroFilledBuffer(size_t requstedSizeBytes,
     }
 
     ASSERT(mZeroFilledBuffer.valid());
-    return mZeroFilledBuffer.value().getInitialized(requstedSizeBytes, zeroBufferOut, 0);
+
+    angle::MemoryBuffer *memoryBuffer = nullptr;
+    if (!mZeroFilledBuffer.value().getInitialized(requstedSizeBytes, &memoryBuffer, 0))
+    {
+        return false;
+    }
+
+    *zeroBufferOut = memoryBuffer;
+    return true;
 }
 
 void Context::dispatchCompute(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ)
