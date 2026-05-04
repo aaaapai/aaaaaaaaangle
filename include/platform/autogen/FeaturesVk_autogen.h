@@ -20,6 +20,12 @@ struct FeaturesVk : FeatureSetBase
     FeaturesVk();
     ~FeaturesVk();
 
+    FeatureInfo preferBGRA8ToRGBA8 = {
+        "preferBGRA8ToRGBA8",
+        FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
     FeatureInfo appendAliasedMemoryDecorations = {
         "appendAliasedMemoryDecorations",
         FeatureCategory::VulkanWorkarounds,
