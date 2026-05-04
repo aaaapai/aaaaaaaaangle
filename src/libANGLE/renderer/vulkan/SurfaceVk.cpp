@@ -1224,6 +1224,12 @@ angle::FormatID WindowSurfaceVk::getActualFormatID(vk::Renderer *renderer)
     // Ensure that the format and colorspace pair is supported.
     const vk::Format &format = renderer->getFormat(mState.config->renderTargetFormat);
 
+    if (renderer->getFeatures().preferBGRA8ToRGBA8.enabled &&
+        intendedFormatID == angle::FormatID::R8G8B8A8_UNORM)
+    {
+        actualFormatID = angle::FormatID::B8G8R8A8_UNORM;
+    }
+
     angle::FormatID actualFormatID   = format.getActualRenderableImageFormatID();
     angle::FormatID intendedFormatID = format.getIntendedFormatID();
 
