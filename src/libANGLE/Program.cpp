@@ -1777,7 +1777,6 @@ bool Program::linkValidateShaders()
         {
             mState.mInfoLog << "Work group size is not specified.";
             return false;
-            //shaders[ShaderType::Compute]->localSize.set(32, 32, 1);
         }
     }
     else
