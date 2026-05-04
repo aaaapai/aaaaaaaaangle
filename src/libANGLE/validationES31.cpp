@@ -1300,7 +1300,7 @@ bool ValidateDispatchCompute(const Context *context,
     const State &state                  = context->getState();
     const ProgramExecutable *executable = state.getLinkedProgramExecutable(context);
 
-    if (executable == nullptr)
+    if (executable == nullptr || !executable->hasLinkedShaderStage(ShaderType::Compute))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kNoActiveProgramWithComputeShader);
         return false;
@@ -1333,7 +1333,7 @@ bool ValidateDispatchComputeIndirect(const Context *context,
     const State &state                  = context->getState();
     const ProgramExecutable *executable = state.getProgramExecutable();
 
-    if (executable == nullptr)
+    if (executable == nullptr || !executable->hasLinkedShaderStage(ShaderType::Compute))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kNoActiveProgramWithComputeShader);
         return false;
