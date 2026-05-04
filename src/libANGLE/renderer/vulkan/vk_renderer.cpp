@@ -225,7 +225,7 @@ bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *devi
     }
 
     // Otherwise, look for Venus or Turnip in the device name.
-    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr || (std::getenv("ANGLE_IsQualcommOpenSource"));
+    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr;
 }
 
 bool IsXclipse()
@@ -5393,8 +5393,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Distinguish between the open source and proprietary Qualcomm drivers
     const bool isQualcommOpenSource =
-        IsQualcommOpenSource(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
-                             mPhysicalDeviceProperties.deviceName);
+        (IsQualcommOpenSource(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
+                             mPhysicalDeviceProperties.deviceName) || (std::getenv("ANGLE_isQualcommOpenSource")));
     const bool isQualcommProprietary = isQualcomm && !isQualcommOpenSource;
 
     // Distinguish between the ARM proprietary driver and the Mesa open source driver
