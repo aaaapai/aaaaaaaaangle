@@ -1449,10 +1449,6 @@ void Renderer::ensureCapsInitialized() const
         mNativePLSOptions.type == ShPixelLocalStorageType::FramebufferFetch;
     if (hasMRTFramebufferFetch)
     {
-        mNativeCaps.maxColorAttachments = std::min<uint32_t>(
-            mNativeCaps.maxColorAttachments, limitsVk.maxPerStageDescriptorInputAttachments);
-        mNativeCaps.maxDrawBuffers = std::min<uint32_t>(
-            mNativeCaps.maxDrawBuffers, limitsVk.maxPerStageDescriptorInputAttachments);
 
         // Make sure no more than the allowed input attachments bindings are used by descriptor set
         // layouts.  This number matches the number of color attachments because of framebuffer
@@ -1488,10 +1484,6 @@ void Renderer::ensureCapsInitialized() const
             maxDrawBuffersWithDepthStencilInput >= 4)
         {
             mNativeExtensions.shaderFramebufferFetchDepthStencilARM = true;
-            mNativeCaps.maxColorAttachments = maxColorAttachmentsWithDepthStencilInput;
-            mNativeCaps.maxDrawBuffers      = maxDrawBuffersWithDepthStencilInput;
-            mMaxColorInputAttachmentCount =
-                std::min<uint32_t>(mMaxColorInputAttachmentCount, mNativeCaps.maxColorAttachments);
         }
     }
 
