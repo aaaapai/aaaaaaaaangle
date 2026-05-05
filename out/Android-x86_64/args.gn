@@ -166,3 +166,5 @@ use_dummy_lastchange = false
 rust_lto = "fat"
 
 angle_has_frame_capture = false
+
+use_mold = false
