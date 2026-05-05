@@ -1336,8 +1336,7 @@ void GenerateCaps(const FunctionsGL *functions,
         //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
-    if (functions->isAtLeastGL(gl::Version(4, 2)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
-        functions->hasGLExtension("GL_ARB_shader_image_load_store"))
+    if (functions->isAtLeastGL(gl::Version(4, 2)) || functions->isAtLeastGLES(gl::Version(3, 1)))
     {
         caps->maxShaderImageUniforms[gl::ShaderType::Vertex] =
             QuerySingleGLInt(functions, GL_MAX_VERTEX_IMAGE_UNIFORMS);
