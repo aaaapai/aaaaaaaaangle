@@ -2803,7 +2803,7 @@ void TParseContext::checkIndexIsNotSpecified(const TSourceLoc &location, int ind
 {
     if (index != -1)
     {
-        error(location,
+        warning(location,
               "invalid layout qualifier: only valid when used with a fragment shader output in "
               "ESSL version >= 3.00 and EXT_blend_func_extended is enabled",
               "index");
@@ -10262,7 +10262,7 @@ void TParseContext::postParseValidateFragmentOutputLocations()
         mFragmentOutputsWithoutLocation.size() > 1)
     {
         const char *unspecifiedLocationErrorMessage = nullptr;
-        if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
+        /*if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
         {
             unspecifiedLocationErrorMessage =
                 "when EXT_blend_func_extended extension is not enabled, must explicitly specify "
@@ -10279,7 +10279,7 @@ void TParseContext::postParseValidateFragmentOutputLocations()
             unspecifiedLocationErrorMessage =
                 "must explicitly specify all locations when using multiple fragment outputs "
                 "in WebGL contexts, even if EXT_blend_func_extended is enabled";
-        }
+        }*/
         if (unspecifiedLocationErrorMessage != nullptr)
         {
             for (const VariableAndLocation &variable : mFragmentOutputsWithoutLocation)
