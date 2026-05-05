@@ -1074,8 +1074,8 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxLODBias            = 2.0f;
         caps.maxCubeMapTextureSize = 2048;
         caps.maxRenderbufferSize   = 2048;
-        caps.maxDrawBuffers        = 4;
-        caps.maxColorAttachments   = 4;
+        caps.maxDrawBuffers        = 8;
+        caps.maxColorAttachments   = 8;
         caps.maxViewportWidth      = caps.max2DTextureSize;
         caps.maxViewportHeight     = caps.max2DTextureSize;
 
