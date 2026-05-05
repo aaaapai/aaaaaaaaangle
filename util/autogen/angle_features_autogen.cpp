@@ -17,6 +17,7 @@ namespace
 {
 constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::AddAndTrueToLoopCondition, "addAndTrueToLoopCondition"},
+    {Feature::AddFramebufferFetchBarrierOnUseMidRenderPass, "addFramebufferFetchBarrierOnUseMidRenderPass"},
     {Feature::AddMockTextureNoRenderTarget, "addMockTextureNoRenderTarget"},
     {Feature::AdjustClearColorPrecision, "adjustClearColorPrecision"},
     {Feature::AdjustSrcDstRegionForBlitFramebuffer, "adjustSrcDstRegionForBlitFramebuffer"},

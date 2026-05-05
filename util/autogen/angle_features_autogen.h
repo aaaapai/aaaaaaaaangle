@@ -17,6 +17,7 @@ namespace angle
 enum class Feature
 {
     AddAndTrueToLoopCondition,
+    AddFramebufferFetchBarrierOnUseMidRenderPass,
     AddMockTextureNoRenderTarget,
     AdjustClearColorPrecision,
     AdjustSrcDstRegionForBlitFramebuffer,
