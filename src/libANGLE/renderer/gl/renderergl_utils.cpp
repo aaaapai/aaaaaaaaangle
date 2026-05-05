@@ -1912,14 +1912,13 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // EXT_blend_func_extended is not implemented on top of ARB_blend_func_extended
     // because the latter does not support fragment shader output layout qualifiers.
-    extensions->blendFuncExtendedEXT = functions->isAtLeastGLES(gl::Version(3, 2)) ||
-                                       functions->hasGLESExtension("GL_EXT_blend_func_extended");
+    extensions->blendFuncExtendedEXT = functions->isAtLeastGLES(gl::Version(3, 2));
     if (extensions->blendFuncExtendedEXT)
     {
         // TODO(http://anglebug.com/40644593): Support greater values of
         // MAX_DUAL_SOURCE_DRAW_BUFFERS_EXT queried from the driver. See comments in ProgramGL.cpp
         // for more information about this limitation.
-        caps->maxDualSourceDrawBuffers = 1;
+        caps->maxDualSourceDrawBuffers = 32;
     }
 
     // EXT_float_blend
