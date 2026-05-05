@@ -189,11 +189,11 @@ void InitBuiltInResources(ShBuiltInResources *resources)
     resources->MaxVertexAttribs                    = 8;
     resources->MaxVertexUniformVectors             = 128;
     resources->MaxVaryingVectors                   = 8;
-    resources->MaxVertexTextureImageUnits          = 0;
+    resources->MaxVertexTextureImageUnits          = 8;
     resources->MaxCombinedTextureImageUnits        = 8;
     resources->MaxTextureImageUnits                = 8;
     resources->MaxFragmentUniformVectors           = 16;
-    resources->MaxDrawBuffers                      = 1;
+    resources->MaxDrawBuffers                      = 8;
     resources->ShadingRateFlag2VerticalPixelsEXT   = 1;
     resources->ShadingRateFlag4VerticalPixelsEXT   = 2;
     resources->ShadingRateFlag2HorizontalPixelsEXT = 4;
@@ -214,16 +214,16 @@ void InitBuiltInResources(ShBuiltInResources *resources)
     resources->EXT_shader_framebuffer_fetch_non_coherent      = 0;
     resources->ARM_shader_framebuffer_fetch                   = 0;
     resources->ARM_shader_framebuffer_fetch_depth_stencil     = 0;
-    resources->OVR_multiview                                  = 0;
-    resources->OVR_multiview2                                 = 0;
-    resources->EXT_YUV_target                                 = 0;
-    resources->EXT_geometry_shader                            = 0;
-    resources->OES_geometry_shader                            = 0;
-    resources->EXT_gpu_shader5                                = 0;
-    resources->OES_gpu_shader5                                = 0;
+    resources->OVR_multiview                                  = 1;
+    resources->OVR_multiview2                                 = 1;
+    resources->EXT_YUV_target                                 = 1;
+    resources->EXT_geometry_shader                            = 1;
+    resources->OES_geometry_shader                            = 1;
+    resources->EXT_gpu_shader5                                = 1;
+    resources->OES_gpu_shader5                                = 1;
     resources->OES_shader_io_blocks                           = 0;
     resources->EXT_shader_io_blocks                           = 0;
-    resources->EXT_shader_non_constant_global_initializers    = 0;
+    resources->EXT_shader_non_constant_global_initializers    = 1;
     resources->NV_shader_noperspective_interpolation          = 0;
     resources->OES_texture_storage_multisample_2d_array       = 0;
     resources->OES_texture_3D                                 = 0;
@@ -249,35 +249,35 @@ void InitBuiltInResources(ShBuiltInResources *resources)
     resources->EXT_fragment_shading_rate                      = 0;
     resources->EXT_fragment_shading_rate_primitive            = 0;
     resources->OES_sample_variables                           = 0;
-    resources->EXT_clip_cull_distance                         = 0;
-    resources->ANGLE_clip_cull_distance                       = 0;
+    resources->EXT_clip_cull_distance                         = 1;
+    resources->ANGLE_clip_cull_distance                       = 1;
     resources->KHR_blend_equation_advanced                    = 0;
 
-    resources->MaxClipDistances                = 8;
-    resources->MaxCullDistances                = 8;
-    resources->MaxCombinedClipAndCullDistances = 8;
+    resources->MaxClipDistances                = 32;
+    resources->MaxCullDistances                = 32;
+    resources->MaxCombinedClipAndCullDistances = 32;
 
     // GLSL ES 3.0 constants.
-    resources->MaxVertexOutputVectors  = 16;
-    resources->MaxFragmentInputVectors = 15;
-    resources->MinProgramTexelOffset   = -8;
-    resources->MaxProgramTexelOffset   = 7;
-    resources->MaxFragmentUniformBlocks = 12;
-    resources->MaxVertexUniformBlocks   = 12;
+    resources->MaxVertexOutputVectors  = 64;
+    resources->MaxFragmentInputVectors = 30;
+    resources->MinProgramTexelOffset   = -16;
+    resources->MaxProgramTexelOffset   = 14;
+    resources->MaxFragmentUniformBlocks = 48;
+    resources->MaxVertexUniformBlocks   = 48;
 
     // Extensions constants.
-    resources->MaxDualSourceDrawBuffers = 0;
+    resources->MaxDualSourceDrawBuffers = 8;
 
-    resources->MaxViewsOVR = 4;
+    resources->MaxViewsOVR = 8;
 
     // Disable name hashing by default.
     resources->HashFunction = nullptr;
 
     resources->UserVariableNamePrefix = kUserDefinedNamePrefix;
 
-    resources->MaxExpressionComplexity = 256;
-    resources->MaxStatementDepth       = 256;
-    resources->MaxCallStackDepth       = 256;
+    resources->MaxExpressionComplexity = 1024;
+    resources->MaxStatementDepth       = 1024;
+    resources->MaxCallStackDepth       = 1024;
     // Note: SPIR-V and MSL don't allow more than 255 parameters to a function.
     resources->MaxFunctionParameters = 255;
 
@@ -287,14 +287,14 @@ void InitBuiltInResources(ShBuiltInResources *resources)
     // "The value of MIN_PROGRAM_TEXTURE_GATHER_OFFSET must be less than or equal to the value of
     // MIN_PROGRAM_TEXEL_OFFSET. The value of MAX_PROGRAM_TEXTURE_GATHER_OFFSET must be greater than
     // or equal to the value of MAX_PROGRAM_TEXEL_OFFSET"
-    resources->MinProgramTextureGatherOffset = -8;
-    resources->MaxProgramTextureGatherOffset = 7;
+    resources->MinProgramTextureGatherOffset = -15;
+    resources->MaxProgramTextureGatherOffset = 14;
 
-    resources->MaxImageUnits            = 4;
-    resources->MaxVertexImageUniforms   = 0;
-    resources->MaxFragmentImageUniforms = 0;
-    resources->MaxComputeImageUniforms  = 4;
-    resources->MaxCombinedImageUniforms = 4;
+    resources->MaxImageUnits            = 8;
+    resources->MaxVertexImageUniforms   = 8;
+    resources->MaxFragmentImageUniforms = 8;
+    resources->MaxComputeImageUniforms  = 8;
+    resources->MaxCombinedImageUniforms = 8;
 
     resources->MaxUniformLocations = 1024;
 
