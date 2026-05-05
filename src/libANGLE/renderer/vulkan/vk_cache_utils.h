@@ -1791,6 +1791,8 @@ struct ImageOrBufferViewSubresourceSerial
     ImageSubresourceRange subresource;
 };
 
+static_assert(sizeof(ImageOrBufferViewSubresourceSerial) == 16, "Size check failed");
+
 inline bool operator==(const ImageOrBufferViewSubresourceSerial &a,
                        const ImageOrBufferViewSubresourceSerial &b)
 {
@@ -1813,13 +1815,13 @@ static_assert(sizeof(WriteDescriptorDesc) == 4, "Size mismatch");
 
 struct DescriptorInfoDesc
 {
-    uint32_t samplerOrBufferSerialOrStorageFormat;
-    uint32_t imageViewSerialOrOffset;
+    uint64_t samplerOrBufferSerialOrStorageFormat;
+    uint64_t imageViewSerialOrOffset;
     uint32_t imageLayoutOrRange;
     uint32_t imageSubresourceRange;
 };
 
-static_assert(sizeof(DescriptorInfoDesc) == 16, "Size mismatch");
+static_assert(sizeof(DescriptorInfoDesc) == 24, "Size mismatch");
 
 // Generic description of a descriptor set. Used as a key when indexing descriptor set caches. The
 // key storage is an angle:FixedVector. Beyond a certain fixed size we'll end up using heap memory
@@ -2275,11 +2277,12 @@ class FramebufferDesc
     // Used by SharedFramebufferCacheKey to indicate if this cache key is valid or not.
     uint16_t mIsValid : 1;
 
+    uint32_t mPadding;
+
     FramebufferAttachmentArray<ImageOrBufferViewSubresourceSerial> mSerials;
 };
 
-constexpr size_t kFramebufferDescSize = sizeof(FramebufferDesc);
-static_assert(kFramebufferDescSize == 156, "Size check failed");
+static_assert(sizeof(FramebufferDesc) == 312, "Size check failed");
 
 // Disable warnings about struct padding.
 ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
@@ -2459,7 +2462,7 @@ struct hash<rx::vk::SamplerDesc>
     {                                                            \
         size_t operator()(const rx::vk::Type##Serial &key) const \
         {                                                        \
-            return key.getValue();                               \
+            return std::hash<uint64_t>()(key.getValue());        \
         }                                                        \
     };
 
