@@ -1149,18 +1149,18 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxVertexAttribStride         = 2048;
 
         // Table 20.43
-        caps.maxShaderAtomicCounterBuffers[ShaderType::Vertex] = 0;
-        caps.maxShaderAtomicCounters[ShaderType::Vertex]       = 0;
-        caps.maxShaderImageUniforms[ShaderType::Vertex]        = 0;
-        caps.maxShaderStorageBlocks[ShaderType::Vertex]        = 0;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::Vertex] = 256;
+        caps.maxShaderAtomicCounters[ShaderType::Vertex]       = 256;
+        caps.maxShaderImageUniforms[ShaderType::Vertex]        = 256;
+        caps.maxShaderStorageBlocks[ShaderType::Vertex]        = 256;
 
         // Table 20.44
         caps.maxShaderUniformComponents[ShaderType::Fragment]    = 1024;
         caps.maxFragmentUniformVectors                           = 256;
-        caps.maxShaderAtomicCounterBuffers[ShaderType::Fragment] = 0;
-        caps.maxShaderAtomicCounters[ShaderType::Fragment]       = 0;
-        caps.maxShaderImageUniforms[ShaderType::Fragment]        = 0;
-        caps.maxShaderStorageBlocks[ShaderType::Fragment]        = 0;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::Fragment] = 256;
+        caps.maxShaderAtomicCounters[ShaderType::Fragment]       = 256;
+        caps.maxShaderImageUniforms[ShaderType::Fragment]        = 256;
+        caps.maxShaderStorageBlocks[ShaderType::Fragment]        = 256;
         caps.minProgramTextureGatherOffset                       = caps.minProgramTexelOffset;
         caps.maxProgramTextureGatherOffset                       = caps.maxProgramTexelOffset;
 
