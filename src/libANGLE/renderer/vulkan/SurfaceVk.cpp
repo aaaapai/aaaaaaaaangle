@@ -1241,13 +1241,14 @@ angle::FormatID WindowSurfaceVk::getActualFormatID(vk::Renderer *renderer)
     {
         actualFormatID = angle::FormatID::R5G6B5_UNORM;
     }
-    return actualFormatID;
-    
+
     if (renderer->getFeatures().preferBGRA8ToRGBA8.enabled &&
         intendedFormatID == angle::FormatID::R8G8B8A8_UNORM)
     {
         actualFormatID = angle::FormatID::B8G8R8A8_UNORM;
     }
+
+    return actualFormatID;
 }
 
 bool WindowSurfaceVk::updateColorSpace(DisplayVk *displayVk)
