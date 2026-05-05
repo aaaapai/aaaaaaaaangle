@@ -1217,29 +1217,29 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
     if (extensions.geometryShaderAny())
     {
         // Table 20.40 (GL_EXT_geometry_shader)
-        caps.maxFramebufferLayers = 256;
+        caps.maxFramebufferLayers = 2048;
         caps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION_EXT;
 
         // Table 20.43gs (GL_EXT_geometry_shader)
-        caps.maxShaderUniformComponents[ShaderType::Geometry] = 1024;
+        caps.maxShaderUniformComponents[ShaderType::Geometry] = 2048;
         caps.maxShaderUniformBlocks[ShaderType::Geometry]     = limits::kMinimumShaderUniformBlocks;
         caps.maxGeometryInputComponents                       = 64;
         caps.maxGeometryOutputComponents                      = 64;
         caps.maxGeometryOutputVertices                        = 256;
         caps.maxGeometryTotalOutputComponents                 = 1024;
         caps.maxShaderTextureImageUnits[ShaderType::Geometry] = 16;
-        caps.maxShaderAtomicCounterBuffers[ShaderType::Geometry] = 0;
-        caps.maxShaderAtomicCounters[ShaderType::Geometry]       = 0;
-        caps.maxShaderStorageBlocks[ShaderType::Geometry]        = 0;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::Geometry] = 256;
+        caps.maxShaderAtomicCounters[ShaderType::Geometry]       = 256;
+        caps.maxShaderStorageBlocks[ShaderType::Geometry]        = 256;
         caps.maxGeometryShaderInvocations                        = 32;
 
         // Table 20.46 (GL_EXT_geometry_shader)
-        caps.maxShaderImageUniforms[ShaderType::Geometry] = 0;
+        caps.maxShaderImageUniforms[ShaderType::Geometry] = 256;
 
         // Table 20.46 (GL_EXT_geometry_shader)
-        caps.maxUniformBufferBindings     = 48;
-        caps.maxCombinedUniformBlocks     = 36;
-        caps.maxCombinedTextureImageUnits = 64;
+        caps.maxUniformBufferBindings     = 128;
+        caps.maxCombinedUniformBlocks     = 72;
+        caps.maxCombinedTextureImageUnits = 128;
     }
 
     if (extensions.tessellationShaderAny())
