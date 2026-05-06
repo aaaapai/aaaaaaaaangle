@@ -83,11 +83,11 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
                                              err::kFramebufferIncompleteAttachmentZeroSize);
     }*/
 
-    if (!attachment.isRenderable(context))
+    /*if (!attachment.isRenderable(context))
     {
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                                              err::kFramebufferIncompleteAttachmentNotRenderable);
-    }
+    }*/
 
     if (attachment.type() == GL_TEXTURE)
     {
@@ -1608,13 +1608,13 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
 
     // In ES 2.0 and WebGL, all color attachments must have the same width and height.
     // In ES 3.0, there is no such restriction.
-    if ((state.getClientVersion() < ES_3_0 || state.getExtensions().webglCompatibilityANGLE) &&
+    /*if ((state.getClientVersion() < ES_3_0 || state.getExtensions().webglCompatibilityANGLE) &&
         !mState.attachmentsHaveSameDimensions())
     {
         return FramebufferStatus::Incomplete(
             GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS,
             err::kFramebufferIncompleteInconsistantAttachmentSizes);
-    }
+    }*/
 
     // ES3.1(section 9.4) requires that if the attached images are a mix of renderbuffers and
     // textures, the value of TEXTURE_FIXED_SAMPLE_LOCATIONS must be TRUE for all attached textures.
