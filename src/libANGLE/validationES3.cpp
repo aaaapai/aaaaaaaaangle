@@ -297,7 +297,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
         if (type != GL_UNSIGNED_BYTE)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-            return false;
+            //return false;
         }
     }
     else
@@ -338,7 +338,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
             if (!extensionFormatsAllowed)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-                return false;
+                //return false;
             }
         }
     }
@@ -347,7 +347,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
     if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
-        return false;
+        //return false;
     }
 
     return true;
