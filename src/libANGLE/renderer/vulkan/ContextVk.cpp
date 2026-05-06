@@ -5266,8 +5266,6 @@ void ContextVk::updateDither()
     {
         mGraphicsPipelineDesc->updateEmulatedDitherControl(&mGraphicsPipelineTransition,
                                                            ditherControl);
-        mGraphicsDriverUniforms.updateEmulatedDitherControl(ditherControl);
-        mGraphicsDirtyBits.set(DIRTY_BIT_DRIVER_UNIFORMS);
         invalidateCurrentGraphicsPipeline();
     }
 }

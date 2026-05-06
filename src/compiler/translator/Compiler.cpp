@@ -1543,7 +1543,6 @@ void TCompiler::clearResults()
     mDiagnostics.resetErrorCount();
 
     mMetadataFlags.reset();
-    mSpecConstUsageBits.reset();
 
     mAttributes.clear();
     mOutputVariables.clear();

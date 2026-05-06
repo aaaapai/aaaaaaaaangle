@@ -583,6 +583,7 @@ spirv::IdRef OutputSPIRVTraverser::getSymbolIdAndStorageClass(const TSymbol *sym
         case EvqFragCoord:
             name              = "gl_FragCoord";
             builtInDecoration = spv::BuiltInFragCoord;
+            uniqueId          = &symbol->uniqueId();
             break;
         case EvqFrontFacing:
             name              = "gl_FrontFacing";

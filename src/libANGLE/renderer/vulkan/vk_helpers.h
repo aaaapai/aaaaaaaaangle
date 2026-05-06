@@ -3969,21 +3969,18 @@ class ShaderProgramHelper : angle::NonCopyable
         const PipelineLayout &pipelineLayout,
         PipelineSource source,
         const GraphicsPipelineDesc &pipelineDesc,
-        const SpecializationConstants &specConsts,
         const GraphicsPipelineDesc **descPtrOut,
         PipelineHelper **pipelineOut) const
     {
         return graphicsPipelines->createPipeline(
             context, pipelineCache, compatibleRenderPass, pipelineLayout,
-            GraphicsPipelineShadersInfo(&mShaders, &specConsts), source, pipelineDesc, descPtrOut,
-            pipelineOut);
+            GraphicsPipelineShadersInfo(&mShaders), source, pipelineDesc, descPtrOut, pipelineOut);
     }
 
     void createMonolithicPipelineCreationTask(vk::ErrorContext *context,
                                               PipelineCacheAccess *pipelineCache,
                                               const GraphicsPipelineDesc &desc,
                                               const PipelineLayout &pipelineLayout,
-                                              const SpecializationConstants &specConsts,
                                               PipelineHelper *pipeline) const;
 
     angle::Result getOrCreateComputePipeline(vk::ErrorContext *context,

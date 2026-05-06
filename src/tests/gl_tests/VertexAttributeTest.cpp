@@ -5861,6 +5861,75 @@ void main() {
 class VertexAttributeUint8Test : public VertexAttributeTestES3
 {};
 
+// Regression test for a bug in VertexBuffer11::storeVertexAttributes where an integer overflow
+// could occur when calculating input/output pointers during vertex attribute conversion.
+TEST_P(VertexAttributeTest, StoreVertexAttributesIntegerOverflow)
+{
+    // This test specifically targets the D3D11 backend's vertex attribute storage logic.
+    // It triggers a path where attributes are copied/converted, which is common when
+    // strides or formats require translation.
+    // TODO(zmo): Make this test run and pass in all platforms.
+    ANGLE_SKIP_TEST_IF(!IsD3D11());
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+    glUseProgram(program);
+    GLint posLoc = glGetAttribLocation(program, essl1_shaders::PositionAttrib());
+    ASSERT_NE(-1, posLoc);
+
+    // Create a buffer for position data.
+    auto quadVertices = GetQuadVertices();
+    GLBuffer posBuf;
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf);
+    glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(Vector3), quadVertices.data(),
+                 GL_STATIC_DRAW);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    // Create a second attribute that will trigger the overflow.
+    // We use a large stride and a large 'first' (start) index to trigger the overflow
+    // in 'input += inputStride * start'.
+    // inputStride = 255, start = (2^32 / 255) + 1 should overflow a 32-bit size_t.
+    // On 64-bit it won't overflow size_t unless we use much larger values, but the
+    // D3D11 buffer offset 'unsigned int offset' can also be targeted.
+
+    // Target the 'input += inputStride * start' overflow.
+    // We'll use a stride that's not a multiple of 4 to force the slow path (conversion) in D3D11.
+    const GLsizei srcStride = 255;
+    // On 32-bit systems, this will overflow: 0x10000000 * 255 > 2^32.
+    // On 64-bit systems, we'd need a much larger value, but this is a good start
+    // for testing the overflow logic.
+    const GLint first = 0x10000000;
+
+    // We don't need a huge buffer if we're just testing the overflow check.
+    // But we need to make sure the draw call is "valid" enough to reach the renderer.
+    GLBuffer instBuf;
+    glBindBuffer(GL_ARRAY_BUFFER, instBuf);
+    glBufferData(GL_ARRAY_BUFFER, 1024, nullptr, GL_STATIC_DRAW);
+
+    GLint testLoc = 1;  // Use an attribute location that's likely available.
+    glEnableVertexAttribArray(testLoc);
+    glVertexAttribPointer(testLoc, 4, GL_UNSIGNED_BYTE, GL_FALSE, srcStride, nullptr);
+
+    // This draw call will trigger VertexBuffer11::storeVertexAttributes.
+    glDrawArrays(GL_TRIANGLES, first, 3);
+
+    // If the fix is working, we shouldn't crash.
+    // We check if the calculation would have overflowed for the current architecture's ptrdiff_t.
+    angle::CheckedNumeric<ptrdiff_t> checkedInputOffset(static_cast<ptrdiff_t>(first));
+    checkedInputOffset *= static_cast<ptrdiff_t>(srcStride);
+
+    if (!checkedInputOffset.IsValid())
+    {
+        // If it overflowed, ANGLE_CHECK_GL_MATH should have triggered a GL_INVALID_OPERATION.
+        EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    }
+    else
+    {
+        // If it didn't overflow (e.g. on 64-bit), we just ensure no crash and no GL error.
+        EXPECT_GL_NO_ERROR();
+    }
+}
+
 // Regression test for a bug in emulation of 8-bit indices, when the end of
 // the index buffer is used.
 TEST_P(VertexAttributeUint8Test, ConvertUint8IndexAtEndOfBuffer)
