@@ -23,7 +23,6 @@
 
 #include "anglebase/no_destructor.h"
 #include "common/android_util.h"
-#include "common/angleutils.h"
 #include "common/debug.h"
 #include "common/mathutil.h"
 #include "common/platform_helpers.h"
@@ -956,7 +955,7 @@ Error SyncSet::createSync(const ThreadSafeDisplay *display,
 {
     std::lock_guard<angle::SimpleMutex> lock(mMutex);
     SyncID id;
-    if (ANGLE_UNLIKELY(!mHandleAllocator.allocate(&id.value)))
+    if (!mHandleAllocator.allocate(&id.value))
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -975,7 +974,7 @@ Error SyncSet::createSync(const ThreadSafeDisplay *display,
     }
 
     Error err = sync->initialize(display, currentContext, id, attribs);
-    if (ANGLE_UNLIKELY(err.isError()))
+    if (err.isError())
     {
         mHandleAllocator.release(id.value);
         sync->onDestroy(display);
@@ -1239,7 +1238,7 @@ Error ThreadSafeDisplay::createSync(const gl::Context *currentContext,
 {
     ASSERT(isInitialized());
 
-    if (ANGLE_UNLIKELY(mThreadSafeImpl->testDeviceLost()))
+    if (mThreadSafeImpl->testDeviceLost())
     {
         ANGLE_TRY(restoreLostDevice());
     }
@@ -1545,7 +1544,7 @@ bool Display::initFromNativeDisplay(const AttributeMap &attribMap,
         EGLAttrib deviceType  = mAttributeMap.get(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE);
         rx::DisplayImpl *impl =
             CreateDisplayFromAttribs(displayType, deviceType, nativePlatformType, getState());
-        if (ANGLE_UNLIKELY(impl == nullptr))
+        if (impl == nullptr)
         {
             // No valid display implementation for these attributes
             return false;
@@ -1595,7 +1594,7 @@ Error Display::initialize()
     }
 
     Error error = mImplementation->initialize(this);
-    if (ANGLE_UNLIKELY(error.isError()))
+    if (error.isError())
     {
         // Log extended error message here
         ERR() << "ANGLE Display::initialize error " << error.getID() << ": " << error.getMessage();
@@ -1605,7 +1604,7 @@ Error Display::initialize()
     mCaps = mImplementation->getCaps();
 
     mConfigSet = mImplementation->generateConfigs();
-    if (ANGLE_UNLIKELY(mConfigSet.size() == 0))
+    if (mConfigSet.size() == 0)
     {
         mImplementation->terminate();
         return egl::Error(EGL_NOT_INITIALIZED, "No configs were generated.");
@@ -1648,7 +1647,7 @@ Error Display::initialize()
         std::unique_ptr<rx::DeviceImpl> impl(mImplementation->createDevice());
         ASSERT(impl);
         error = impl->initialize();
-        if (ANGLE_UNLIKELY(error.isError()))
+        if (error.isError())
         {
             ERR() << "Failed to initialize display because device creation failed: "
                   << error.getMessage();
@@ -1722,8 +1721,7 @@ Error Display::destroyInvalidEglObjects()
 void Display::waitUntilUnreferenced(uint32_t expectedCount)
 {
     mDisplayMutex.assertLocked();
-    while (ANGLE_UNLIKELY((mRefCount.load(std::memory_order_acquire) & kRefCountMask) >
-                          expectedCount))
+    while ((mRefCount.load(std::memory_order_acquire) & kRefCountMask) > expectedCount)
     {
         std::this_thread::yield();
     }
@@ -1741,7 +1739,7 @@ Error Display::terminate(Thread *thread, TerminateReason terminateReason)
 
     // All subsequent calls assume the display to be valid and terminated by app.
     // If it is not terminated, if it isn't initialized, early return.
-    if (ANGLE_UNLIKELY(!mTerminatedByApi || !isInitialized()))
+    if (!mTerminatedByApi || !isInitialized())
     {
         return NoError();
     }
@@ -1907,13 +1905,13 @@ Error Display::createWindowSurface(const Config *configuration,
                                    const AttributeMap &attribs,
                                    Surface **outSurface)
 {
-    if (ANGLE_UNLIKELY(mThreadSafeImpl->testDeviceLost()))
+    if (mThreadSafeImpl->testDeviceLost())
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     SurfaceID id;
-    if (ANGLE_UNLIKELY(!mState.surfaceMap.allocateHandle(&id)))
+    if (!mState.surfaceMap.allocateHandle(&id))
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -1942,13 +1940,13 @@ Error Display::createPbufferSurface(const Config *configuration,
 {
     ASSERT(isInitialized());
 
-    if (ANGLE_UNLIKELY(mThreadSafeImpl->testDeviceLost()))
+    if (mThreadSafeImpl->testDeviceLost())
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     SurfaceID id;
-    if (ANGLE_UNLIKELY(!mSurfaceHandleAllocator.allocate(&id)))
+    if (!mState.surfaceMap.allocateHandle(&id))
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -1973,13 +1971,13 @@ Error Display::createPbufferFromClientBuffer(const Config *configuration,
 {
     ASSERT(isInitialized());
 
-    if (ANGLE_UNLIKELY(mThreadSafeImpl->testDeviceLost()))
+    if (mThreadSafeImpl->testDeviceLost())
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     SurfaceID id;
-    if (ANGLE_UNLIKELY(!mSurfaceHandleAllocator.allocate(&id)))
+    if (!mState.surfaceMap.allocateHandle(&id))
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -2004,13 +2002,13 @@ Error Display::createPixmapSurface(const Config *configuration,
 {
     ASSERT(isInitialized());
 
-    if (ANGLE_UNLIKELY(mThreadSafeImpl->testDeviceLost()))
+    if (mThreadSafeImpl->testDeviceLost())
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     SurfaceID id;
-    if (ANGLE_UNLIKELY(!mSurfaceHandleAllocator.allocate(&id)))
+    if (!mState.surfaceMap.allocateHandle(&id))
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -2036,13 +2034,13 @@ Error Display::createImage(const gl::Context *context,
 {
     ASSERT(isInitialized());
 
-    if (ANGLE_UNLIKELY(mThreadSafeImpl->testDeviceLost()))
+    if (mThreadSafeImpl->testDeviceLost())
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     ImageID id;
-    if (ANGLE_UNLIKELY(!mImageHandleAllocator.allocate(&id.value)))
+    if (!mImageHandleAllocator.allocate(&id.value))
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -2108,7 +2106,7 @@ Error Display::createContext(const Config *configuration,
     ASSERT(!mTerminatedByApi);
     ASSERT(isInitialized());
 
-    if (ANGLE_UNLIKELY(mThreadSafeImpl->testDeviceLost()))
+    if (mThreadSafeImpl->testDeviceLost())
     {
         ANGLE_TRY(restoreLostDevice());
     }
@@ -2198,7 +2196,7 @@ Error Display::createContext(const Config *configuration,
                         sharedContextMutex, programCachePointer, shaderCachePointer, attribs,
                         mDisplayExtensions, GetClientExtensions());
     Error error = context->initialize();
-    if (ANGLE_UNLIKELY(error.isError()))
+    if (error.isError())
     {
         delete context;
         return error;
@@ -2223,9 +2221,7 @@ Error ThreadSafeDisplay::makeCurrent(Thread *thread,
                                      egl::Surface *readSurface,
                                      gl::Context *context)
 {
-    // Fast path: an uninitialized or terminated display is only reachable during shutdown or
-    // after a failed eglInitialize, so it is not the common case.
-    if (ANGLE_UNLIKELY(!isInitialized()))
+    if (!isInitialized())
     {
         return NoError();
     }
@@ -2424,7 +2420,7 @@ bool Display::testDeviceLost()
 {
     ASSERT(isInitialized());
 
-    if (ANGLE_UNLIKELY(!mState.deviceLost && mThreadSafeImpl->testDeviceLost()))
+    if (!mState.deviceLost && mThreadSafeImpl->testDeviceLost())
     {
         notifyDeviceLost();
     }
@@ -2868,7 +2864,7 @@ Error Display::programCacheQuery(EGLint index,
     // TODO(jmadill): Make this thread-safe.
     bool result =
         mMemoryProgramCache.getAt(static_cast<size_t>(index), &programHash, &programBinary);
-    if (ANGLE_UNLIKELY(!result))
+    if (!result)
     {
         return egl::Error(EGL_BAD_ACCESS, "Program binary not accessible.");
     }
@@ -2887,7 +2883,7 @@ Error Display::programCacheQuery(EGLint index,
         // Note: we check the size here instead of in the validation code, since we need to
         // access the cache as atomically as possible. It's possible that the cache contents
         // could change between the validation size check and the retrieval.
-        if (ANGLE_UNLIKELY(programBinary.size() > static_cast<size_t>(*binarysize)))
+        if (programBinary.size() > static_cast<size_t>(*binarysize))
         {
             return egl::Error(EGL_BAD_ACCESS, "Program binary too large or changed during access.");
         }
@@ -2911,9 +2907,8 @@ Error Display::programCachePopulate(const void *key,
     BlobCache::Key programHash;
     ANGLE_UNSAFE_TODO(memcpy(programHash.data(), key, BlobCache::kKeyLength));
 
-    if (ANGLE_UNLIKELY(!mMemoryProgramCache.putBinary(programHash,
-                                                      reinterpret_cast<const uint8_t *>(binary),
-                                                      static_cast<size_t>(binarysize))))
+    if (!mMemoryProgramCache.putBinary(programHash, reinterpret_cast<const uint8_t *>(binary),
+                                       static_cast<size_t>(binarysize)))
     {
         return egl::Error(EGL_BAD_ACCESS, "Failed to copy program binary into the cache.");
     }
@@ -3060,8 +3055,8 @@ angle::ImageLoadContext Display::getImageLoadContext() const
 
 const egl::Image *Display::getImage(egl::ImageID imageID) const
 {
-auto iter = mImageMap.find(imageID.value);
-     return iter != mImageMap.end() ? iter->second : nullptr;
+    auto iter = mImageMap.find(imageID.value);
+    return iter != mImageMap.end() ? iter->second : nullptr;
 }
 
 egl::Image *Display::getImage(egl::ImageID imageID)
@@ -3093,5 +3088,4 @@ Error *Display::GetCurrentThreadErrorScratchSpace()
 {
     return &GetDisplayTLS()->errorScratchSpace;
 }
-
 }  // namespace egl
