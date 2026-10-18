@@ -931,8 +931,7 @@ inline float Ldexp(float x, int exp)
     {
         return 0.0f;
     }
-    double result = static_cast<double>(x) * std::pow(2.0, static_cast<double>(exp));
-    return static_cast<float>(result);
+    return std::ldexp(x, exp);
 }
 
 // First, both normalized floating-point values are converted into 16-bit integer values.
@@ -1111,16 +1110,18 @@ inline uint8_t linearToSRGB(float value)
 }
 
 // Reverse the order of the bits.
-inline uint32_t BitfieldReverse(uint32_t value)
+inline constexpr uint32_t BitfieldReverse(uint32_t value) noexcept
 {
-    // TODO(oetuaho@nvidia.com): Optimize this if needed. There don't seem to be compiler intrinsics
-    // for this, and right now it's not used in performance-critical paths.
-    uint32_t result = 0u;
-    for (size_t j = 0u; j < 32u; ++j)
-    {
-        result |= (((value >> j) & 1u) << (31u - j));
-    }
-    return result;
+#if defined(__clang__) || defined(__GNUC__)
+    return __builtin_bitreverse32(value);
+#else
+    value = ((value & 0x55555555u) << 1) | ((value & 0xAAAAAAAAu) >> 1);
+    value = ((value & 0x33333333u) << 2) | ((value & 0xCCCCCCCCu) >> 2);
+    value = ((value & 0x0F0F0F0Fu) << 4) | ((value & 0xF0F0F0F0u) >> 4);
+    value = ((value & 0x00FF00FFu) << 8) | ((value & 0xFF00FF00u) >> 8);
+    value = ((value & 0x0000FFFFu) << 16) | ((value & 0xFFFF0000u) >> 16);
+    return value;
+#endif
 }
 
 // Count the 1 bits.

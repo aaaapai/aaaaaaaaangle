@@ -2289,6 +2289,9 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
             *params = contextFlags;
         }
         break;
+        case GL_CONTEXT_PROFILE_MASK:
+            *params = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
+        break;
 
         // GL_ANGLE_request_extension
         case GL_NUM_REQUESTABLE_EXTENSIONS_ANGLE:
@@ -4368,18 +4371,17 @@ void Context::initCaps()
     *extensions            = mSupportedExtensions;
 
     // GLES1 emulation: Initialize caps (Table 6.20 / 6.22 in the ES 1.1 spec)
-    if (getClientVersion() < Version(2, 0))
-    {
-        caps->maxMultitextureUnits          = 4;
-        caps->maxClipPlanes                 = 6;
-        caps->maxLights                     = 8;
-        caps->maxModelviewMatrixStackDepth  = Caps::GlobalMatrixStackDepth;
-        caps->maxProjectionMatrixStackDepth = Caps::GlobalMatrixStackDepth;
-        caps->maxTextureMatrixStackDepth    = Caps::GlobalMatrixStackDepth;
-        caps->minSmoothPointSize            = 1.0f;
-        caps->maxSmoothPointSize            = 1.0f;
-        caps->minSmoothLineWidth            = 1.0f;
-        caps->maxSmoothLineWidth            = 1.0f;
+    if (getClientVersion() < Version(2, 0)) {
+    caps->maxMultitextureUnits          = 4;
+    caps->maxClipPlanes                 = 6;
+    caps->maxLights                     = 8;
+    caps->maxModelviewMatrixStackDepth  = Caps::GlobalMatrixStackDepth;
+    caps->maxProjectionMatrixStackDepth = Caps::GlobalMatrixStackDepth;
+    caps->maxTextureMatrixStackDepth    = Caps::GlobalMatrixStackDepth;
+    caps->minSmoothPointSize            = 1.0f;
+    caps->maxSmoothPointSize            = 1.0f;
+    caps->minSmoothLineWidth            = 1.0f;
+    caps->maxSmoothLineWidth            = 1.0f;
     }
 
     caps->maxDebugMessageLength   = 1024;
@@ -4417,7 +4419,7 @@ void Context::initCaps()
     // glDrawBuffers), and so draw buffers and color attachments are frequently interchanged in the
     // codebase.  The same limit is thus used for both.
     const GLint maxDrawBuffersAndColorAttachments = std::min<GLint>(
-        std::min(caps->maxDrawBuffers, caps->maxColorAttachments), IMPLEMENTATION_MAX_DRAW_BUFFERS);
+        std::max(caps->maxDrawBuffers, caps->maxColorAttachments), IMPLEMENTATION_MAX_DRAW_BUFFERS);
     ANGLE_LIMIT_CAP(caps->maxDrawBuffers, maxDrawBuffersAndColorAttachments);
     ANGLE_LIMIT_CAP(caps->maxFramebufferWidth, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
     ANGLE_LIMIT_CAP(caps->maxFramebufferHeight, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
@@ -4732,7 +4734,7 @@ void Context::initCaps()
     // maxPixelLocalStoragePlanes will already be nonzero and we can skip this step.
     if (mSupportedExtensions.shaderPixelLocalStorageANGLE && caps->maxPixelLocalStoragePlanes == 0)
     {
-        int maxDrawableAttachments = std::min(caps->maxDrawBuffers, caps->maxColorAttachments);
+        int maxDrawableAttachments = std::max(caps->maxDrawBuffers, caps->maxColorAttachments);
         switch (mImplementation->getNativePixelLocalStorageOptions().type)
         {
             case ShPixelLocalStorageType::ImageLoadStore:
@@ -4742,7 +4744,7 @@ void Context::initCaps()
                                 IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES);
                 caps->maxCombinedDrawBuffersAndPixelLocalStoragePlanes =
                     std::min<GLint>(caps->maxPixelLocalStoragePlanes +
-                                        std::min(caps->maxDrawBuffers, caps->maxColorAttachments),
+                                        std::max(caps->maxDrawBuffers, caps->maxColorAttachments),
                                     caps->maxCombinedShaderOutputResources);
                 break;
 

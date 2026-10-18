@@ -531,6 +531,54 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
     }
     else if (functions->isAtLeastGLES(gl::Version(3, 0)))
     {
+
+      if (std::getenv("ANGLE_ENABLED_DESKTOPGL_FORMAT_UTIL")) {
+      result = internalFormat.sizedInternalFormat;
+
+      if ((internalFormat.sizedInternalFormat == GL_BGRA_EXT ||
+            internalFormat.sizedInternalFormat == GL_BGRA8_EXT) && std::getenv("ANGLE_CONVER_TO_RGBA8"))
+      {
+            // GLES accepts GL_BGRA as an internal format but desktop GL only accepts it as a
+            // format. Update the internal format to GL_RGBA8.
+            result = GL_RGBA8;
+      }
+
+      if (internalFormat.sizedInternalFormat == GL_RGB10_EXT && features.emulateRGB10.enabled)
+      {
+            result = GL_RGB10_A2;
+      }
+
+      if (features.avoid1BitAlphaTextureFormats.enabled && internalFormat.alphaBits == 1)
+      {
+          result = GL_RGBA8;
+      }
+
+      if (internalFormat.sizedInternalFormat == GL_RGBA4 &&
+          (features.RGBA4IsNotSupportedForColorRendering.enabled ||
+           features.promotePackedFormatsTo8BitPerChannel.enabled))
+      {
+          result = GL_RGBA8;
+      }
+
+      if (internalFormat.sizedInternalFormat == GL_RGB565 &&
+          ((!functions->isAtLeastGLES(gl::Version(3, 1)) &&
+            !functions->hasGLESExtension("GL_ARB_ES2_compatibility")) ||
+           features.promotePackedFormatsTo8BitPerChannel.enabled))
+      {
+          result = GL_RGB8;
+      }
+
+      if (IsLUMAFormat(internalFormat.format))
+      {
+          result = EmulateLUMA(internalFormat).sizedInternalFormat;
+      }
+      }
+      
+      if (result == 0x2A10)
+      {
+        return GL_RGB8; // wait...what?
+      }
+
         if (internalFormat.componentType == GL_FLOAT)
         {
             if (!internalFormat.isLUMA())
@@ -615,11 +663,9 @@ static GLenum GetTexImageNativeInternalFormat(const FunctionsGL *functions,
 {
     GLenum result = internalFormat.internalFormat;
 
-    if (functions->standard == STANDARD_GL_DESKTOP)
-    {
-        result = GetNativeInternalFormat(functions, features, internalFormat);
-    }
-    else if (functions->isAtLeastGLES(gl::Version(3, 0)))
+    //result = GetNativeInternalFormat(functions, features, internalFormat);
+
+    if (functions->isAtLeastGLES(gl::Version(3, 0)))
     {
         if (internalFormat.sizedInternalFormat == GL_BGRA_EXT ||
             internalFormat.sizedInternalFormat == GL_BGRA8_EXT)

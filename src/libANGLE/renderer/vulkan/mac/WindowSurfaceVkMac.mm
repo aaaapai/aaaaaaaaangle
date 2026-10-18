@@ -41,9 +41,16 @@ angle::Result WindowSurfaceVkMac::createSurfaceVk(vk::ErrorContext *context)
     mMetalLayer.drawableSize =
         CGSizeMake(mMetalLayer.bounds.size.width * mMetalLayer.contentsScale,
                    mMetalLayer.bounds.size.height * mMetalLayer.contentsScale);
-    mMetalLayer.framebufferOnly  = NO;
+    mMetalLayer.framebufferOnly = NO;
+
+#if TARGET_OS_OSX
+    // autoresizingMask and kCALayerWidthSizable/kCALayerHeightSizable
+    // are only available on macOS. On iOS the layer's frame is managed
+    // by the view hierarchy.
     mMetalLayer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
-    mMetalLayer.contentsScale    = layer.contentsScale;
+#endif
+
+    mMetalLayer.contentsScale = layer.contentsScale;
 
     [layer addSublayer:mMetalLayer];
 

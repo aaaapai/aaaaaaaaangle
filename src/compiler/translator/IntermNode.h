@@ -414,6 +414,8 @@ class TIntermConstantUnion : public TIntermExpression
     static TConstantUnion *FoldAggregateBuiltIn(TIntermAggregate *aggregate,
                                                 TDiagnostics *diagnostics);
 
+    static bool IsFloatDivision(TBasicType t1, TBasicType t2);
+
   protected:
     // Same data may be shared between multiple constant unions, so it can't be modified.
     const TConstantUnion *mUnionArrayPointer;

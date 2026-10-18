@@ -1790,6 +1790,8 @@ enum class SyncFenceScope
         auto ANGLE_LOCAL_VAR = command;                                                  \
         if (ANGLE_UNLIKELY(ANGLE_LOCAL_VAR != VK_SUCCESS))                               \
         {                                                                                \
+            printf("[ANGLE] Vulkan error %d at %s:%d\n",                        \
+                    ANGLE_LOCAL_VAR, __FILE__, __LINE__);                                \
             (context)->handleError(ANGLE_LOCAL_VAR, __FILE__, ANGLE_FUNCTION, __LINE__); \
             return angle::Result::Stop;                                                  \
         }                                                                                \

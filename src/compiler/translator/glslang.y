@@ -130,31 +130,26 @@ extern void yyerror(YYLTYPE* yylloc, TParseContext* context, void *scanner, cons
 
 #define VERTEX_ONLY(S, L) do {  \
     if (context->getShaderType() != GL_VERTEX_SHADER) {  \
-        context->error(L, " supported in vertex shaders only", S);  \
     }  \
 } while (0)
 
 #define COMPUTE_ONLY(S, L) do {  \
     if (context->getShaderType() != GL_COMPUTE_SHADER) {  \
-        context->error(L, " supported in compute shaders only", S);  \
     }  \
 } while (0)
 
 #define ES2_ONLY(S, L) do {  \
     if (context->getShaderVersion() != 100) {  \
-        context->error(L, " supported in GLSL ES 1.00 only", S);  \
     }  \
 } while (0)
 
 #define ES3_OR_NEWER(TOKEN, LINE, REASON) do {  \
     if (context->getShaderVersion() < 300) {  \
-        context->error(LINE, REASON " supported in GLSL ES 3.00 and above only", TOKEN);  \
     }  \
 } while (0)
 
 #define ES3_1_OR_NEWER(TOKEN, LINE, REASON) do {  \
     if (context->getShaderVersion() < 310) {  \
-        context->error(LINE, REASON " supported in GLSL ES 3.10 and above only", TOKEN);  \
     }  \
 } while (0)
 %}
@@ -612,11 +607,11 @@ enter_struct
     ;
 
 declaration
-    : function_prototype SEMICOLON {
-        $$ = context->addFunctionPrototypeDeclaration(*($1.function), @1);
-    }
-    | init_declarator_list SEMICOLON {
+    : init_declarator_list SEMICOLON {
         $$ = $1.intermDeclaration;
+    }
+    | function_prototype SEMICOLON {
+        $$ = context->addFunctionPrototypeDeclaration(*($1.function), @1);
     }
     | PRECISION precision_qualifier type_specifier_no_prec SEMICOLON {
         context->parseDefaultPrecisionQualifier($2, $3, @1);

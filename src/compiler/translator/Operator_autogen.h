@@ -136,43 +136,43 @@ enum TOperator : uint16_t
     // Built-in functions mapped to operators (either unary (TIntermUnary) or with multiple
     // parameters (TIntermAggregate))
     //
-
+    
     // Group Math
 
     // Group MathTrigonometric
     EOpRadians,  // Unary
     EOpDegrees,  // Unary
-    EOpSin,      // Unary
-    EOpCos,      // Unary
-    EOpTan,      // Unary
-    EOpAsin,     // Unary
-    EOpAcos,     // Unary
+    EOpSin,  // Unary
+    EOpCos,  // Unary
+    EOpTan,  // Unary
+    EOpAsin,  // Unary
+    EOpAcos,  // Unary
     EOpAtan,
-    EOpSinh,   // Unary
-    EOpCosh,   // Unary
-    EOpTanh,   // Unary
+    EOpSinh,  // Unary
+    EOpCosh,  // Unary
+    EOpTanh,  // Unary
     EOpAsinh,  // Unary
     EOpAcosh,  // Unary
     EOpAtanh,  // Unary
 
     // Group MathExponential
     EOpPow,
-    EOpExp,          // Unary
-    EOpLog,          // Unary
-    EOpExp2,         // Unary
-    EOpLog2,         // Unary
-    EOpSqrt,         // Unary
+    EOpExp,  // Unary
+    EOpLog,  // Unary
+    EOpExp2,  // Unary
+    EOpLog2,  // Unary
+    EOpSqrt,  // Unary
     EOpInversesqrt,  // Unary
 
     // Group MathCommon
-    EOpAbs,        // Unary
-    EOpSign,       // Unary
-    EOpFloor,      // Unary
-    EOpTrunc,      // Unary
-    EOpRound,      // Unary
+    EOpAbs,  // Unary
+    EOpSign,  // Unary
+    EOpFloor,  // Unary
+    EOpTrunc,  // Unary
+    EOpRound,  // Unary
     EOpRoundEven,  // Unary
-    EOpCeil,       // Unary
-    EOpFract,      // Unary
+    EOpCeil,  // Unary
+    EOpFract,  // Unary
     EOpMod,
     EOpMin,
     EOpMax,
@@ -181,25 +181,25 @@ enum TOperator : uint16_t
     EOpStep,
     EOpSmoothstep,
     EOpModf,
-    EOpIsnan,            // Unary
-    EOpIsinf,            // Unary
-    EOpFloatBitsToInt,   // Unary
+    EOpIsnan,  // Unary
+    EOpIsinf,  // Unary
+    EOpFloatBitsToInt,  // Unary
     EOpFloatBitsToUint,  // Unary
-    EOpIntBitsToFloat,   // Unary
+    EOpIntBitsToFloat,  // Unary
     EOpUintBitsToFloat,  // Unary
     EOpFma,
     EOpFrexp,
     EOpLdexp,
-    EOpPackSnorm2x16,    // Unary
-    EOpPackHalf2x16,     // Unary
+    EOpPackSnorm2x16,  // Unary
+    EOpPackHalf2x16,  // Unary
     EOpUnpackSnorm2x16,  // Unary
-    EOpUnpackHalf2x16,   // Unary
-    EOpPackUnorm2x16,    // Unary
+    EOpUnpackHalf2x16,  // Unary
+    EOpPackUnorm2x16,  // Unary
     EOpUnpackUnorm2x16,  // Unary
-    EOpPackUnorm4x8,     // Unary
-    EOpPackSnorm4x8,     // Unary
-    EOpUnpackUnorm4x8,   // Unary
-    EOpUnpackSnorm4x8,   // Unary
+    EOpPackUnorm4x8,  // Unary
+    EOpPackSnorm4x8,  // Unary
+    EOpUnpackUnorm4x8,  // Unary
+    EOpUnpackSnorm4x8,  // Unary
 
     // Group MathGeometric
     EOpLength,  // Unary
@@ -214,9 +214,9 @@ enum TOperator : uint16_t
     // Group MathMatrix
     EOpMatrixCompMult,
     EOpOuterProduct,
-    EOpTranspose,    // Unary
+    EOpTranspose,  // Unary
     EOpDeterminant,  // Unary
-    EOpInverse,      // Unary
+    EOpInverse,  // Unary
 
     // Group MathVector
     EOpLessThanComponentWise,
@@ -225,17 +225,17 @@ enum TOperator : uint16_t
     EOpGreaterThanEqualComponentWise,
     EOpEqualComponentWise,
     EOpNotEqualComponentWise,
-    EOpAny,               // Unary
-    EOpAll,               // Unary
+    EOpAny,  // Unary
+    EOpAll,  // Unary
     EOpNotComponentWise,  // Unary
 
     // Group MathInteger
     EOpBitfieldExtract,
     EOpBitfieldInsert,
     EOpBitfieldReverse,  // Unary
-    EOpBitCount,         // Unary
-    EOpFindLSB,          // Unary
-    EOpFindMSB,          // Unary
+    EOpBitCount,  // Unary
+    EOpFindLSB,  // Unary
+    EOpFindMSB,  // Unary
     EOpUaddCarry,
     EOpUsubBorrow,
     EOpUmulExtended,
@@ -369,6 +369,17 @@ enum TOperator : uint16_t
     EOpAtomicXor,
     EOpAtomicExchange,
     EOpAtomicCompSwap,
+
+    // Group AtomicCounterOps
+    EOpAtomicCounterAdd,
+    EOpAtomicCounterSubtract,
+    EOpAtomicCounterMin,
+    EOpAtomicCounterMax,
+    EOpAtomicCounterAnd,
+    EOpAtomicCounterOr,
+    EOpAtomicCounterXor,
+    EOpAtomicCounterExchange,
+    EOpAtomicCounterCompSwap,
 
     // Group Image
     EOpImageSize,
@@ -528,6 +539,10 @@ static inline bool IsAtomicMemory(TOperator op)
 {
     return op >= EOpAtomicAdd && op <= EOpAtomicCompSwap;
 }
+static inline bool IsAtomicCounterOps(TOperator op)
+{
+    return op >= EOpAtomicCounterAdd && op <= EOpAtomicCounterCompSwap;
+}
 static inline bool IsImageStore(TOperator op)
 {
     return op >= EOpImageStore && op <= EOpImageStore;
@@ -561,3 +576,4 @@ static inline bool IsPixelLocal(TOperator op)
 }  // namespace sh
 
 #endif  // COMPILER_TRANSLATOR_OPERATOR_AUTOGEN_H_
+

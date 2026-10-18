@@ -531,10 +531,11 @@ void Renderer::ensureCapsInitialized() const
 
     // Enable EXT_srgb_write_control if either of these conditions are met -
     // - VK_KHR_swapchain_mutable_format is supported
-    // - exposeNonConformantExtensionsAndVersions is enabled
+    // enabled
     mNativeExtensions.sRGBWriteControlEXT =
         getFeatures().supportsSwapchainMutableFormat.enabled ||
-        getFeatures().exposeNonConformantExtensionsAndVersions.enabled;
+        (getFeatures().supportsImageFormatList.enabled &&
+         getFeatures().exposeNonConformantExtensionsAndVersions.enabled);
 
     // Vulkan natively supports io interface block.
     mNativeExtensions.shaderIoBlocksOES = true;
@@ -754,8 +755,7 @@ void Renderer::ensureCapsInitialized() const
     // Reserved uniform buffer count depends on number of stages.  Vertex and fragment shaders are
     // always supported.  The limit needs to be adjusted based on whether geometry and tessellation
     // is supported.
-    int32_t maxCombinedUniformBuffers = rx::LimitToInt(limitsVk.maxDescriptorSetUniformBuffers) -
-                                        2 * kReservedPerStageDefaultUniformBindingCount;
+    int32_t maxCombinedUniformBuffers = rx::LimitToInt(limitsVk.maxDescriptorSetUniformBuffers)  - 2 * kReservedPerStageDefaultUniformBindingCount;
 
     mNativeCaps.maxUniformBlockSize = maxUniformBlockSize;
     mNativeCaps.uniformBufferOffsetAlignment =
@@ -807,7 +807,6 @@ void Renderer::ensureCapsInitialized() const
         ASSERT(maxVertexStageStorageBuffers >= gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_BUFFERS);
         maxVertexStageStorageBuffers -= gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_BUFFERS;
         maxCombinedStorageBuffers -= gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_BUFFERS;
-
         // Cap the per-stage limit of the other stages to the combined limit, in case the combined
         // limit is now lower than that.
         maxPerStageStorageBuffers = std::min(maxPerStageStorageBuffers, maxCombinedStorageBuffers);
@@ -847,13 +846,13 @@ void Renderer::ensureCapsInitialized() const
     maxPerStageStorageBuffers -= maxPerStageAtomicCounterBuffers;
     maxCombinedStorageBuffers -= maxCombinedAtomicCounterBuffers;
 
-    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex] =
-        mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics
-            ? rx::LimitToInt(maxVertexStageStorageBuffers)
-            : 0;
-    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] =
-        mPhysicalDeviceFeatures.fragmentStoresAndAtomics ? rx::LimitToInt(maxPerStageStorageBuffers)
-                                                         : 0;
+        mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex] =
+          mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics
+              ? rx::LimitToInt(maxVertexStageStorageBuffers)
+              : 4096;
+        mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] =
+          mPhysicalDeviceFeatures.fragmentStoresAndAtomics ? rx::LimitToInt(maxPerStageStorageBuffers)
+                                                           : 4096;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Compute] =
         rx::LimitToInt(maxPerStageStorageBuffers);
     mNativeCaps.maxCombinedShaderStorageBlocks = rx::LimitToInt(maxCombinedStorageBuffers);
@@ -863,6 +862,7 @@ void Renderer::ensureCapsInitialized() const
     // storage buffer size is just capped to int unconditionally.
     uint32_t maxStorageBufferRange =
         rx::LimitToIntAnd(limitsVk.maxStorageBufferRange, mMaxBufferMemorySizeLimit);
+
     if (mFeatures.limitMaxStorageBufferSize.enabled)
     {
         constexpr uint32_t kStorageBufferLimit = 256 * 1024 * 1024;
@@ -920,13 +920,16 @@ void Renderer::ensureCapsInitialized() const
     const int32_t maxVertexPipelineImages =
         mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics ? maxPerStageImages : 0;
 
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Vertex]         = maxVertexPipelineImages;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::TessControl]    = maxVertexPipelineImages;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::TessEvaluation] = maxVertexPipelineImages;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Geometry]       = maxVertexPipelineImages;
+    int vertexVal = maxVertexPipelineImages ? maxVertexPipelineImages : 16;
+    int perStageVal = maxPerStageImages ? maxPerStageImages : 16;
+
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Vertex]         = vertexVal;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::TessControl]    = vertexVal;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::TessEvaluation] = vertexVal;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Geometry]       = vertexVal;
     mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Fragment] =
-        mPhysicalDeviceFeatures.fragmentStoresAndAtomics ? maxPerStageImages : 0;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute] = maxPerStageImages;
+    mPhysicalDeviceFeatures.fragmentStoresAndAtomics ? perStageVal : 16;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute] = perStageVal;
 
     mNativeCaps.maxCombinedImageUniforms = maxCombinedImages;
     mNativeCaps.maxImageUnits            = maxCombinedImages;
@@ -1446,15 +1449,11 @@ void Renderer::ensureCapsInitialized() const
         mNativePLSOptions.type == ShPixelLocalStorageType::FramebufferFetch;
     if (hasMRTFramebufferFetch)
     {
-        mNativeCaps.maxColorAttachments = std::min<uint32_t>(
-            mNativeCaps.maxColorAttachments, limitsVk.maxPerStageDescriptorInputAttachments);
-        mNativeCaps.maxDrawBuffers = std::min<uint32_t>(
-            mNativeCaps.maxDrawBuffers, limitsVk.maxPerStageDescriptorInputAttachments);
 
         // Make sure no more than the allowed input attachments bindings are used by descriptor set
         // layouts.  This number matches the number of color attachments because of framebuffer
         // fetch, and that limit is later capped to IMPLEMENTATION_MAX_DRAW_BUFFERS in Context.cpp.
-        mMaxColorInputAttachmentCount = std::min<uint32_t>(mNativeCaps.maxColorAttachments,
+        mMaxColorInputAttachmentCount = std::max<uint32_t>(mNativeCaps.maxColorAttachments,
                                                            gl::IMPLEMENTATION_MAX_DRAW_BUFFERS);
     }
     else if (mFeatures.emulateAdvancedBlendEquations.enabled)
@@ -1485,10 +1484,6 @@ void Renderer::ensureCapsInitialized() const
             maxDrawBuffersWithDepthStencilInput >= 4)
         {
             mNativeExtensions.shaderFramebufferFetchDepthStencilARM = true;
-            mNativeCaps.maxColorAttachments = maxColorAttachmentsWithDepthStencilInput;
-            mNativeCaps.maxDrawBuffers      = maxDrawBuffersWithDepthStencilInput;
-            mMaxColorInputAttachmentCount =
-                std::min<uint32_t>(mMaxColorInputAttachmentCount, mNativeCaps.maxColorAttachments);
         }
     }
 

@@ -18,7 +18,11 @@
 #include "libANGLE/renderer/vulkan/vk_format_utils.h"
 #include "libANGLE/renderer/vulkan/vk_helpers.h"
 
-#include <IOSurface/IOSurface.h>
+#if TARGET_OS_OSX
+#    include <IOSurface/IOSurface.h>
+#else
+#    include <IOSurface/IOSurfaceRef.h>
+#endif
 
 namespace rx
 {

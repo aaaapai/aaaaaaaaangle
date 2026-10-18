@@ -805,7 +805,12 @@ ShaderProgramID Program::id() const
 
 angle::Result Program::setLabel(const Context *context, const std::string &label)
 {
-    ASSERT(!mLinkingState);
+
+    if (mLinkingState)
+    {
+        resolveLinkImpl(context);
+    }
+
     mState.mLabel = label;
 
     if (mProgram)
@@ -1857,12 +1862,12 @@ bool Program::linkValidateShaders()
         {
             version = shader->shaderVersion;
         }
-        else if (version != shader->shaderVersion)
+        /*else if (version != shader->shaderVersion)
         {
             mState.mInfoLog << ShaderTypeToString(shaderType)
                             << " shader version does not match other shader versions.";
             return false;
-        }
+        }*/
     }
 
     if (isComputeShaderAttached)
@@ -1874,7 +1879,7 @@ bool Program::linkValidateShaders()
         if (!shaders[ShaderType::Compute]->localSize.isDeclared())
         {
             mState.mInfoLog << "Work group size is not specified.";
-            return false;
+            if (!std::getenv("ANGLE_ALLOW_UNSPECIFIED_WORK_GROUP_SIZE")) return false;
         }
     }
     else

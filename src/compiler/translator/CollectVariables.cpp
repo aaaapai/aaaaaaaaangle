@@ -1178,8 +1178,8 @@ ShaderVariable CollectVariablesTraverser::recordUniform(const TIntermSymbol &var
             : &fieldsStaticallyUsedWithTexelFetch->second,
         &uniform);
     uniform.binding = variable.getType().getLayoutQualifier().binding;
-    uniform.imageUnitFormat =
-        GetImageInternalFormatType(variable.getType().getLayoutQualifier().imageInternalFormat);
+    GetImageInternalFormatType(variable.getType().getLayoutQualifier().imageInternalFormat,
+                                   variable.getType().getBasicType());
     uniform.location      = variable.getType().getLayoutQualifier().location;
     uniform.offset        = variable.getType().getLayoutQualifier().offset;
     uniform.rasterOrdered = variable.getType().getLayoutQualifier().rasterOrdered;

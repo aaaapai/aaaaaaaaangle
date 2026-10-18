@@ -1,0 +1,146 @@
+target_os = "linux"
+target_cpu = "x64"
+
+is_component_build = false
+is_debug = false
+symbol_level = 0
+strip_debug_info = true
+generate_debug_info = false
+enable_stripping = true
+
+jobs = 6
+
+use_lto = true
+rust_lto = "fat"
+use_lld = true
+use_mold = false
+
+is_clang = true
+c_wrapper = "ccache"
+cc_wrapper = "ccache"
+
+angle_extra_cflags_c = [
+  "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
+  "-Wno-error",
+  "-Wno-unused-command-line-argument",
+  "-O3",
+  "-fno-semantic-interposition",
+  "-mllvm",
+  "-hot-cold-split=true",
+  "-fdata-sections",
+  "-ffunction-sections",
+  "-fmerge-all-constants",
+  "-ftree-vectorize",
+  "-fvectorize",
+  "-fslp-vectorize",
+  "-pipe",
+  "-integrated-as",
+  "-flto",
+  "-D_FILE_OFFSET_BITS=64",
+  "-mllvm",
+  "-inlinehint-threshold=100000",
+  "-D_GNU_SOURCE"
+]
+
+angle_extra_cflags_cc = [
+  "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
+  "-Wno-unused-command-line-argument",
+  "-Wno-error",
+  "-O3",
+  "-fno-semantic-interposition",
+  "-mllvm",
+  "-hot-cold-split=true",
+  "-fdata-sections",
+  "-ffunction-sections",
+  "-fmerge-all-constants",
+  "-ftree-vectorize",
+  "-fvectorize",
+  "-fslp-vectorize",
+  "-pipe",
+  "-integrated-as",
+  "-flto",
+  "-D_FILE_OFFSET_BITS=64",
+  "-mllvm",
+  "-inlinehint-threshold=100000",
+  "-D_GNU_SOURCE"
+]
+
+angle_extra_ldflags = [
+  "-fuse-ld=lld",
+  "-Wl,--gc-sections",
+  "-flto",
+  "-Wl,--lto-O3",
+  "-Wl,-O3",
+  "-Wl,--as-needed"
+]
+
+# 功能开关
+angle_build_all = false
+angle_build_tests = false
+build_angle_deqp_tests = false
+
+angle_enable_vulkan = true
+angle_enable_vulkan_validation_layers = false
+angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
+
+angle_enable_gl = true
+
+angle_enable_glsl = true
+angle_enable_essl = true
+
+angle_enable_d3d9 = false
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_wgpu = false
+angle_enable_cl = false
+angle_enable_swiftshader = false
+angle_enable_metal = false
+
+angle_expose_non_conformant_extensions_and_versions = true
+angle_enable_trace = false
+angle_enable_perf_counter_output = false
+angle_has_frame_capture = false
+
+angle_standalone = false
+angle_ir = false
+angle_force_context_check_every_call = false
+
+dcheck_always_on = false
+angle_assert_always_on = false
+enable_iterator_debugging = false
+treat_warnings_as_errors = false
+
+enable_resource_allowlist_generation = false
+enable_unused_resource_stripping = true
+exclude_unwind_tables = true
+
+use_cxx23 = true
+use_custom_libcxx = true
+use_custom_libcxx_for_host = false
+libcxx_abi_unstable = true
+use_rtti = false
+
+use_goma = false
+use_clang_coverage = false
+optimize_for_fuzzing = false
+use_dummy_lastchange = false
+
+
+angle_use_wayland = true
+ozone_platform = "wayland"
+ozone_auto_platforms = false
+use_x11 = false

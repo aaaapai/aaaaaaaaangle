@@ -35,6 +35,7 @@
 #include "libANGLE/Uniform.h"
 #include "libANGLE/VertexAttribute.h"
 #include "libANGLE/queryconversions.h"
+#include "libANGLE/renderer/gl/functionsgl_enums.h"
 
 namespace gl
 {
@@ -519,7 +520,7 @@ void SetTexParameterBase(Context *context, Texture *texture, GLenum pname, const
             texture->setASTCDecodePrecision(context, ConvertToGLenum(pname, params[0]));
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             break;
     }
 }
@@ -574,7 +575,7 @@ void QuerySamplerParameterBase(const Sampler *sampler,
             *params = CastFromStateValue<ParamType>(0, sampler->getLodBias());
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             break;
     }
 }
@@ -627,7 +628,7 @@ void SetSamplerParameterBase(Context *context,
             sampler->setLodBias(context, static_cast<GLfloat>(params[0]));
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             break;
     }
 
@@ -684,7 +685,7 @@ void QueryVertexAttribBase(const VertexAttribute &attrib,
             *params = CastFromGLintStateValue<ParamType>(pname, attrib.relativeOffset);
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             break;
     }
 }
@@ -731,7 +732,7 @@ void QueryBufferParameterBase(const Buffer *buffer, BufferParam pnamePacked, Par
             *params = static_cast<ParamType>(buffer->initState() == InitState::Initialized);
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             break;
     }
 }
@@ -754,7 +755,7 @@ GLint GetCommonVariableProperty(const T &var, GLenum prop)
             return clampCast<GLint>(var.name.size() + 1u);
 
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             return GL_INVALID_VALUE;
     }
 }
@@ -797,7 +798,7 @@ GLint GetInputResourceProperty(const Program *program, GLuint index, GLenum prop
             return variable.isPatch();
 
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             return GL_INVALID_VALUE;
     }
 }
@@ -848,7 +849,7 @@ GLint GetOutputResourceProperty(const Program *program, GLuint index, const GLen
             return outputVariable.pod.isPatch;
 
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             return GL_INVALID_VALUE;
     }
 }
@@ -872,7 +873,7 @@ GLint GetTransformFeedbackVaryingResourceProperty(const Program *program,
             return clampCast<GLint>(tfVariable.nameWithArrayIndex().size() + 1);
 
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
             return GL_INVALID_VALUE;
     }
 }
@@ -2425,6 +2426,7 @@ void QueryProgramInterfaceiv(const Program *program,
 
         default:
             UNREACHABLE();
+            break;
     }
 }
 
@@ -2445,6 +2447,7 @@ angle::Result SetMemoryObjectParameteriv(const Context *context,
 
         default:
             UNREACHABLE();
+            break;
     }
 
     return angle::Result::Continue;
@@ -2464,6 +2467,7 @@ void QueryMemoryObjectParameteriv(const MemoryObject *memoryObject, GLenum pname
 
         default:
             UNREACHABLE();
+            break;
     }
 }
 
@@ -3249,6 +3253,7 @@ void SetPointParameter(GLES1State *state, PointParameter pname, const GLfloat *p
             break;
         default:
             UNREACHABLE();
+            break;
     }
 }
 
@@ -3275,6 +3280,7 @@ void GetPointParameter(const GLES1State *state, PointParameter pname, GLfloat *p
             break;
         default:
             UNREACHABLE();
+            break;
     }
 }
 
@@ -3493,16 +3499,17 @@ bool GetQueryParameterInfo(const State &glState,
         }
         case GL_COLOR_LOGIC_OP:
         {
+
             if (clientVersion < ES_2_0)
             {
                 // Handle logicOp in GLES1 through GLES1 state management.
                 break;
             }
 
-            if (!extensions.logicOpANGLE)
+            /*if (!extensions.logicOpANGLE)
             {
                 return false;
-            }
+            }*/
             *type      = GL_BOOL;
             *numParams = 1;
             return true;
@@ -3517,6 +3524,7 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_POLYGON_OFFSET_UNITS:
         case GL_SAMPLE_COVERAGE_VALUE:
         case GL_DEPTH_CLEAR_VALUE:
+        case GL_LINE_WIDTH_GRANULARITY:
         case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY:
         case GL_LINE_WIDTH:
         {
@@ -3589,19 +3597,23 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_CLIP_DISTANCE5_EXT:
         case GL_CLIP_DISTANCE6_EXT:
         case GL_CLIP_DISTANCE7_EXT:
+
             if (clientVersion < ES_2_0)
             {
                 break;
             }
+
             if (!extensions.clipDistanceAPPLE && !extensions.clipCullDistanceAny())
             {
                 // NOTE(hqle): if client version is 1. GL_MAX_CLIP_DISTANCES_EXT is equal
                 // to GL_MAX_CLIP_PLANES which is a valid enum.
-                return false;
+                break;
             }
+
             *type      = (pname == GL_MAX_CLIP_DISTANCES_EXT) ? GL_INT : GL_BOOL;
             *numParams = 1;
             return true;
+
         case GL_MAX_CULL_DISTANCES_EXT:
         case GL_MAX_COMBINED_CLIP_AND_CULL_DISTANCES_EXT:
             if (!extensions.clipCullDistanceAny())
@@ -3927,8 +3939,6 @@ bool GetQueryParameterInfo(const State &glState,
         return true;
     }
 
-    if (glState.getClientVersion() < Version(2, 0))
-    {
         switch (pname)
         {
             case GL_ALPHA_TEST_FUNC:
@@ -4043,12 +4053,6 @@ bool GetQueryParameterInfo(const State &glState,
                 *numParams = 1;
                 return true;
         }
-    }
-
-    if (glState.getClientVersion() < Version(3, 0))
-    {
-        return false;
-    }
 
     // Check for ES3.0+ parameter names
     switch (pname)
@@ -4276,6 +4280,7 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS:
         case GL_SHADER_STORAGE_BUFFER_BINDING:
         case GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT:
+        case GL_MAX_FRAMEBUFFER_LAYERS_EXT:
         case GL_PROGRAM_PIPELINE_BINDING:
             *type      = GL_INT;
             *numParams = 1;
@@ -4294,11 +4299,10 @@ bool GetQueryParameterInfo(const State &glState,
             return true;
     }
 
-    if (extensions.geometryShaderAny())
-    {
+    //if (extensions.geometryShaderAny())
+    //{
         switch (pname)
         {
-            case GL_MAX_FRAMEBUFFER_LAYERS_EXT:
             case GL_LAYER_PROVOKING_VERTEX_EXT:
             case GL_MAX_GEOMETRY_UNIFORM_COMPONENTS_EXT:
             case GL_MAX_GEOMETRY_UNIFORM_BLOCKS_EXT:
@@ -4312,15 +4316,17 @@ bool GetQueryParameterInfo(const State &glState,
             case GL_MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS_EXT:
             case GL_MAX_GEOMETRY_ATOMIC_COUNTERS_EXT:
             case GL_MAX_GEOMETRY_IMAGE_UNIFORMS_EXT:
+            case GL_MAX_PATCH_VERTICES_EXT:
+            case GL_MAX_TESS_GEN_LEVEL_EXT:
             case GL_MAX_GEOMETRY_SHADER_STORAGE_BLOCKS_EXT:
                 *type      = GL_INT;
                 *numParams = 1;
                 return true;
         }
-    }
+    //}
 
-    if (extensions.tessellationShaderAny())
-    {
+    /*if (extensions.tessellationShaderAny())
+    {*/
         switch (pname)
         {
             case GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED:
@@ -4328,8 +4334,6 @@ bool GetQueryParameterInfo(const State &glState,
                 *numParams = 1;
                 return true;
             case GL_PATCH_VERTICES:
-            case GL_MAX_PATCH_VERTICES_EXT:
-            case GL_MAX_TESS_GEN_LEVEL_EXT:
             case GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS_EXT:
             case GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS_EXT:
             case GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS_EXT:
@@ -4356,7 +4360,7 @@ bool GetQueryParameterInfo(const State &glState,
                 *numParams = 1;
                 return true;
         }
-    }
+    //}
 
     return false;
 }

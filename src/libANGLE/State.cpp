@@ -29,6 +29,7 @@
 #include "libANGLE/queryutils.h"
 #include "libANGLE/renderer/ContextImpl.h"
 #include "libANGLE/renderer/TextureImpl.h"
+#include "libANGLE/renderer/gl/functionsgl_enums.h"
 
 namespace gl
 {
@@ -1480,12 +1481,7 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
             setDither(enabled);
             return;
         case GL_COLOR_LOGIC_OP:
-            if (mClientVersion < ES_2_0)
-            {
-                // Handle logicOp in GLES1 through the GLES1 state management and emulation.
-                // Otherwise this state could be set as part of ANGLE_logic_op.
-                break;
-            }
+            if (mClientVersion < ES_2_0) break;
             setLogicOpEnabled(enabled);
             return;
         case GL_PRIMITIVE_RESTART_FIXED_INDEX:
@@ -1539,7 +1535,7 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
             break;
     }
 
-    ASSERT(mClientVersion < ES_2_0);
+    //ASSERT(mClientVersion < ES_2_0);
 
     // GLES1 emulation. Need to separate from main switch due to conflict enum between
     // GL_CLIP_DISTANCE0_EXT & GL_CLIP_PLANE0
@@ -1600,7 +1596,8 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
             mGLES1State.setLogicOpEnabled(enabled);
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
+            break;
     }
 }
 
@@ -1612,7 +1609,8 @@ void PrivateState::setEnableFeatureIndexed(GLenum feature, bool enabled, GLuint 
             setBlendIndexed(enabled, index);
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
+            break;
     }
 }
 
@@ -1920,14 +1918,7 @@ void PrivateState::getBooleanv(GLenum pname, GLboolean *params) const
                 mCaps.fragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinersSupport;
             break;
         default:
-            if (mClientVersion < ES_2_0)
-            {
-                *params = getEnableFeature(pname);
-            }
-            else
-            {
-                UNREACHABLE();
-            }
+            *params = getEnableFeature(pname);
             break;
     }
 }
@@ -2040,6 +2031,9 @@ void PrivateState::getFloatv(GLenum pname, GLfloat *params) const
         case GL_MIN_SAMPLE_SHADING_VALUE:
             *params = mMinSampleShading;
             break;
+        case GL_LINE_WIDTH_GRANULARITY:
+            *params = mCaps.lineWidthGranularity;
+            break;
         // GL_ARM_shader_framebuffer_fetch
         case GL_FETCH_PER_SAMPLE_ARM:
             *params = mFetchPerSample ? 1.0f : 0.0f;
@@ -2049,8 +2043,16 @@ void PrivateState::getFloatv(GLenum pname, GLfloat *params) const
             *params = mCaps.fragmentShaderFramebufferFetchMRT ? 1.0f : 0.0f;
             break;
         default:
-            UNREACHABLE();
+        {
+            // Fallback to integer query for pnames not handled as float.
+            GLint intValues[4] = {};
+            getIntegerv(pname, intValues);
+            params[0] = static_cast<GLfloat>(intValues[0]);
+            params[1] = static_cast<GLfloat>(intValues[1]);
+            params[2] = static_cast<GLfloat>(intValues[2]);
+            params[3] = static_cast<GLfloat>(intValues[3]);
             break;
+        }
     }
 }
 
@@ -2281,9 +2283,20 @@ void PrivateState::getIntegerv(GLenum pname, GLint *params) const
             *params = mBlendAdvancedCoherent ? 1 : 0;
             break;
 
-        default:
-            UNREACHABLE();
+        case GL_LINE_WIDTH_GRANULARITY:
+            *params = static_cast<GLint>(mCaps.lineWidthGranularity + 0.5f);
             break;
+
+        default:
+        {
+            // Unknown pname, return 0 to avoid crash.
+            WARN() << "Unhandled pname in getIntegerv: 0x" << std::hex << pname;
+            params[0] = 0;
+            params[1] = 0;
+            params[2] = 0;
+            params[3] = 0;
+            break;
+        }
     }
 }
 

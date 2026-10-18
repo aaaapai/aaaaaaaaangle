@@ -130,6 +130,18 @@ template("angle_vulkan_backend_template") {
     sources = vulkan_backend_sources
     libs = []
     defines = []
+    
+    if (is_apple) {
+      frameworks = [
+        "Metal.framework",
+        "QuartzCore.framework",
+        "IOSurface.framework",
+      ]
+      if (is_ios) {
+        frameworks += [ "UIKit.framework" ]
+      }
+    }
+
     deps = [
       ":angle_vk_mem_alloc_wrapper",
       "$angle_root:angle_abseil",

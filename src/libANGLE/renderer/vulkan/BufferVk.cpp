@@ -809,8 +809,6 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
     ASSERT(mBuffer.valid());
     ASSERT(offset + length <= static_cast<VkDeviceSize>(mState.getSize()));
 
-    // Record map call parameters in case this call is from angle internal (the access/offset/length
-    // will be inconsistent from mState).
     mIsMappedForWrite = (access & GL_MAP_WRITE_BIT) != 0;
     mMappedRange      = RangeDeviceSize(offset, offset + length);
 
@@ -830,11 +828,8 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
     // Read case
     if ((access & GL_MAP_WRITE_BIT) == 0)
     {
-        // If app is not going to write, all we need is to ensure GPU write is finished.
-        // Concurrent reads from CPU and GPU is allowed.
         if (!renderer->hasResourceUseFinished(mBuffer.getWriteResourceUse()))
         {
-            // If there are unflushed write commands for the resource, flush them.
             if (contextVk->hasUnsubmittedUse(mBuffer.getWriteResourceUse()))
             {
                 ANGLE_TRY(contextVk->flushAndSubmitCommands(nullptr, nullptr,
@@ -862,12 +857,6 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
     }
 
     // Write case, buffer in use.
-    //
-    // Here, we try to map the buffer, but it's busy. Instead of waiting for the GPU to
-    // finish, we just allocate a new buffer if:
-    // 1.) Caller has told us it doesn't care about previous contents, or
-    // 2.) The GPU won't write to the buffer.
-
     bool rangeInvalidate = (access & GL_MAP_INVALIDATE_RANGE_BIT) != 0;
     bool entireBufferInvalidated =
         ((access & GL_MAP_INVALIDATE_BUFFER_BIT) != 0) ||

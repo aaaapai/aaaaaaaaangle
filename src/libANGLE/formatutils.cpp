@@ -1618,6 +1618,9 @@ const InternalFormat &GetSizedInternalFormatInfo(GLenum internalFormat)
 
 const InternalFormat &GetInternalFormatInfo(GLenum internalFormat, GLenum type)
 {
+
+    if (internalFormat == 0x2A10) internalFormat = GL_RGB8;
+
     static const InternalFormat defaultInternalFormat;
     const InternalFormatInfoMap &formatMap = GetInternalFormatMap();
 

@@ -4,6 +4,8 @@
 
 # import the ozone_platform_x11 variable
 import("gni/angle.gni")
+import("gni/angle_flags.gni")
+
 if (angle_enable_vulkan) {
   import("//build_overrides//vulkan_headers.gni")
 }
@@ -324,6 +326,19 @@ config("internal_config") {
   }
   if (angle_use_crypto_hasher) {
     defines += [ "ANGLE_USE_CRYPTO_HASHER=1" ]
+  }
+
+  if (angle_extra_cflags != []) {
+    cflags = angle_extra_cflags
+  }
+  if (angle_extra_cflags_c != []) {
+    cflags_c = angle_extra_cflags_c
+  }
+  if (angle_extra_cflags_cc != []) {
+    cflags_cc = angle_extra_cflags_cc
+  }
+  if (angle_extra_ldflags != []) {
+    ldflags = angle_extra_ldflags
   }
 }
 
@@ -1705,50 +1720,6 @@ angle_executable("angle_shader_translator") {
   }
 }
 
-if (angle_standalone || build_with_chromium ||
-    build_angle_end2end_tests_library) {
-  config("angle_feature_support_config") {
-    include_dirs = [
-      "include",
-      "src",
-    ]
-    defines = [ "LIBFEATURE_SUPPORT_IMPLEMENTATION" ]
-    if (is_debug) {
-      defines += [ "ANGLE_FEATURE_UTIL_LOG_VERBOSE" ]
-    }
-  }
-
-  angle_shared_library("libfeature_support") {
-    output_name = "libfeature_support${angle_libs_suffix}"
-
-    if (is_android) {
-      libs = [ "log" ]
-    }
-
-    configs += [
-      ":angle_feature_support_config",
-      "${angle_jsoncpp_dir}:jsoncpp_config",
-    ]
-
-    if (is_apple && !is_component_build) {
-      ldflags = [
-        "-install_name",
-        "@rpath/${output_name}.dylib",
-      ]
-    }
-
-    sources = [
-      "src/feature_support_util/feature_support_util.cpp",
-      "src/feature_support_util/feature_support_util.h",
-    ]
-
-    deps = [
-      ":angle_gpu_info_util",
-      "${angle_jsoncpp_dir}:jsoncpp",
-    ]
-  }
-}
-
 if (angle_enable_cgl) {
   config("supports_automatic_graphics_switching") {
     # For discussion about config, inputs, etc, see:
@@ -1760,98 +1731,6 @@ if (angle_enable_cgl) {
       "__TEXT",
       "__info_plist",
       rebase_path(_plist_file, root_build_dir),
-    ]
-  }
-}
-
-if (angle_has_build && is_android && enable_compressed_symbols) {
-  action_foreach("compressed_symbols") {
-    sources = []
-    foreach(_library, angle_libraries) {
-      sources += [ "$root_out_dir/$_library$angle_libs_suffix$shlib_extension" ]
-    }
-    if (angle_enable_vulkan_validation_layers) {
-      foreach(_layer, vulkan_validation_layers) {
-        sources += [ "$root_out_dir/lib$_layer$shlib_extension" ]
-      }
-    }
-
-    if (angle_enable_vulkan_api_dump_layer &&
-        current_toolchain == default_toolchain) {
-      sources += [ "$root_out_dir/libVkLayer_lunarg_api_dump$shlib_extension" ]
-    }
-
-    script = rebase_path("${root_build_dir}/android/compress_symbols.py",
-                         root_build_dir)
-
-    deps = []
-    foreach(_library, angle_libraries) {
-      deps += [ ":$_library" ]
-    }
-
-    if (angle_enable_vulkan_validation_layers) {
-      foreach(_layer, vulkan_validation_layers) {
-        deps += [ "$angle_vulkan_validation_layers_dir:${_layer}" ]
-      }
-    }
-
-    if (angle_enable_vulkan_api_dump_layer &&
-        current_toolchain == default_toolchain) {
-      deps += [ "$angle_lunarg_vulkantools_dir:VkLayer_lunarg_api_dump" ]
-    }
-
-    outputs = [ "$root_out_dir/lib.compressed/{{source_file_part}}" ]
-
-    android_nm = "${android_tool_prefix}nm"
-    android_strip = "${android_tool_prefix}strip"
-
-    args = [
-      "--objcopy",
-      rebase_path(android_objcopy, root_build_dir),
-      "--nm",
-      rebase_path(android_nm, root_build_dir),
-      "--strip",
-      rebase_path(android_strip, root_build_dir),
-      "--unstrippedsofile",
-      "{{source_dir}}/lib.unstripped/{{source_file_part}}",
-      "--output",
-      "{{source_dir}}/lib.compressed/{{source_file_part}}",
-    ]
-  }
-}
-
-if ((angle_standalone || build_with_chromium) && is_android &&
-    current_toolchain == default_toolchain) {
-  if (build_with_chromium) {
-    import("//chrome/version.gni")
-    apk_version_code = chrome_version_code
-  } else if (angle_enable_commit_id) {
-    apk_version_code =
-        exec_script("src/commit_id.py", [ "position" ], "trim string")
-  } else {
-    apk_version_code = "0"
-  }
-
-  # Package ANGLE libraries for normal use on Android
-  angle_apk("angle_chromium_apk") {
-    package_name = "org.chromium.angle"
-    apk_name = "AngleLibraries"
-    version_name = "ANGLE Developer Build"
-    version_code = apk_version_code
-  }
-
-  # Package ANGLE libraries for AGI use on Android
-  angle_apk("angle_agi_chromium_apk") {
-    package_name = "org.chromium.angle.agi"
-    apk_name = "AngleAgiLibraries"
-    version_name = "ANGLE AGI Build"
-    version_code = apk_version_code
-  }
-
-  group("angle_apks") {
-    deps = [
-      ":angle_agi_chromium_apk",
-      ":angle_chromium_apk",
     ]
   }
 }

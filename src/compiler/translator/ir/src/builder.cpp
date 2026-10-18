@@ -1395,6 +1395,33 @@ void Builder::builtIn(TOperator op, size_t argCount)
         case EOpTextureGatherOffsetsRef:
             mBuilder->built_in_texturegatheroffsetref();
             return;
+        case EOpAtomicCounterAdd:
+            mBuilder->built_in_atomiccounteradd();
+            return;
+        case EOpAtomicCounterSubtract:
+            mBuilder->built_in_atomiccountersubtract();
+            return;
+        case EOpAtomicCounterMin:
+            mBuilder->built_in_atomiccountermin();
+            return;
+        case EOpAtomicCounterMax:
+            mBuilder->built_in_atomiccountermax();
+            return;
+        case EOpAtomicCounterAnd:
+            mBuilder->built_in_atomiccounterand();
+            return;
+        case EOpAtomicCounterOr:
+            mBuilder->built_in_atomiccounteror();
+            return;
+        case EOpAtomicCounterXor:
+            mBuilder->built_in_atomiccounterxor();
+            return;
+        case EOpAtomicCounterExchange:
+            mBuilder->built_in_atomiccounterexchange();
+            return;
+        case EOpAtomicCounterCompSwap:
+            mBuilder->built_in_atomiccountercompswap();
+            return;
         default:
             UNREACHABLE();
     }

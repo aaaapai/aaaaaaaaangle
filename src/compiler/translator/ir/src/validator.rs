@@ -4007,6 +4007,7 @@ impl<'a> Validator<'a> {
             }
             // OpCode::BuiltIn
             // - Result precision should propagate to all operands
+            // Added AtomicCounterOps to this list.
             OpCode::BuiltIn(BuiltInOpCode::AtomicCompSwap, args)
             | OpCode::BuiltIn(BuiltInOpCode::ImageAtomicAdd, args)
             | OpCode::BuiltIn(BuiltInOpCode::ImageAtomicMin, args)
@@ -4016,7 +4017,16 @@ impl<'a> Validator<'a> {
             | OpCode::BuiltIn(BuiltInOpCode::ImageAtomicXor, args)
             | OpCode::BuiltIn(BuiltInOpCode::ImageAtomicExchange, args)
             | OpCode::BuiltIn(BuiltInOpCode::ImageAtomicCompSwap, args)
-            | OpCode::BuiltIn(BuiltInOpCode::SamplePosition, args) => {
+            | OpCode::BuiltIn(BuiltInOpCode::SamplePosition, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterAdd, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterSubtract, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterMin, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterMax, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterAnd, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterOr, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterXor, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterExchange, args)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterCompSwap, args) => {
                 let result = result.expect("Expect a TypedRegisterId result for the OpCode");
                 for arg in args {
                     validate_precision_is_propagated(opcode, result.precision, arg);

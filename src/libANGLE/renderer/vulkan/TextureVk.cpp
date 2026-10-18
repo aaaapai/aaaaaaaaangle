@@ -2557,6 +2557,7 @@ void TextureVk::initImageUsageFlags(ContextVk *contextVk,
         // If the intended format is not renderable, don't add color attachment flags even if the
         // fallback format is.  This way, the image is more likely to be usable with
         // VK_EXT_host_image_copy.
+
         if (!intendedFormat.isLUMA() ||
             mRequiredFormatSupport == vk::ImageFormatSupport::Renderable)
         {
@@ -4076,6 +4077,11 @@ angle::Result TextureVk::syncState(const gl::Context *context,
             mState.getBaseLevelDesc().format.info->sizedInternalFormat));
         mImageView.updateSrgbDecode(imageFormat, srgbDecode);
         mImageView.updateSrgbOverride(imageFormat, mState.getSRGBOverride());
+        
+        if (!renderer->getFeatures().supportsImageFormatList.enabled)
+        {
+            refreshAllImageViews = true;
+        }
     }
 
     // Initialize the image storage and flush the pixel buffer.

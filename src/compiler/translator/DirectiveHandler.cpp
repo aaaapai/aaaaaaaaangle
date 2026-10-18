@@ -291,7 +291,7 @@ void TDirectiveHandler::handleExtension(const angle::pp::SourceLocation &loc,
     switch (behaviorVal)
     {
         case EBhRequire:
-            mDiagnostics.error(loc, "extension is not supported", name.c_str());
+            mDiagnostics.warning(loc, "extension is not supported", name.c_str());
             break;
         case EBhEnable:
         case EBhWarn:
@@ -309,7 +309,8 @@ void TDirectiveHandler::handleVersion(const angle::pp::SourceLocation &loc,
                                       ShShaderSpec spec,
                                       angle::pp::MacroSet *macro_set)
 {
-    if (version == 100 || version == 300 || version == 310 || version == 320)
+
+    if (version == 100 || version == 110 || version == 120 || version == 150 || version == 300 || version == 310 || version == 320 || version == 330 || version == 410 || version == 460 || std::getenv("ANGLE_DESKTOPGL"))
     {
         TSourceLoc tLoc{loc.file, loc.line, loc.file, loc.line};
         mContext.onShaderVersionDeclared(tLoc, version);
@@ -335,6 +336,7 @@ void TDirectiveHandler::handleVersion(const angle::pp::SourceLocation &loc,
         std::string str = stream.str();
         mDiagnostics.error(loc, "client/version number not supported", str.c_str());
     }
+
 }
 
 }  // namespace sh

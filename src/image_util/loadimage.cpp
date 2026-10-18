@@ -28,6 +28,11 @@
 #    endif
 #endif
 
+// ARM NEON support
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
+#    include <arm_neon.h>
+#endif
+
 #if defined(ANGLE_LOADIMAGE_USE_SSE)
 inline bool supportsSSE2()
 {
@@ -72,6 +77,40 @@ void LoadA8ToRGBA8(const ImageLoadContext &context,
                    size_t outputRowPitch,
                    size_t outputDepthPitch)
 {
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
+    // NEON implementation: process 8 pixels per iteration
+    {
+        for (size_t z = 0; z < depth; z++)
+        {
+            for (size_t y = 0; y < height; y++)
+            {
+                const uint8_t *source =
+                    priv::OffsetDataPointer<uint8_t>(input, y, z, inputRowPitch, inputDepthPitch);
+                uint32_t *dest = priv::OffsetDataPointer<uint32_t>(output, y, z, outputRowPitch,
+                                                                   outputDepthPitch);
+
+                size_t x = 0;
+                for (; x + 7 < width; x += 8)
+                {
+                    uint8x8_t src = vld1_u8(&source[x]);
+                    uint16x8_t tmp16 = vmovl_u8(src);
+                    uint32x4_t lo = vmovl_u16(vget_low_u16(tmp16));
+                    uint32x4_t hi = vmovl_u16(vget_high_u16(tmp16));
+                    lo = vshlq_n_u32(lo, 24);
+                    hi = vshlq_n_u32(hi, 24);
+                    vst1q_u32(&dest[x], lo);
+                    vst1q_u32(&dest[x + 4], hi);
+                }
+                for (; x < width; x++)
+                {
+                    dest[x] = static_cast<uint32_t>(source[x]) << 24;
+                }
+            }
+        }
+        return;
+    }
+#endif
+
 #if defined(ANGLE_LOADIMAGE_USE_SSE)
     if (supportsSSE2())
     {
@@ -721,6 +760,42 @@ void LoadRGBA8ToBGRA8(const ImageLoadContext &context,
                       size_t outputRowPitch,
                       size_t outputDepthPitch)
 {
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
+    // NEON implementation using byte permutation (4 pixels at a time)
+    {
+        static const uint8_t shuffleMaskData[16] = {
+            2, 1, 0, 3,  6, 5, 4, 7,  10, 9, 8, 11,  14, 13, 12, 15
+        };
+        uint8x16_t shuffleMask = vld1q_u8(shuffleMaskData);
+
+        for (size_t z = 0; z < depth; z++)
+        {
+            for (size_t y = 0; y < height; y++)
+            {
+                const uint32_t *source =
+                    priv::OffsetDataPointer<uint32_t>(input, y, z, inputRowPitch, inputDepthPitch);
+                uint32_t *dest = priv::OffsetDataPointer<uint32_t>(output, y, z, outputRowPitch,
+                                                                   outputDepthPitch);
+
+                size_t x = 0;
+                for (; x + 3 < width; x += 4)
+                {
+                    uint8x16_t in = vld1q_u8(reinterpret_cast<const uint8_t*>(&source[x]));
+                    uint8x16_t out = vqtbl1q_u8(in, shuffleMask);
+                    vst1q_u8(reinterpret_cast<uint8_t*>(&dest[x]), out);
+                }
+                // Remainder
+                for (; x < width; x++)
+                {
+                    uint32_t rgba = source[x];
+                    dest[x] = (ANGLE_ROTL(rgba, 16) & 0x00ff00ff) | (rgba & 0xff00ff00);
+                }
+            }
+        }
+        return;
+    }
+#endif
+
 #if defined(ANGLE_LOADIMAGE_USE_SSE)
     if (supportsSSE2())
     {
