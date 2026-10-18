@@ -145,7 +145,7 @@ void *OpenLibVulkan()
 #if defined(ANGLE_PLATFORM_WINDOWS)
         "vulkan-1.dll",
 #elif defined(ANGLE_PLATFORM_APPLE)
-        "libMoltenVK.dylib", "libvulkan.dylib", "libvulkan.1.dylib",
+        "libvulkan.dylib", "libMoltenVK.dylib", "libvulkan.1.dylib",
         // Fallback paths for static macOS builds where the Vulkan loader is bundled
         // in the "Libraries/" subdirectory but the host module (containing ANGLE)
         // is in the parent directory.

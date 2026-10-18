@@ -21,7 +21,7 @@ namespace vk
 namespace
 {
 constexpr bool kOutputVmaStatsString = false;
-constexpr VkDeviceSize kMaxBufferSuballocationGarbageSize = 12 * 1024 * 1024;  // was 12 MiB (origin: 64MiB)
+constexpr VkDeviceSize kMaxBufferSuballocationGarbageSize = 15 * 1024 * 1024;  // was 21 MiB (origin: 64MiB)
 
 void InitializeSubmitInfo(VkSubmitInfo *submitInfo,
                           const PrimaryCommandBuffer &commandBuffer,
