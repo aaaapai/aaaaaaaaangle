@@ -72,7 +72,7 @@ static constexpr GLbitfield kWriteAfterAccessMemoryBarriers =
 
 // The number of minimum commands in the command buffer to prefer submit at FBO boundary or
 // immediately submit when the device is idle after calling to flush.
-static constexpr size_t kMinCommandCountToSubmit = 1024;
+static constexpr size_t kMinCommandCountToSubmit = 512;
 
 constexpr bool useVulkanSecondaryCommandBuffer()
 {
@@ -1639,7 +1639,7 @@ angle::Result ContextVk::onFrameBoundary(const gl::Context *contextGL)
     return mRenderer->onFrameBoundary(contextGL);
 }
 
-ANGLE_INLINE angle::Result ContextVk::setupDraw(const gl::Context *context,
+angle::Result ContextVk::setupDraw(const gl::Context *context,
                                    gl::PrimitiveMode mode,
                                    GLint firstVertexOrInvalid,
                                    GLsizei vertexOrIndexCount,
@@ -1659,7 +1659,7 @@ ANGLE_INLINE angle::Result ContextVk::setupDraw(const gl::Context *context,
         mGraphicsDirtyBits.set(DIRTY_BIT_DRIVER_UNIFORMS);
     }
 
-    if (ANGLE_UNLIKELY(mRenderPassCommands->getCommandBuffer().getRenderPassWriteCommandCount() >
+    if ((mRenderPassCommands->getCommandBuffer().getRenderPassWriteCommandCount() >
                        mRenderer->getMinRenderPassWriteCommandCountToEarlySubmit()) &&
         mCommandsPendingSubmissionCount > 0 && mImageWithTileMemory == nullptr)
     {

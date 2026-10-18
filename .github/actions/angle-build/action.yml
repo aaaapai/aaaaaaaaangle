@@ -82,9 +82,9 @@ runs:
         export PATH=`pwd`/depot_tools:$PATH
         ccache -z
         cp .gn .gn.bak 2>/dev/null; if grep -q 'expand_directory_allowlist' .gn 2>/dev/null; then sed -i 's|]|,\n  "//build/modules/BUILD.gn"\n]|' .gn; else echo 'expand_directory_allowlist = [ "//build/modules/BUILD.gn" ]' >> .gn; fi
-        gn gen out/${{ inputs.out-dir }} --threads=8
+        gn gen out/${{ inputs.out-dir }} --threads=16
         gn args out/${{ inputs.out-dir }} --list --short
-        autoninja -C out/${{ inputs.out-dir }} -j 8
+        autoninja -C out/${{ inputs.out-dir }} -j 16
 
     - name: List build outputs
       if: success()
@@ -98,6 +98,23 @@ runs:
         find out/${{ inputs.out-dir }} -maxdepth 3 -name "*.dylib" || true
         echo "=== .so ==="
         find out/${{ inputs.out-dir }} -maxdepth 3 -name "*.so" || true
+
+    - name: Ad-hoc re-sign frameworks (iOS)
+      if: inputs.platform == 'ios'
+      shell: bash
+      run: |
+        set -e
+        shopt -s nullglob
+        for fw in out/${{ inputs.out-dir }}/*.framework; do
+          [ -d "$fw" ] || continue
+          echo ">>> Re-signing $fw"
+          codesign --force --sign - "$fw"
+          codesign -dv "$fw" 2>&1 | grep -i adhoc
+          BIN="$fw/$(basename "$fw" .framework)"
+          if [ -f "$BIN" ]; then
+            lipo -info "$BIN"
+          fi
+        done
 
     - name: Dump logs on failure
       if: failure()

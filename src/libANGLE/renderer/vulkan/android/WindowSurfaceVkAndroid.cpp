@@ -37,12 +37,25 @@ angle::Result WindowSurfaceVkAndroid::createSurfaceVk(vk::ErrorContext *context)
 angle::Result WindowSurfaceVkAndroid::getCurrentWindowSize(vk::ErrorContext *context,
                                                            gl::Extents *extentsOut) const
 {
-    vk::Renderer *renderer                 = context->getRenderer();
-    const VkPhysicalDevice &physicalDevice = renderer->getPhysicalDevice();
-    VkSurfaceCapabilitiesKHR surfaceCaps;
-    ANGLE_VK_TRY(context, VK_CALL(vkGetPhysicalDeviceSurfaceCapabilitiesKHR, physicalDevice,
-                                  mSurface, &surfaceCaps));
-    *extentsOut = gl::Extents(surfaceCaps.currentExtent.width, surfaceCaps.currentExtent.height, 1);
+    // ANativeWindow_getWidth/Height reflects the buffer geometry set by
+    // ANativeWindow_setBuffersGeometry, which may not yet be reflected in
+    // surfaceCaps.currentExtent on some drivers.
+    int width  = ANativeWindow_getWidth(mNativeWindowType);
+    int height = ANativeWindow_getHeight(mNativeWindowType);
+
+    if (ANGLE_UNLIKELY(width <= 0 || height <= 0))
+    {
+        // Fallback to surface capabilities if ANativeWindow query fails.
+        vk::Renderer *renderer                 = context->getRenderer();
+        const VkPhysicalDevice &physicalDevice = renderer->getPhysicalDevice();
+        VkSurfaceCapabilitiesKHR surfaceCaps;
+        ANGLE_VK_TRY(context, VK_CALL(vkGetPhysicalDeviceSurfaceCapabilitiesKHR,
+                                      physicalDevice, mSurface, &surfaceCaps));
+        width  = surfaceCaps.currentExtent.width;
+        height = surfaceCaps.currentExtent.height;
+    }
+
+    *extentsOut = gl::Extents(width, height, 1);
     return angle::Result::Continue;
 }
 
