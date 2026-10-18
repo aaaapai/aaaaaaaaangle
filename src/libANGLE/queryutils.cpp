@@ -4767,7 +4767,7 @@ void QueryContextAttrib(const gl::Context *context, EGLint attribute, EGLint *va
     }
 }
 
-egl::Error QuerySurfaceAttrib(const Display *display,
+egl::Error QuerySurfaceAttrib(const ThreadSafeDisplay *display,
                               const gl::Context *context,
                               Surface *surface,
                               EGLint attribute,
@@ -4911,7 +4911,7 @@ egl::Error QuerySurfaceAttrib(const Display *display,
     return NoError();
 }
 
-egl::Error QuerySurfaceAttrib64KHR(const Display *display,
+egl::Error QuerySurfaceAttrib64KHR(const ThreadSafeDisplay *display,
                                    const gl::Context *context,
                                    Surface *surface,
                                    EGLint attribute,

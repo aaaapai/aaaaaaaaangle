@@ -362,16 +362,6 @@ class VulkanPerformanceCounterTest : public ANGLETest<>
     void partialBufferUpdateShouldNotBreakRenderPass(BufferUpdate update);
     void bufferSubDataShouldNotTriggerSyncState(BufferUpdate update);
 
-    angle::VulkanPerfCounters getPerfCounters()
-    {
-        if (mIndexMap.empty())
-        {
-            mIndexMap = BuildCounterNameToIndexMap();
-        }
-
-        return GetPerfCounters(mIndexMap);
-    }
-
     // Support status for ANGLE features.
     bool isFeatureEnabled(Feature feature) const
     {
@@ -525,7 +515,6 @@ class VulkanPerformanceCounterTest : public ANGLETest<>
     }
 
     GLuint monitor;
-    CounterNameToIndexMap mIndexMap;
 };
 
 class VulkanPerformanceCounterTest_DepthStencilLoadStoreOps : public VulkanPerformanceCounterTest
@@ -11469,6 +11458,9 @@ ANGLE_INSTANTIATE_TEST(VulkanPerformanceCounterTest_TileMemory,
                        ES3_VULKAN()
                            .enable(Feature::SimulateTileMemoryForTesting)
                            .disable(Feature::SupportsImagelessFramebuffer),
+                       ES3_VULKAN()
+                           .enable(Feature::SimulateTileMemoryForTesting)
+                           .enable(Feature::SimulateTileMemoryTransferSrcForTesting),
                        ES3_VULKAN_SWIFTSHADER().enable(Feature::SimulateTileMemoryForTesting));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(VulkanPerformanceCounterTest_ClipDistance);

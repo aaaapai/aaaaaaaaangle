@@ -33,8 +33,10 @@ TEST(StringUtilsTest, SplitStringBasics)
     // Should split on any of the separators.
     r = SplitString("::,,;;", ",:;", KEEP_WHITESPACE, SPLIT_WANT_ALL);
     ASSERT_EQ(7u, r.size());
-    for (auto str : r)
+    for (const std::string &str : r)
+    {
         ASSERT_TRUE(str.empty());
+    }
 
     r = SplitString("red, green; blue:", ",:;", TRIM_WHITESPACE, SPLIT_WANT_NONEMPTY);
     ASSERT_EQ(3u, r.size());
@@ -175,6 +177,33 @@ TEST(StringUtilsTest, HexStringToUIntBasic)
 
     std::string testStringD("0x BADF00D");
     EXPECT_FALSE(HexStringToUInt(testStringD, &uintValue));
+}
+
+// Basic functionality tests for StringToInt64
+TEST(StringUtilsTest, StringToInt64Basic)
+{
+    int64_t value = 0;
+
+    EXPECT_TRUE(StringToInt64("134217728", &value));
+    EXPECT_EQ(134217728, value);
+
+    EXPECT_TRUE(StringToInt64("-1", &value));
+    EXPECT_EQ(-1, value);
+
+    EXPECT_TRUE(StringToInt64("9223372036854775807", &value));
+    EXPECT_EQ(INT64_MAX, value);
+
+    // Failures leave the value unchanged.
+    value = 42;
+    EXPECT_FALSE(StringToInt64("", &value));
+    EXPECT_FALSE(StringToInt64("Baklava", &value));
+    EXPECT_FALSE(StringToInt64("16.1", &value));
+    EXPECT_FALSE(StringToInt64("12abc", &value));
+    EXPECT_FALSE(StringToInt64(" 12", &value));
+    EXPECT_FALSE(StringToInt64("+12", &value));
+    EXPECT_FALSE(StringToInt64("-", &value));
+    EXPECT_FALSE(StringToInt64("9223372036854775808", &value));
+    EXPECT_EQ(42, value);
 }
 
 // Tests for ToCamelCase

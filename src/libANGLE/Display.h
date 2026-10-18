@@ -28,7 +28,6 @@
 #include "libANGLE/Debug.h"
 #include "libANGLE/Error.h"
 #include "libANGLE/HandleAllocator.h"
-#include "libANGLE/LoggingAnnotator.h"
 #include "libANGLE/MemoryProgramCache.h"
 #include "libANGLE/MemoryShaderCache.h"
 #include "libANGLE/Observer.h"
@@ -72,9 +71,6 @@ template <typename DisplayT>
 class ScopedDisplayRefT;
 using ScopedDisplayRef      = ScopedDisplayRefT<Display>;
 using ScopedConstDisplayRef = ScopedDisplayRefT<const Display>;
-// Only the non-const instantiation is needed: every holder of a ThreadSafeDisplay reference (the
-// generated EGL entry points and ScopedSyncRef) uses it to create, look up or destroy sync
-// objects, all of which mutate the display's SyncSet.
 using ScopedThreadSafeDisplayRef = ScopedDisplayRefT<ThreadSafeDisplay>;
 
 class ScopedDisplayMutexLock;
@@ -84,7 +80,7 @@ class ScopedDisplayLockAndRefT;
 using ScopedDisplayLockAndRef      = ScopedDisplayLockAndRefT<Display>;
 using ScopedConstDisplayLockAndRef = ScopedDisplayLockAndRefT<const Display>;
 
-using ThreadSet  = angle::HashSet<Thread *>;
+using ThreadSet = angle::HashSet<Thread *>;
 
 // Size of a Vulkan device or driver UUID, matching VK_UUID_SIZE.  Spelled out
 // here because this header must not depend on the Vulkan headers.
@@ -194,13 +190,32 @@ class SyncSet final : angle::NonCopyable
     gl::HandleAllocator mHandleAllocator;
 };
 
+class ScratchBuffers final : angle::NonCopyable
+{
+  public:
+    ScratchBuffers()  = default;
+    ~ScratchBuffers() = default;
+
+    angle::ScratchBuffer requestScratchBuffer();
+    void returnScratchBuffer(angle::ScratchBuffer scratchBuffer);
+    void tick();
+
+  private:
+    angle::SimpleMutex mMutex;
+    std::vector<angle::ScratchBuffer> mScratchBuffers;
+};
+
 // Access to this class is thread safe, i.e. can be called from multiple threads without holding the
 // display's mutex lock.
 class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
 {
   public:
     ThreadSafeDisplay(EGLNativeDisplayType displayId)
-        : mState(displayId), mThreadSafeImpl(nullptr), mRefCount(0)
+        : mState(displayId),
+          mThreadSafeImpl(nullptr),
+          mTerminatedByApi(false),
+          mPendingInternalCleanup(false),
+          mRefCount(0)
     {}
     ~ThreadSafeDisplay() override = default;
 
@@ -211,6 +226,7 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
     bool isDeviceLost() const;
 
     const DisplayExtensions &getExtensions() const { return mDisplayExtensions; }
+    const angle::FrontendFeatures &getFrontendFeatures() const { return mFrontendFeatures; }
 
     // Note that Display::getImplementation() hides this one and returns the rx::DisplayImpl
     // instead, so the impl that is retrieved depends on the static type of the display.
@@ -226,6 +242,39 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
     ScopedSyncRef getSync(egl::SyncID syncID) const;
     ScopedSyncMap getSyncsForCapture() const { return mSyncSet.getSyncsForCapture(); }
     bool isValidSync(SyncID sync) const;
+
+    ScopedSurfaceRef getSurfaceRef(egl::SurfaceID surfaceID) const;
+    ScopedSurfaceLockAndRef getSurface(egl::SurfaceID surfaceID) const;
+    Error destroySurface(Surface *surface);
+
+    const gl::Context *getContext(gl::ContextID contextID) const;
+    gl::Context *getContext(gl::ContextID contextID);
+    bool isValidContext(gl::ContextID contextID) const;
+
+    angle::ScratchBuffer requestScratchBuffer() { return mScratchBuffers.requestScratchBuffer(); }
+    void returnScratchBuffer(angle::ScratchBuffer scratchBuffer)
+    {
+        mScratchBuffers.returnScratchBuffer(std::move(scratchBuffer));
+    }
+
+    angle::ScratchBuffer requestZeroFilledBuffer()
+    {
+        return mZeroFilledBuffers.requestScratchBuffer();
+    }
+    void returnZeroFilledBuffer(angle::ScratchBuffer zeroFilledBuffer)
+    {
+        mZeroFilledBuffers.returnScratchBuffer(std::move(zeroFilledBuffer));
+    }
+
+    Error makeCurrent(Thread *thread,
+                      gl::Context *previousContext,
+                      Surface *drawSurface,
+                      Surface *readSurface,
+                      gl::Context *context);
+
+    Error destroySurfaceImpl(Surface *surface);
+
+    virtual void releaseDisplayShareGroupResource(const gl::Context &context) = 0;
 
   protected:
     [[nodiscard]] bool addRefIfNotTerminating() const
@@ -248,6 +297,7 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
         uint32_t prev = mRefCount.fetch_sub(1, std::memory_order_release);
         ASSERT((prev & kRefCountMask) > 0);
     }
+    void onPendingInternalCleanup() const;
     bool isTerminating() const;
 
     // Returns whether the display has been initialized, disregarding whether it is currently being
@@ -273,8 +323,18 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
     rx::ThreadSafeDisplayImpl *mThreadSafeImpl;
 
     DisplayExtensions mDisplayExtensions;
+    angle::FrontendFeatures mFrontendFeatures;
 
     SyncSet mSyncSet;
+
+    ScratchBuffers mScratchBuffers;
+    ScratchBuffers mZeroFilledBuffers;
+
+    Error releaseContext(gl::Context *context, Thread *thread);
+    std::unique_ptr<gl::Context> eraseContextImpl(gl::Context *context, ContextMap *contexts);
+
+    std::atomic<bool> mTerminatedByApi;
+    mutable std::atomic<bool> mPendingInternalCleanup;
 
     // Only these ScopedDisplay classes could directly access the RefCount.
     template <typename DisplayT>
@@ -325,6 +385,14 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     std::vector<const Config *> getConfigs(const AttributeMap &attribs) const;
     std::vector<const Config *> chooseConfig(const AttributeMap &attribs) const;
 
+    // eglCreatePlatformWindowSurface and its EXT variant take the native window as a void * whose
+    // interpretation is platform specific: the EGL/X11 platform extension specifies a pointer to
+    // an X11 Window, while EGLNativeWindowType for X11 is the Window (XID) itself.  For the other
+    // window systems the void * is already the EGLNativeWindowType value.
+    // https://www.khronos.org/registry/EGL/extensions/KHR/EGL_KHR_platform_x11.txt
+    EGLNativeWindowType getNativeWindowForCreatePlatformWindowSurface(
+        const void *nativeWindow) const;
+
     Error createWindowSurface(const Config *configuration,
                               EGLNativeWindowType window,
                               const AttributeMap &attribs,
@@ -355,20 +423,11 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
                         const AttributeMap &attribs,
                         gl::Context **outContext);
 
-    Error makeCurrent(Thread *thread,
-                      gl::Context *previousContext,
-                      Surface *drawSurface,
-                      Surface *readSurface,
-                      gl::Context *context);
-
-    Error destroySurface(Surface *surface);
     void destroyImage(Image *image);
     void destroyStream(Stream *stream);
     Error destroyContext(Thread *thread, gl::Context *context);
 
     bool isValidConfig(const Config *config) const;
-    bool isValidContext(gl::ContextID contextID) const;
-    bool isValidSurface(SurfaceID surfaceID) const;
     bool isValidImage(ImageID imageID) const;
     bool isValidStream(const Stream *stream) const;
     bool isValidNativeWindow(EGLNativeWindowType window) const;
@@ -438,7 +497,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
 
     const DisplayState &getState() const { return mState; }
 
-    const angle::FrontendFeatures &getFrontendFeatures() { return mFrontendFeatures; }
     void overrideFrontendFeatures(const std::vector<std::string> &featureNames, bool enabled);
 
     const angle::FeatureList &getFeatures() const { return mFeatures; }
@@ -447,12 +505,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
 
     EGLAttrib queryAttrib(const EGLint attribute);
 
-    angle::ScratchBuffer requestScratchBuffer();
-    void returnScratchBuffer(angle::ScratchBuffer scratchBuffer);
-
-    angle::ScratchBuffer requestZeroFilledBuffer();
-    void returnZeroFilledBuffer(angle::ScratchBuffer zeroFilledBuffer);
-
     egl::Error handleGPUSwitch();
     egl::Error forceGPUSwitch(EGLint gpuIDHigh, EGLint gpuIDLow);
 
@@ -460,10 +512,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
 
     void lockVulkanQueue();
     void unlockVulkanQueue();
-
-    // Installs LoggingAnnotator as the global DebugAnnotator, for back-ends that do not implement
-    // their own DebugAnnotator.
-    void setGlobalDebugAnnotator() { gl::InitializeDebugAnnotations(&mAnnotator); }
 
     bool supportsDmaBufFormat(EGLint format) const;
     Error queryDmaBufFormats(EGLint max_formats, EGLint *formats, EGLint *num_formats);
@@ -490,13 +538,7 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
 
     angle::ImageLoadContext getImageLoadContext() const;
 
-    // Hot lookups: defined inline in the header so callers across translation units can avoid the
-    // call overhead and let the compiler fold the surrounding validation checks.
-    const gl::Context *getContext(gl::ContextID contextID) const;
-    const egl::Surface *getSurface(egl::SurfaceID surfaceID) const;
     const egl::Image *getImage(egl::ImageID imageID) const;
-    gl::Context *getContext(gl::ContextID contextID);
-    egl::Surface *getSurface(egl::SurfaceID surfaceID);
     egl::Image *getImage(egl::ImageID imageID);
 
     const ImageMap &getImagesForCapture() const { return mImageMap; }
@@ -512,15 +554,15 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     static angle::UnlockedTailCall *GetCurrentThreadUnlockedTailCall();
     static Error *GetCurrentThreadErrorScratchSpace();
 
+    void releaseDisplayShareGroupResource(const gl::Context &context) override;
+
   private:
+    friend class ThreadSafeDisplay;
+
     Display(EGLenum platform, EGLNativeDisplayType displayId, Device *eglDevice);
 
     void setAttributes(const AttributeMap &attribMap) { mAttributeMap = attribMap; }
     void setupDisplayPlatform(rx::DisplayImpl *impl);
-
-    Error releaseContext(gl::Context *context, Thread *thread);
-    Error releaseContextImpl(std::unique_ptr<gl::Context> &&context);
-    std::unique_ptr<gl::Context> eraseContextImpl(gl::Context *context, ContextMap *contexts);
 
     void initDisplayExtensions();
     void initVendorString();
@@ -528,15 +570,10 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     void initClientAPIString();
     void initializeFrontendFeatures();
 
-    angle::ScratchBuffer requestScratchBufferImpl(std::vector<angle::ScratchBuffer> *bufferVector);
-    void returnScratchBufferImpl(angle::ScratchBuffer scratchBuffer,
-                                 std::vector<angle::ScratchBuffer> *bufferVector);
-
     Error destroyInvalidEglObjects();
 
     void destroyImageImpl(Image *image, ImageMap *images);
     void destroyStreamImpl(Stream *stream, StreamSet *streams);
-    Error destroySurfaceImpl(Surface *surface, SurfaceMap *surfaces);
 
     void initFromDevice(Device *device, const AttributeMap &attribMap);
     bool initFromNativeDisplay(const AttributeMap &attribMap, const EGLAttrib nativePlatformType);
@@ -556,7 +593,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     ContextMap mInvalidContextMap;
     ImageMap mInvalidImageMap;
     StreamSet mInvalidStreamSet;
-    SurfaceMap mInvalidSurfaceMap;
 
     Caps mCaps;
 
@@ -569,7 +605,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     Device *mDevice;
     Surface *mSurface;
     EGLenum mPlatform;
-    angle::LoggingAnnotator mAnnotator;
 
     // mManagersMutex protects mTextureManager and mSemaphoreManager
     ContextMutex *mManagersMutex;
@@ -583,26 +618,15 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     size_t mGlobalSemaphoreShareGroupUsers;
 
     gl::HandleAllocator mImageHandleAllocator;
-    gl::HandleAllocator mSurfaceHandleAllocator;
-
-    angle::FrontendFeatures mFrontendFeatures;
 
     angle::FeatureList mFeatures;
 
-    angle::SimpleMutex mScratchBufferMutex;
-    std::vector<angle::ScratchBuffer> mScratchBuffers;
-    std::vector<angle::ScratchBuffer> mZeroFilledBuffers;
+    void onUnlockMutex();
 
-    // Tracks the total number of buffers currently sitting in mScratchBuffers and
-    // mZeroFilledBuffers.  Lets Display::makeCurrent skip the mutex acquisition and the tick loop
-    // entirely when both pools are empty, which is the common case.  Written under
-    // mScratchBufferMutex, read without holding it.
-    mutable std::atomic<uint32_t> mScratchBufferPoolSize{0};
-
-    bool mTerminatedByApi;
-
-    // Only this ScopedDisplay class could directly access the lock.
+    // Only these ScopedDisplay classes could directly access the lock.
     friend class ScopedDisplayMutexLock;
+    template <typename DisplayT>
+    friend class ScopedDisplayLockAndRefT;
     mutable angle::SimpleMutex mDisplayMutex;
 };
 
@@ -619,6 +643,14 @@ class [[nodiscard]] ScopedDisplayRefT final
         if (mHoldingRef)
         {
             mDisplay->releaseRef();
+            if constexpr (std::is_same_v<DisplayT, ThreadSafeDisplay>)
+            {
+                if (ANGLE_UNLIKELY(
+                        mDisplay->mPendingInternalCleanup.load(std::memory_order_acquire)))
+                {
+                    mDisplay->onPendingInternalCleanup();
+                }
+            }
         }
     }
 
@@ -752,6 +784,16 @@ class [[nodiscard]] ScopedDisplayLockAndRefT final
   public:
     ScopedDisplayLockAndRefT() = default;
     explicit ScopedDisplayLockAndRefT(DisplayT &display) : mLock(display), mDisplay(display) {}
+    ~ScopedDisplayLockAndRefT()
+    {
+        if constexpr (!std::is_const_v<DisplayT>)
+        {
+            if (mDisplay.get() != nullptr)
+            {
+                mDisplay.get()->onUnlockMutex();
+            }
+        }
+    }
 
     ScopedDisplayLockAndRefT(const ScopedDisplayLockAndRefT &)            = delete;
     ScopedDisplayLockAndRefT &operator=(const ScopedDisplayLockAndRefT &) = delete;

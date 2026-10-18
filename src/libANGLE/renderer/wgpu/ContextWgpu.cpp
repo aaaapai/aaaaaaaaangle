@@ -740,6 +740,7 @@ angle::Result ContextWgpu::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_DEPTH_TEST_ENABLED:
                 // Enabled and func get combined into one state in WebGPU. Only sync it once.
                 iter.setLaterBit(gl::state::DIRTY_BIT_DEPTH_FUNC);
+                iter.setLaterBit(gl::state::DIRTY_BIT_DEPTH_MASK);
                 break;
             case gl::state::DIRTY_BIT_DEPTH_FUNC:
                 if (mRenderPipelineDesc.setDepthFunc(
@@ -750,6 +751,12 @@ angle::Result ContextWgpu::syncState(const gl::Context *context,
                 }
                 break;
             case gl::state::DIRTY_BIT_DEPTH_MASK:
+                if (mRenderPipelineDesc.setDepthWriteEnabled(
+                        glState.getDepthStencilState().depthTest &&
+                        glState.getDepthStencilState().depthMask))
+                {
+                    invalidateCurrentRenderPipeline();
+                }
                 break;
             case gl::state::DIRTY_BIT_STENCIL_TEST_ENABLED:
                 // Changing the state of stencil test affects both the front and back funcs, which
@@ -886,6 +893,7 @@ angle::Result ContextWgpu::syncState(const gl::Context *context,
                 break;
             case gl::state::DIRTY_BIT_PROGRAM_BINDING:
             case gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE:
+                updatePipelineColorMasks();
                 invalidateCurrentRenderPipeline();
                 iter.setLaterBit(gl::state::DIRTY_BIT_TEXTURE_BINDINGS);
                 break;
@@ -926,11 +934,8 @@ angle::Result ContextWgpu::syncState(const gl::Context *context,
                 break;
             case gl::state::DIRTY_BIT_EXTENDED:
             {
-                for (auto extendedIter    = extendedDirtyBits.begin(),
-                          extendedEndIter = extendedDirtyBits.end();
-                     extendedIter != extendedEndIter; ++extendedIter)
+                for (size_t extendedDirtyBit : extendedDirtyBits)
                 {
-                    const size_t extendedDirtyBit = *extendedIter;
                     switch (extendedDirtyBit)
                     {
                         case gl::state::EXTENDED_DIRTY_BIT_CLIP_DISTANCES:
@@ -979,27 +984,25 @@ angle::Result ContextWgpu::syncState(const gl::Context *context,
 
 void ContextWgpu::updatePipelineColorMasks()
 {
-
     FramebufferWgpu *framebufferWgpu      = webgpu::GetImpl(mState.getDrawFramebuffer());
     gl::DrawBufferMask enabledDrawBuffers = framebufferWgpu->getState().getEnabledDrawBuffers();
+
+    const gl::ProgramExecutable *executable = mState.getProgramExecutable();
+    if (executable)
+    {
+        enabledDrawBuffers &= executable->getActiveOutputVariablesMask();
+    }
 
     bool changed = false;
 
     const gl::BlendStateExt &blendStateExt = mState.getBlendStateExt();
     for (size_t i = 0; i < blendStateExt.getDrawBufferCount(); i++)
     {
-        bool r, g, b, a;
+        // Disabled/inactive draw buffers have their color mask set to 0.
+        bool r = 0, g = 0, b = 0, a = 0;
         if (enabledDrawBuffers.test(i))
         {
             blendStateExt.getColorMaskIndexed(i, &r, &g, &b, &a);
-        }
-        else
-        {
-            // Disabled draw buffers just have their color mask set to 0.
-            r = 0;
-            g = 0;
-            b = 0;
-            a = 0;
         }
         changed = mRenderPipelineDesc.setColorWriteMask(i, r, g, b, a) || changed;
     }

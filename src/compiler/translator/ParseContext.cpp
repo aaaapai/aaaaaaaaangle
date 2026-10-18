@@ -21,6 +21,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "common/angleutils.h"
 #include "common/mathutil.h"
 #include "common/utilities.h"
 #include "compiler/preprocessor/SourceLocation.h"
@@ -707,7 +708,7 @@ TVector<const TFunction *> GetSamplerPassingFunctionsInDAGOrder(
         {
             visitStack.push_back({arg.callee, false});
         }
-        for (auto paramToArg : functionSamplerAccess->second.paramsPassedToCallee)
+        for (const auto &paramToArg : functionSamplerAccess->second.paramsPassedToCallee)
         {
             for (const SamplerAsFunctionArg &arg : paramToArg)
             {
@@ -6862,7 +6863,6 @@ bool TParseContext::checkUnsizedArrayConstructorArgumentDimensionality(
 TIntermTyped *TParseContext::addConstructor(TFunctionLookup *fnCall, const TSourceLoc &line)
 {
     TType type = fnCall->constructorType();
-    checkVariableSize(line, ImmutableString(""), &type);
 
     TIntermSequence &arguments = fnCall->arguments();
     if (type.isUnsizedArray())
@@ -6887,6 +6887,8 @@ TIntermTyped *TParseContext::addConstructor(TFunctionLookup *fnCall, const TSour
         }
         ASSERT(!type.isUnsizedArray());
     }
+
+    checkVariableSize(line, ImmutableString(""), &type);
 
     if (!checkConstructorArguments(line, arguments, type))
     {
@@ -8953,9 +8955,9 @@ TTypeSpecifierNonArray TParseContext::addStructure(const TSourceLoc &structLine,
     checkDoesNotHaveDuplicateFieldNames(fieldList, structLine);
 
     // Ensure we do not specify any storage qualifiers on the struct members
-    for (unsigned int typeListIndex = 0; typeListIndex < fieldList->size(); typeListIndex++)
+    for (TField *fieldPtr : *fieldList)
     {
-        TField &field              = *(*fieldList)[typeListIndex];
+        TField &field              = *fieldPtr;
         const TQualifier qualifier = field.type()->getQualifier();
         switch (qualifier)
         {
@@ -9113,9 +9115,9 @@ bool TParseContext::isNestedIn(ControlFlowType type) const
     // Used for validation, we need to know for example that a `continue` statement is nested
     // within a loop, etc.  Search backwards in the nested control flow info to find the closest
     // control flow of given type.
-    for (auto iter = mControlFlow.rbegin(); iter != mControlFlow.rend(); ++iter)
+    for (const ControlFlow &controlFlow : angle::Reversed(mControlFlow))
     {
-        if (iter->type == type)
+        if (controlFlow.type == type)
         {
             return true;
         }
@@ -10974,18 +10976,18 @@ void TParseContext::checkCallGraph()
 
     // Visit all the functions; even if a function is unreachable, it must still result in a compile
     // error.
-    for (auto iter : mCallGraph)
+    for (const auto &entry : mCallGraph)
     {
-        visitStack.push_back(iter.first);
+        visitStack.push_back(entry.first);
 
         // Check the callees of this function too, if any is undefined, it's an error.
-        for (const TFunction *callee : iter.second)
+        for (const TFunction *callee : entry.second)
         {
             if (mDefinedFunctions.find(callee) == mDefinedFunctions.end())
             {
                 std::stringstream errorStream = sh::InitializeStream<std::stringstream>();
                 errorStream << "Function " << callee->name() << "() called by "
-                            << iter.first->name() << "() is undefined";
+                            << entry.first->name() << "() is undefined";
                 mDiagnostics->globalError(errorStream.str().c_str());
             }
         }
@@ -11000,15 +11002,15 @@ void TParseContext::checkCallGraph()
                         << callee->name();
             if (callee != function)
             {
-                for (auto caller = visitStack.rbegin(); caller != visitStack.rend(); ++caller)
+                for (const TFunction *caller : angle::Reversed(visitStack))
                 {
-                    if (visitState[*caller].state != VisitState::Visiting)
+                    if (visitState[caller].state != VisitState::Visiting)
                     {
                         continue;
                     }
 
-                    errorStream << " <- " << (*caller)->name();
-                    if (*caller == callee)
+                    errorStream << " <- " << caller->name();
+                    if (caller == callee)
                     {
                         break;
                     }

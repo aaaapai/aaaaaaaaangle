@@ -1724,18 +1724,6 @@ void main()
         return IsEGLDisplayExtensionEnabled(getEGLWindow()->getDisplay(), kWebGPUTextureExt);
     }
 
-    angle::VulkanPerfCounters getPerfCounters()
-    {
-        ASSERT(IsVulkan());
-
-        if (mCounterNameToIndexMap.empty())
-        {
-            mCounterNameToIndexMap = BuildCounterNameToIndexMap();
-        }
-
-        return GetPerfCounters(mCounterNameToIndexMap);
-    }
-
     void externalTextureTracerTestHelper(const EGLint *attribsToRecoverInMEC)
     {
         const EGLWindow *eglWindow = getEGLWindow();
@@ -1906,8 +1894,6 @@ void main()
     GLuint mRenderYUVProgram        = 0;
     GLuint mRenderYUVProgram2       = 0;
     GLint mRenderYUVUniformLocation = -1;
-
-    CounterNameToIndexMap mCounterNameToIndexMap;
 };
 
 class ImageTestES3 : public ImageTest
@@ -11439,7 +11425,7 @@ TEST_P(ImageTestES3, CreatesRGBImages)
     constexpr GLsizei kWidth        = 2;
     constexpr GLsizei kHeight       = 2;
 
-    for (size_t i = 0; i < colorSpaces.size(); i++)
+    for (EGLint colorSpace : colorSpaces)
     {
         // Create sRGB texture
         GLTexture sRGBTexture;
@@ -11455,7 +11441,7 @@ TEST_P(ImageTestES3, CreatesRGBImages)
         ASSERT_GL_NO_ERROR();
 
         EGLint createImageAttribs[] = {
-            EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_GL_COLORSPACE_KHR, colorSpaces[i], EGL_NONE,
+            EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_GL_COLORSPACE_KHR, colorSpace, EGL_NONE,
         };
 
         // Create the Image using sRGB texture
@@ -11488,10 +11474,10 @@ TEST_P(ImageTestES3, DmaBufNegativeValidation)
 
     EGLImageKHR image;
 
-    for (size_t i = 0; i < 4; i++)
+    for (const EGLint *attribs : invalidImageAttributeList)
     {
         image = eglCreateImageKHR(window->getDisplay(), EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, NULL,
-                                  invalidImageAttributeList[i]);
+                                  attribs);
         ASSERT_EGL_ERROR(EGL_BAD_ATTRIBUTE);
         ASSERT_EQ(image, EGL_NO_IMAGE_KHR);
     }
