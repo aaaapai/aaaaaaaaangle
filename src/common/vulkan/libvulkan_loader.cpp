@@ -48,7 +48,7 @@ static void* vulkan_load_from_env() {
 static void* vulkan_load_from_pojavexec() {
     const char* turnipEnv = std::getenv("ANGLE_LOAD_VULKAN_FROM_POJAVEXEC");
 
-    if (!turnipEnv || std::string(turnipEnv) != "true") {.
+    if (!turnipEnv || std::string(turnipEnv) != "true") {
         return nullptr;
     }
 
