@@ -572,6 +572,15 @@
             "issue": "https://issuetracker.google.com/161903006"
         },
         {
+            "name": "split_cross_format_layered_image_copy",
+            "category": "Workarounds",
+            "description": [
+                "Issue one vkCmdCopyImage per layer for multi-layer copies between ",
+                "different formats, which some drivers copy incorrectly"
+            ],
+            "issue": "https://anglebug.com/573420557"
+        },
+        {
             "name": "supports_image_format_list",
             "category": "Features",
             "description": [
@@ -1035,6 +1044,14 @@
             "issue": "http://anglebug.com/42264446"
         },
         {
+            "name": "supports_extended_dynamic_state3",
+            "category": "Features",
+            "description": [
+                "VkDevice supports VK_EXT_extended_dynamic_state3 extension"
+            ],
+            "issue": "http://anglebug.com/42264446"
+        },
+        {
             "name": "use_primitive_restart_enable_dynamic_state",
             "category": "Workarounds",
             "description": [
@@ -1065,6 +1082,22 @@
                 "VkDevice supports the logicOp feature of VK_EXT_extended_dynamic_state2 extension"
             ],
             "issue": "http://anglebug.com/42262506"
+        },
+        {
+            "name": "supports_patch_control_points_dynamic_state",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the patchControlPoints feature of VK_EXT_extended_dynamic_state2 extension"
+            ],
+            "issue": "http://anglebug.com/42264446"
+        },
+        {
+            "name": "supports_alpha_to_coverage_enable_dynamic_state",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the alphaToCoverageEnable feature of VK_EXT_extended_dynamic_state3 extension"
+            ],
+            "issue": "http://anglebug.com/575891833"
         },
         {
             "name": "supports_fragment_shading_rate",
@@ -2248,7 +2281,7 @@
         },
         {
             "name": "initialize_color_attachment_with_white",
-            "category": "Workarounds",
+            "category": "AppWorkarounds",
             "description": [
                 "Initialize color tetxure attachment with white color for app bug workaround."
             ]

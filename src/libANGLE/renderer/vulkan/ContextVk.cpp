@@ -967,6 +967,14 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, vk::Rendere
     {
         mDynamicStateDirtyBits.set(DIRTY_BIT_DYNAMIC_LOGIC_OP);
     }
+    if (mRenderer->getFeatures().supportsPatchControlPointsDynamicState.enabled)
+    {
+        mDynamicStateDirtyBits.set(DIRTY_BIT_DYNAMIC_PATCH_CONTROL_POINTS);
+    }
+    if (mRenderer->getFeatures().supportsAlphaToCoverageEnableDynamicState.enabled)
+    {
+        mDynamicStateDirtyBits.set(DIRTY_BIT_DYNAMIC_ALPHA_TO_COVERAGE_ENABLE);
+    }
     if (getFeatures().supportsFragmentShadingRate.enabled)
     {
         mDynamicStateDirtyBits.set(DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE);
@@ -1066,8 +1074,12 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, vk::Rendere
         &ContextVk::handleDirtyGraphicsDynamicDepthBiasEnable;
     mGraphicsDirtyBitHandlers[DIRTY_BIT_DYNAMIC_LOGIC_OP] =
         &ContextVk::handleDirtyGraphicsDynamicLogicOp;
+    mGraphicsDirtyBitHandlers[DIRTY_BIT_DYNAMIC_PATCH_CONTROL_POINTS] =
+        &ContextVk::handleDirtyGraphicsDynamicPatchControlPoints;
     mGraphicsDirtyBitHandlers[DIRTY_BIT_DYNAMIC_PRIMITIVE_RESTART_ENABLE] =
         &ContextVk::handleDirtyGraphicsDynamicPrimitiveRestartEnable;
+    mGraphicsDirtyBitHandlers[DIRTY_BIT_DYNAMIC_ALPHA_TO_COVERAGE_ENABLE] =
+        &ContextVk::handleDirtyGraphicsDynamicAlphaToCoverageEnable;
     mGraphicsDirtyBitHandlers[DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE] =
         &ContextVk::handleDirtyGraphicsDynamicFragmentShadingRate;
 
@@ -1194,6 +1206,12 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, vk::Rendere
     {
         mPipelineDirtyBitsMask.reset(gl::state::DIRTY_BIT_POLYGON_OFFSET_FILL_ENABLED);
     }
+    // Dynamic state in VK_EXT_extended_dynamic_state3:
+    if (mRenderer->getFeatures().supportsAlphaToCoverageEnableDynamicState.enabled)
+    {
+        mPipelineDirtyBitsMask.reset(gl::state::DIRTY_BIT_SAMPLE_ALPHA_TO_COVERAGE_ENABLED);
+    }
+    // Dynamic state in VK_EXT_vertex_input_dynamic_state
     if (getFeatures().supportsVertexInputDynamicState.enabled)
     {
         mPipelineDirtyBitsMask.reset(gl::state::DIRTY_BIT_VERTEX_ARRAY_BINDING);
@@ -3464,11 +3482,29 @@ angle::Result ContextVk::handleDirtyGraphicsDynamicLogicOp(DirtyBits::Iterator *
     return angle::Result::Continue;
 }
 
+angle::Result ContextVk::handleDirtyGraphicsDynamicPatchControlPoints(
+    DirtyBits::Iterator *dirtyBitsIterator,
+    DirtyBits dirtyBitMask)
+{
+    mRenderPassCommandBuffer->setPatchControlPoints(mState.getPatchVertices());
+    return angle::Result::Continue;
+}
+
 angle::Result ContextVk::handleDirtyGraphicsDynamicPrimitiveRestartEnable(
     DirtyBits::Iterator *dirtyBitsIterator,
     DirtyBits dirtyBitMask)
 {
     mRenderPassCommandBuffer->setPrimitiveRestartEnable(mState.isPrimitiveRestartEnabled());
+    return angle::Result::Continue;
+}
+
+angle::Result ContextVk::handleDirtyGraphicsDynamicAlphaToCoverageEnable(
+    DirtyBits::Iterator *dirtyBitsIterator,
+    DirtyBits dirtyBitMask)
+{
+    const uint32_t rasterizationSamples = getDrawFramebuffer()->getSamples();
+    mRenderPassCommandBuffer->setAlphaToCoverageEnable(mState.isSampleAlphaToCoverageEnabled() &&
+                                                       rasterizationSamples > 1);
     return angle::Result::Continue;
 }
 
@@ -4779,12 +4815,19 @@ void ContextVk::updateSampleMaskWithRasterizationSamples(const uint32_t rasteriz
 
 void ContextVk::updateAlphaToCoverageWithRasterizationSamples(const uint32_t rasterizationSamples)
 {
-    // The following assumes that supported sample counts for multisampled
-    // rendering does not include 1. This is true in the Vulkan backend,
-    // where 1x multisampling is disallowed.
-    mGraphicsPipelineDesc->updateAlphaToCoverageEnable(
-        &mGraphicsPipelineTransition,
-        mState.isSampleAlphaToCoverageEnabled() && rasterizationSamples > 1);
+    if (mRenderer->getFeatures().supportsAlphaToCoverageEnableDynamicState.enabled)
+    {
+        mGraphicsDirtyBits.set(DIRTY_BIT_DYNAMIC_ALPHA_TO_COVERAGE_ENABLE);
+    }
+    else
+    {
+        // The following assumes that supported sample counts for multisampled
+        // rendering does not include 1. This is true in the Vulkan backend,
+        // where 1x multisampling is disallowed.
+        mGraphicsPipelineDesc->updateAlphaToCoverageEnable(
+            &mGraphicsPipelineTransition,
+            mState.isSampleAlphaToCoverageEnabled() && rasterizationSamples > 1);
+    }
 }
 
 void ContextVk::updateFrameBufferFetchSamples(const uint32_t prevSamples, const uint32_t curSamples)
@@ -4893,13 +4936,22 @@ ANGLE_INLINE void ContextVk::updateTopology(gl::PrimitiveMode mode)
     //
     // Note: VK_EXT_extended_dynamic_state3's dynamicPrimitiveTopologyUnrestricted property
     // indicates that the dynamically set primitive topology doesn't need to match even the topology
-    // class used to create the pipeline.  That property seems to only be set on Nvidia.
+    // class used to create the pipeline.  That property is rarely set however.
     if (getFeatures().usePrimitiveTopologyDynamicState.enabled)
     {
         // Update the exact mode dynamically
         mGraphicsDirtyBits.set(DIRTY_BIT_DYNAMIC_PRIMITIVE_TOPOLOGY);
 
-        // Only update the pipeline desc if the primitive class has changed
+        // Nothing to do if dynamicPrimitiveTopologyUnrestricted is set.
+        if (getFeatures().supportsExtendedDynamicState3.enabled &&
+            getRenderer()
+                ->getPhysicalDeviceExtendedDynamicState3Properties()
+                .dynamicPrimitiveTopologyUnrestricted)
+        {
+            return;
+        }
+
+        // Only update the pipeline desc if the primitive class has changed.
         pipelineTopology = kPrimitiveTopologyClass[mode];
         const bool isTopologyClassChanged =
             pipelineTopology != kPrimitiveTopologyClass[currentMode];
@@ -5414,11 +5466,6 @@ angle::Result ContextVk::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_SAMPLE_ALPHA_TO_COVERAGE_ENABLED:
                 updateAlphaToCoverageWithRasterizationSamples(drawFramebufferVk->getSamples());
                 updateStencilWriteWorkaround();
-
-                static_assert(gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE >
-                                  gl::state::DIRTY_BIT_SAMPLE_ALPHA_TO_COVERAGE_ENABLED,
-                              "Dirty bit order");
-                iter.setLaterBit(gl::state::DIRTY_BIT_PROGRAM_EXECUTABLE);
                 break;
             case gl::state::DIRTY_BIT_SAMPLE_COVERAGE_ENABLED:
                 updateSampleMaskWithRasterizationSamples(drawFramebufferVk->getSamples());
@@ -5977,8 +6024,15 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 break;
             }
             case gl::state::DIRTY_BIT_PATCH_VERTICES:
-                mGraphicsPipelineDesc->updatePatchVertices(&mGraphicsPipelineTransition,
-                                                           glState.getPatchVertices());
+                if (mRenderer->getFeatures().supportsPatchControlPointsDynamicState.enabled)
+                {
+                    mGraphicsDirtyBits.set(DIRTY_BIT_DYNAMIC_PATCH_CONTROL_POINTS);
+                }
+                else
+                {
+                    mGraphicsPipelineDesc->updatePatchVertices(&mGraphicsPipelineTransition,
+                                                               glState.getPatchVertices());
+                }
                 break;
             default:
                 UNREACHABLE();
@@ -6395,7 +6449,7 @@ angle::Result ContextVk::onFramebufferChange(FramebufferVk *framebufferVk, gl::C
 {
     // This is called from FramebufferVk::syncState.  Skip these updates if the framebuffer being
     // synced is the read framebuffer (which is not equal the draw framebuffer).
-    if (framebufferVk != vk::GetImpl(mState.getDrawFramebuffer()))
+    if (framebufferVk != getDrawFramebuffer())
     {
         return angle::Result::Continue;
     }
@@ -8242,7 +8296,22 @@ angle::Result ContextVk::flushAndSubmitOutsideRenderPassCommands(QueueSubmitReas
     }
     ASSERT(QueueSerialsHaveDifferentIndexOrSmaller(mLastSubmittedQueueSerial,
                                                    mLastFlushedQueueSerial));
-    return submitCommands(nullptr, nullptr, reason);
+
+    vk::ImageHelper *imageWithTileMemory = mImageWithTileMemory;
+
+    ANGLE_TRY(submitCommands(nullptr, nullptr, reason));
+
+    // Continue to use the image whose allocation is in the tile memory.  The submission of the
+    // outside render pass commands has no bearing on the render pass's use of this image.  Tile
+    // memory binding is per command buffer, so rebind it for the still open render pass.
+    if (imageWithTileMemory != nullptr && mRenderPassCommands->started() &&
+        mRenderPassCommands->usesImage(*imageWithTileMemory))
+    {
+        ASSERT(!imageWithTileMemory->isVkImageContentDefined());
+        addImageWithTileMemory(imageWithTileMemory);
+    }
+
+    return angle::Result::Continue;
 }
 
 angle::Result ContextVk::flushOutsideRenderPassCommands()

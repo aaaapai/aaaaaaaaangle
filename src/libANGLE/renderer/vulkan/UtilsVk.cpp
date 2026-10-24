@@ -556,7 +556,8 @@ namespace unresolve
 //           OpEntryPoint Fragment %4 "main" %26 %27 %28 %29 %30 /  unresolve, and depth replacing
 //           OpExecutionMode %4 OriginUpperLeft                 /   conditional to depth unresolve.
 //           OpExecutionMode %4 DepthReplacing                 /
-//           OpSource GLSL 450                                /
+//           OpExecutionMode %4 StencilRefReplacingEXT        /
+//           OpSource GLSL 450                               /
 //
 //           OpName %4 "main"              \
 //           OpName %26 "colorOut0"         \
@@ -764,6 +765,11 @@ void InsertPreamble(uint32_t colorAttachmentCount,
     {
         spirv::WriteExecutionMode(blobOut, spirv::IdRef(kIdMain), spv::ExecutionModeDepthReplacing,
                                   {});
+    }
+    if (unresolveStencil)
+    {
+        spirv::WriteExecutionMode(blobOut, spirv::IdRef(kIdMain),
+                                  spv::ExecutionModeStencilRefReplacingEXT, {});
     }
     spirv::WriteSource(blobOut, spv::SourceLanguageGLSL, spirv::LiteralInteger(450), nullptr,
                        nullptr);
@@ -1189,9 +1195,9 @@ void ResetDynamicState(ContextVk *contextVk, vk::RenderPassCommandBuffer *comman
     // Notes: the following dynamic state doesn't apply to UtilsVk functions:
     //
     // - line width: UtilsVk doesn't use line primitives
-    // - depth bias: UtilsVk doesn't enable depth bias
     // - blend constants: UtilsVk doesn't enable blending
-    // - logic op: UtilsVk doesn't enable logic op
+    // - depth bias, logic op, alpha to coverage: UtilsVk doesn't enable these features
+    // - patch control points: UtilsVk doesn't use tessellation shaders
     //
     // The following dynamic state is always set by UtilsVk when effective:
     //
@@ -1250,6 +1256,10 @@ void ResetDynamicState(ContextVk *contextVk, vk::RenderPassCommandBuffer *comman
     if (renderer->getFeatures().supportsLogicOpDynamicState.enabled)
     {
         commandBuffer->setLogicOp(VK_LOGIC_OP_COPY);
+    }
+    if (renderer->getFeatures().supportsAlphaToCoverageEnableDynamicState.enabled)
+    {
+        commandBuffer->setAlphaToCoverageEnable(VK_FALSE);
     }
     if (contextVk->getFeatures().supportsVertexInputDynamicState.enabled)
     {

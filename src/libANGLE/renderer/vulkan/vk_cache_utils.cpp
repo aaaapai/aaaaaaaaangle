@@ -499,11 +499,11 @@ void DeriveRenderingInfo(Renderer *renderer,
             // corresponding attachment is invalidated.
             const bool resolveDepth =
                 angleFormat.depthBits != 0 &&
-                (desc.hasDepthResolveAttachment() || desc.isRenderToTexture()) &&
+                (desc.hasDepthResolveAttachment() || isRenderToTextureThroughExtension) &&
                 !(desc.isRenderToTexture() && ops[attachmentCount].isInvalidated);
             const bool resolveStencil =
                 angleFormat.stencilBits != 0 &&
-                (desc.hasStencilResolveAttachment() || desc.isRenderToTexture()) &&
+                (desc.hasStencilResolveAttachment() || isRenderToTextureThroughExtension) &&
                 !(desc.isRenderToTexture() && ops[attachmentCount].isStencilInvalidated);
 
             const ImageAccess imageAccess =
@@ -4137,6 +4137,10 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     {
         dynamicStateListOut->push_back(VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR);
     }
+    if (context->getFeatures().supportsPatchControlPointsDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT);
+    }
 }
 
 void GraphicsPipelineDesc::initializePipelineSharedNonVertexInputState(
@@ -4163,6 +4167,11 @@ void GraphicsPipelineDesc::initializePipelineSharedNonVertexInputState(
         static_cast<VkBool32>(multisample.bits.alphaToCoverageEnable);
     stateOut->multisampleState.alphaToOneEnable =
         static_cast<VkBool32>(multisample.bits.alphaToOneEnable);
+
+    if (context->getFeatures().supportsAlphaToCoverageEnableDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT);
+    }
 }
 
 void GraphicsPipelineDesc::initializePipelineFragmentOutputState(

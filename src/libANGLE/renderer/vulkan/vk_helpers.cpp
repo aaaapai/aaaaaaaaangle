@@ -6164,9 +6164,19 @@ const void *ImageHelper::DeriveCreateInfoPNext(
     // respecified causing it to be interpreted in a different colorspace.
     // Allow linear and sRGB variants if the _intended_ format requires it.  sRGB override should be
     // ignored even if the fallback format supports it.
-    if (IsOverridableLinearOrSRGBFormat(intendedFormatID))
+    //
+    // For most formats, whether sRGB override is possible is covered by whether
+    // GL_EXT_texture_format_sRGB_override is supported.  However, R8 and RG8 may not support
+    // override, and they are controlled by GL_EXT_texture_sRGB_R8 and GL_EXT_texture_sRGB_RG8
+    // respectively.
+    Renderer *renderer                 = context->getRenderer();
+    const bool isR8WithoutSrgbSupport  = intendedFormatID == angle::FormatID::R8_UNORM &&
+                                         !renderer->getNativeExtensions().textureSRGBR8EXT;
+    const bool isRG8WithoutSrgbSupport = intendedFormatID == angle::FormatID::R8G8_UNORM &&
+                                         !renderer->getNativeExtensions().textureSRGBRG8EXT;
+    if (IsOverridableLinearOrSRGBFormat(intendedFormatID) && !isR8WithoutSrgbSupport &&
+        !isRG8WithoutSrgbSupport)
     {
-        Renderer *renderer                = context->getRenderer();
         const angle::Format &actualFormat = angle::Format::Get(actualFormatID);
         angle::FormatID additionalFormatID =
             actualFormat.isSRGB ? ConvertToLinear(actualFormatID) : ConvertToSRGB(actualFormatID);
@@ -8382,9 +8392,53 @@ angle::Result ImageHelper::CopyImageSubData(const gl::Context *context,
         ASSERT(dstImage->getCurrentImageAccess() == ImageAccess::TransferDst ||
                dstImage->getCurrentImageAccess() == ImageAccess::TransferSrcDst);
 
-        commandBuffer->copyImage(srcImage->getImage(), srcImage->getCurrentLayout(renderer),
-                                 dstImage->getImage(), dstImage->getCurrentLayout(renderer), 1,
-                                 &region);
+        // Some drivers copy wrong data when the formats differ and the region covers more than
+        // one layer; issue one copy per layer instead.  No barriers are needed between them.
+        const bool splitPerLayer =
+            renderer->getFeatures().splitCrossFormatLayeredImageCopy.enabled &&
+            srcImage->getActualFormatID() != dstImage->getActualFormatID() &&
+            !srcImage->getActualFormat().isBlock && !dstImage->getActualFormat().isBlock &&
+            srcDepth > 1 && !(isSrc3D && isDst3D);
+
+        if (!splitPerLayer)
+        {
+            commandBuffer->copyImage(srcImage->getImage(), srcImage->getCurrentLayout(renderer),
+                                     dstImage->getImage(), dstImage->getCurrentLayout(renderer), 1,
+                                     &region);
+        }
+        else
+        {
+            VkImageCopy layerRegion               = region;
+            layerRegion.srcSubresource.layerCount = 1;
+            layerRegion.dstSubresource.layerCount = 1;
+            layerRegion.extent.depth              = 1;
+
+            for (uint32_t layer = 0; layer < static_cast<uint32_t>(srcDepth); ++layer)
+            {
+                // copyImage() records a single region, so issue one call per layer.
+                commandBuffer->copyImage(srcImage->getImage(), srcImage->getCurrentLayout(renderer),
+                                         dstImage->getImage(), dstImage->getCurrentLayout(renderer),
+                                         1, &layerRegion);
+
+                if (isSrc3D)
+                {
+                    ++layerRegion.srcOffset.z;
+                }
+                else
+                {
+                    ++layerRegion.srcSubresource.baseArrayLayer;
+                }
+
+                if (isDst3D)
+                {
+                    ++layerRegion.dstOffset.z;
+                }
+                else
+                {
+                    ++layerRegion.dstSubresource.baseArrayLayer;
+                }
+            }
+        }
     }
     else if (!srcImage->getIntendedFormat().isBlock && !dstImage->getIntendedFormat().isBlock)
     {

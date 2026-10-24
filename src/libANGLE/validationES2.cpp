@@ -5027,9 +5027,6 @@ bool ValidateGetShaderPrecisionFormat(const Context *context,
         case GL_VERTEX_SHADER:
         case GL_FRAGMENT_SHADER:
             break;
-        case GL_COMPUTE_SHADER:
-            ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kUnimplementedComputeShaderPrecision);
-            return false;
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidShaderType);
             return false;
