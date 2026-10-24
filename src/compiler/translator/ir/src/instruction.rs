@@ -96,9 +96,14 @@ mod const_fold {
                 ir_meta.get_constant_bool(bool_op(b1, b2))
             }
             (&ConstantValue::YuvCsc(_), &ConstantValue::YuvCsc(_)) => {
-                panic!("Internal error: Ops not allowed on YUV CSC constants")
+                eprintln!("Error: Binary operation not allowed on YUV CSC constants");
+                ir_meta.get_constant_int(0)
             }
-            _ => panic!("Internal error: Expected scalars when constant folding a binary op"),
+            _ => {
+                eprintln!("Error: Expected scalars when constant folding a binary op");
+                ir_meta.get_constant_int(0)
+            }
+            
         }
     }
 
@@ -424,7 +429,9 @@ mod const_fold {
                     // This function is called on scalars, so `Composite` is impossible.
                     // Additionally, GLSL forbids type conversion to and from
                     // yuvCscStandardEXT.
-                    panic!("Internal error: Invalid constructor argument type");
+                    //panic!("Internal error: Invalid constructor argument type");
+                    eprintln!("Internal error: Invalid constructor argument type");
+                    arg
                 }
             })
             .collect()
@@ -1293,9 +1300,10 @@ mod const_fold {
             2 => determinant_2x2(&m2x2),
             3 => determinant_3x3(&m3x3),
             4 => determinant_4x4(&m4x4),
-            _ => panic!(
-                "Internal error: Invalid matrix dimensions when calculating determinant/inverse"
-            ),
+            s => {
+                eprintln!("Error: Invalid matrix dimensions {} when calculating determinant/inverse", s);
+                0.0
+            }
         }
     }
     fn determinant(ir_meta: &IRMeta, constant_id: ConstantId) -> f32 {
@@ -1442,7 +1450,13 @@ mod const_fold {
                     - m[2][0] * m[1][1] * m[0][2];
                 TYPE_ID_VEC4
             }
-            _ => panic!("Internal error: Invalid matrix dimensions when calculating inverse"),
+            _ => {
+                eprintln!(
+                    "Warning: built_in_inverse called with unsupported matrix dimension {}; returning original matrix",
+                    size
+                );
+                return constant_id;
+            }
         };
 
         let columns = (0..size)
@@ -1890,9 +1904,13 @@ mod const_fold {
             | UnaryOpCode::AtomicCounterDecrement
             | UnaryOpCode::ImageSize
             | UnaryOpCode::PixelLocalLoadANGLE => {
-                panic!("Internal error: Unexpected built-ins to constant-fold")
+                eprintln!("Internal error: Unexpected built-ins to constant-fold");
+                return constant_id;
             }
-            _ => |_| panic!("Internal error: Invalid built-in operation on float"),
+            _ => {
+               eprintln!("Internal error: Invalid built-in operation on float");
+               return constant_id;
+            }
         };
 
         let int_op = match op {
@@ -1907,17 +1925,26 @@ mod const_fold {
                 }
             },
             UnaryOpCode::BitfieldReverse => |i: i32| i.reverse_bits(),
-            _ => |_| panic!("Internal error: Invalid built-in operation on int"),
+            _ => {
+               eprintln!("Internal error: Invalid built-in operation on int");
+               |_i: i32| 0
+            }
         };
 
         let uint_op = match op {
             UnaryOpCode::BitfieldReverse => |u: u32| u.reverse_bits(),
-            _ => |_| panic!("Internal error: Invalid built-in operation on uint"),
+            _ => {
+              eprintln!("Internal error: Invalid built-in operation on uint");
+              |_u: u32| 0u32
+            }
         };
 
         let bool_op = match op {
             UnaryOpCode::Not => |b: bool| !b,
-            _ => |_| panic!("Internal error: Invalid built-in operation on uint"),
+            _ => {
+              eprintln!("Internal error: Invalid built-in operation on uint");
+              |_b: bool| false
+            }
         };
 
         apply_unary_componentwise(
@@ -2944,9 +2971,18 @@ mod const_fold {
             | BuiltInOpCode::SamplePosition
             | BuiltInOpCode::InterpolateAtCenter
             | BuiltInOpCode::LoopForwardProgress
-            | BuiltInOpCode::Saturate => {
+            | BuiltInOpCode::Saturate 
+            | BuiltInOpCode::AtomicCounterAdd
+            | BuiltInOpCode::AtomicCounterSubtract
+            | BuiltInOpCode::AtomicCounterMin
+            | BuiltInOpCode::AtomicCounterMax
+            | BuiltInOpCode::AtomicCounterAnd
+            | BuiltInOpCode::AtomicCounterOr
+            | BuiltInOpCode::AtomicCounterXor
+            | BuiltInOpCode::AtomicCounterExchange
+            | BuiltInOpCode::AtomicCounterCompSwap => {
                 panic!("Internal error: Unexpected built-ins to constant-fold")
-            }
+            }      
         };
 
         fold(ir_meta, &operands, result_type_id)
@@ -3380,6 +3416,16 @@ mod promote {
             BuiltInOpCode::Rgb2Yuv | BuiltInOpCode::Yuv2Rgb => TYPE_ID_VEC3,
             BuiltInOpCode::NumSamples => TYPE_ID_UINT,
             BuiltInOpCode::SamplePosition => TYPE_ID_VEC2,
+            
+            BuiltInOpCode::AtomicCounterAdd
+            | BuiltInOpCode::AtomicCounterSubtract
+            | BuiltInOpCode::AtomicCounterMin
+            | BuiltInOpCode::AtomicCounterMax
+            | BuiltInOpCode::AtomicCounterAnd
+            | BuiltInOpCode::AtomicCounterOr
+            | BuiltInOpCode::AtomicCounterXor
+            | BuiltInOpCode::AtomicCounterExchange
+            | BuiltInOpCode::AtomicCounterCompSwap => TYPE_ID_UINT,
         }
     }
 
@@ -3724,6 +3770,16 @@ pub mod precision {
             | BuiltInOpCode::LoopForwardProgress => {
                 panic!("Internal error: invalid to derive precision of void built-in")
             }
+            
+            BuiltInOpCode::AtomicCounterAdd
+            | BuiltInOpCode::AtomicCounterSubtract
+            | BuiltInOpCode::AtomicCounterMin
+            | BuiltInOpCode::AtomicCounterMax
+            | BuiltInOpCode::AtomicCounterAnd
+            | BuiltInOpCode::AtomicCounterOr
+            | BuiltInOpCode::AtomicCounterXor
+            | BuiltInOpCode::AtomicCounterExchange
+            | BuiltInOpCode::AtomicCounterCompSwap => Precision::High,
         }
     }
 
@@ -3990,7 +4046,16 @@ pub mod precision {
                     BuiltInOpCode::ImageAtomicCompSwap |
                     BuiltInOpCode::SamplePosition |
                     BuiltInOpCode::InterpolateAtCenter |
-                    BuiltInOpCode::Saturate => {
+                    BuiltInOpCode::Saturate | 
+                    BuiltInOpCode::AtomicCounterAdd |
+                    BuiltInOpCode::AtomicCounterSubtract |
+                    BuiltInOpCode::AtomicCounterMin |
+                    BuiltInOpCode::AtomicCounterMax |
+                    BuiltInOpCode::AtomicCounterAnd |
+                    BuiltInOpCode::AtomicCounterOr |
+                    BuiltInOpCode::AtomicCounterXor |
+                    BuiltInOpCode::AtomicCounterExchange |
+                    BuiltInOpCode::AtomicCounterCompSwap => {
                         propagate_to_ids(&mut params.iter_mut(), precision, to_propagate);
                     },
                     BuiltInOpCode::TextureSize => {

@@ -245,67 +245,182 @@ class RewriteAtomicCountersTraverser : public TIntermTraverser
     }
 
   private:
-    bool convertBuiltinFunction(TIntermAggregate *node)
+        bool convertBuiltinFunction(TIntermAggregate *node)
     {
         const TOperator op = node->getOp();
 
-        // If the function is |memoryBarrierAtomicCounter|, simply replace it with
-        // |memoryBarrierBuffer|.
+        // If the function is |memoryBarrierAtomicCounter|, replace with |memoryBarrierBuffer|.
         if (op == EOpMemoryBarrierAtomicCounter)
         {
             TIntermSequence emptySequence;
-            TIntermTyped *substituteCall = CreateBuiltInFunctionCallNode(
-                "memoryBarrierBuffer", &emptySequence, *mSymbolTable, 310);
+            TIntermTyped *substituteCall =
+                CreateBuiltInFunctionCallNode("memoryBarrierBuffer", &emptySequence, *mSymbolTable, 310);
             queueReplacement(substituteCall, OriginalNode::IS_DROPPED);
             return true;
         }
 
-        // If it's an |atomicCounter*| function, replace the function with an |atomic*| equivalent.
-        if (!node->getFunction()->isAtomicCounterFunction())
+        if (BuiltInGroup::IsAtomicMemory(op) &&
+        (*node->getSequence())[0]->getAsTyped()->getType().isAtomicCounter())
+    {
+        const char *funcName = nullptr;
+        switch (op)
+        {
+            case EOpAtomicAdd:        funcName = "atomicAdd"; break;
+            case EOpAtomicMin:        funcName = "atomicMin"; break;
+            case EOpAtomicMax:        funcName = "atomicMax"; break;
+            case EOpAtomicAnd:        funcName = "atomicAnd"; break;
+            case EOpAtomicOr:         funcName = "atomicOr"; break;
+            case EOpAtomicXor:        funcName = "atomicXor"; break;
+            case EOpAtomicExchange:   funcName = "atomicExchange"; break;
+            case EOpAtomicCompSwap:   funcName = "atomicCompSwap"; break;
+            default: UNREACHABLE(); return false;
+        }
+
+        TIntermTyped *param = (*node->getSequence())[0]->getAsTyped();
+        TIntermSequence args;
+        args.push_back(CreateAtomicCounterRef(param, mAtomicCounters, mAcbBufferOffsets));
+
+        if (op == EOpAtomicCompSwap)
+        {
+            TIntermTyped *compare = (*node->getSequence())[1]->getAsTyped();
+            TIntermTyped *value   = (*node->getSequence())[2]->getAsTyped();
+            args.push_back(compare->deepCopy());
+            args.push_back(value->deepCopy());
+        }
+        else
+        {
+            TIntermTyped *value = (*node->getSequence())[1]->getAsTyped();
+            args.push_back(value->deepCopy());
+        }
+
+        TIntermTyped *substitute =
+            CreateBuiltInFunctionCallNode(funcName, &args, *mSymbolTable, 310);
+        queueReplacement(substitute, OriginalNode::IS_DROPPED);
+        return true;
+    }
+
+        // 判断是否为原子计数器函数（包括新增的）
+        if (!node->getFunction()->isAtomicCounterFunction() &&
+            op != EOpAtomicCounterAdd &&
+            op != EOpAtomicCounterSubtract &&
+            op != EOpAtomicCounterMin &&
+            op != EOpAtomicCounterMax &&
+            op != EOpAtomicCounterAnd &&
+            op != EOpAtomicCounterOr &&
+            op != EOpAtomicCounterXor &&
+            op != EOpAtomicCounterExchange &&
+            op != EOpAtomicCounterCompSwap)
         {
             return false;
         }
 
-        // Note: atomicAdd(0) is used for atomic reads.
-        uint32_t valueChange                = 0;
-        constexpr char kAtomicAddFunction[] = "atomicAdd";
-        bool isDecrement                    = false;
-
-        if (op == EOpAtomicCounterIncrement)
+        // 处理原有的三个函数：atomicCounter, atomicCounterIncrement, atomicCounterDecrement
+        if (op == EOpAtomicCounter || op == EOpAtomicCounterIncrement || op == EOpAtomicCounterDecrement)
         {
-            valueChange = 1;
-        }
-        else if (op == EOpAtomicCounterDecrement)
-        {
-            // uint values are required to wrap around, so 0xFFFFFFFFu is used as -1.
-            valueChange = std::numeric_limits<uint32_t>::max();
-            static_assert(static_cast<uint32_t>(-1) == std::numeric_limits<uint32_t>::max(),
-                          "uint32_t max is not -1");
+            uint32_t valueChange = 0;
+            bool isDecrement     = false;
 
-            isDecrement = true;
-        }
-        else
-        {
-            ASSERT(op == EOpAtomicCounter);
+            if (op == EOpAtomicCounterIncrement)
+            {
+                valueChange = 1;
+            }
+            else if (op == EOpAtomicCounterDecrement)
+            {
+                valueChange = std::numeric_limits<uint32_t>::max(); // -1 wrapping
+                isDecrement = true;
+            }
+            else
+            {
+                ASSERT(op == EOpAtomicCounter);
+            }
+
+            TIntermTyped *param = (*node->getSequence())[0]->getAsTyped();
+    
+            TIntermSequence substituteArguments;
+            substituteArguments.push_back(
+                CreateAtomicCounterRef(param, mAtomicCounters, mAcbBufferOffsets));
+            substituteArguments.push_back(CreateUIntNode(valueChange));
+
+            TIntermTyped *substituteCall =
+                CreateBuiltInFunctionCallNode("atomicAdd", &substituteArguments, *mSymbolTable, 310);
+
+            if (isDecrement)
+            {
+                // atomicCounterDecrement returns the new value, not old, so subtract 1.
+                substituteCall = new TIntermBinary(EOpSub, substituteCall, CreateUIntNode(1));
+            }
+
+            queueReplacement(substituteCall, OriginalNode::IS_DROPPED);
+            return true;
         }
 
+        // 处理新增的原子计数器操作
+        const char *funcName = nullptr;
+        bool needNegate      = false;
+
+        switch (op)
+        {
+            case EOpAtomicCounterAdd:
+                funcName = "atomicAdd";
+                break;
+            case EOpAtomicCounterSubtract:
+                funcName = "atomicAdd";
+                needNegate = true; // 0 - value (wraps for uint)
+                break;
+            case EOpAtomicCounterMin:
+                funcName = "atomicMin";
+                break;
+            case EOpAtomicCounterMax:
+                funcName = "atomicMax";
+                break;
+            case EOpAtomicCounterAnd:
+                funcName = "atomicAnd";
+                break;
+            case EOpAtomicCounterOr:
+                funcName = "atomicOr";
+                break;
+            case EOpAtomicCounterXor:
+                funcName = "atomicXor";
+                break;
+            case EOpAtomicCounterExchange:
+                funcName = "atomicExchange";
+                break;
+            case EOpAtomicCounterCompSwap:
+                funcName = "atomicCompSwap";
+                break;
+            default:
+                UNREACHABLE();
+                return false;
+        }
+    
+        // 获取第一个参数（原子计数器表达式）
         TIntermTyped *param = (*node->getSequence())[0]->getAsTyped();
-
         TIntermSequence substituteArguments;
         substituteArguments.push_back(
             CreateAtomicCounterRef(param, mAtomicCounters, mAcbBufferOffsets));
-        substituteArguments.push_back(CreateUIntNode(valueChange));
 
-        TIntermTyped *substituteCall = CreateBuiltInFunctionCallNode(
-            kAtomicAddFunction, &substituteArguments, *mSymbolTable, 310);
-
-        // Note that atomicCounterDecrement returns the *new* value instead of the prior value,
-        // unlike atomicAdd.  So we need to do a -1 on the result as well.
-        if (isDecrement)
+        if (op == EOpAtomicCounterCompSwap)
         {
-            substituteCall = new TIntermBinary(EOpSub, substituteCall, CreateUIntNode(1));
+            // 比较交换需要三个参数：原子计数器，比较值，新值
+            TIntermTyped *compare = (*node->getSequence())[1]->getAsTyped();
+            TIntermTyped *value   = (*node->getSequence())[2]->getAsTyped();
+            substituteArguments.push_back(compare->deepCopy());
+            substituteArguments.push_back(value->deepCopy());
+        }
+        else
+        {
+            // 其他操作：第二个参数是值
+            TIntermTyped *value = (*node->getSequence())[1]->getAsTyped();
+            if (needNegate)
+            {
+                // 0 - value (对于 uint 是环绕减法，效果等同于取负)
+                value = new TIntermBinary(EOpSub, CreateUIntNode(0), value->deepCopy());
+            }
+            substituteArguments.push_back(value);
         }
 
+        TIntermTyped *substituteCall =
+            CreateBuiltInFunctionCallNode(funcName, &substituteArguments, *mSymbolTable, 310);
         queueReplacement(substituteCall, OriginalNode::IS_DROPPED);
         return true;
     }

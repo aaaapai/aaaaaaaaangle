@@ -188,6 +188,42 @@ bool IsAccessChainHelperInvocation(const AccessChain &accessChain)
     return accessChain.isHelperInvocation;
 }
 
+// Returns true if the given GLSL.std.450 extended instruction requires that every operand's type
+// matches the result type exactly.  All of the instructions below are float-only variants whose
+// operands, per the GLSL.std.450 specification, must have the same basic type and shape as the
+// result.
+//
+// Ldexp is intentionally excluded: its second operand ("exp") is specified to be an integer, so
+// it must not be coerced to float.  FMod is included because it is float-only in SPIR-V.
+//
+// Instructions that only take a single operand (Sin, Cos, Sqrt, ...) are trivially satisfied by
+// their operand already matching the result type and do not need to be listed here.
+bool RequiresFloatOperandsMatchingResult(spv::GLSLstd450 inst)
+{
+    switch (inst)
+    {
+        case spv::GLSLstd450FMin:
+        case spv::GLSLstd450FMax:
+        case spv::GLSLstd450FClamp:
+        case spv::GLSLstd450FMix:
+        case spv::GLSLstd450Fma:
+        case spv::GLSLstd450Step:
+        case spv::GLSLstd450SmoothStep:
+        case spv::GLSLstd450Atan2:
+        case spv::GLSLstd450Pow:
+        case spv::GLSLstd450Distance:
+        case spv::GLSLstd450Cross:
+        case spv::GLSLstd450FaceForward:
+        case spv::GLSLstd450Reflect:
+        case spv::GLSLstd450Refract:
+        case spv::GLSLstd450ModfStruct:
+        case spv::GLSLstd450FrexpStruct:
+            return true;
+        default:
+            return false;
+    }
+}
+
 // A traverser that generates SPIR-V as it walks the AST.
 class OutputSPIRVTraverser : public TIntermTraverser
 {
@@ -336,8 +372,9 @@ class OutputSPIRVTraverser : public TIntermTraverser
                                const TType &expectedType,
                                spirv::IdRef *resultTypeIdOut);
     spirv::IdRef castFloatType(spirv::IdRef value,
-                               const TType &valueType,
-                               spirv::IdRef *resultTypeIdOut);
+                           const TType &valueType,
+                           const SpirvTypeSpec &expectedTypeSpec,
+                           spirv::IdRef *resultTypeIdOut);
     spirv::IdRef cast(spirv::IdRef value,
                       const TType &valueType,
                       const SpirvTypeSpec &valueTypeSpec,
@@ -3146,6 +3183,47 @@ spirv::IdRef OutputSPIRVTraverser::visitOperator(TIntermOperator *node, spirv::I
     {
         ASSERT(parameters.size() == 2);
 
+        // GLSL allows implicit int/uint to float conversion in operators that mix a float
+        // operand with an integer literal, for example:
+        //
+        //     float x; ... if (x == 0) ...      // EOpEqualComponentWise
+        //     vec3 v;  ... v < vec3(1) ...      // EOpLessThanComponentWise
+        //
+        // The SPIR-V OpFOrd*/OpFUnord* instructions require both operands to have exactly
+        // the same type.  If the selected binary instruction is one of the float comparison
+        // instructions, coerce every non-float operand to float.  Without this, the translator
+        // emits e.g.
+        //
+        //     %r = OpFOrdEqual %bool %float_value %int_0
+        //
+        // which the SPIR-V validator rejects with
+        // "Expected left and right operands to have the same type: FOrdEqual".
+        //
+        // Casting is done before extendScalarParamsToVector so that scalar operands are
+        // already float when they get broadcast into vectors.
+        if (writeBinaryOp == spirv::WriteFOrdEqual ||
+            writeBinaryOp == spirv::WriteFUnordNotEqual ||
+            writeBinaryOp == spirv::WriteFOrdLessThan ||
+            writeBinaryOp == spirv::WriteFOrdGreaterThan ||
+            writeBinaryOp == spirv::WriteFOrdLessThanEqual ||
+            writeBinaryOp == spirv::WriteFOrdGreaterThanEqual)
+        {
+            const size_t compareParamCount =
+                std::min<size_t>(parameters.size(), node->getChildCount());
+            for (size_t paramIndex = 0; paramIndex < compareParamCount; ++paramIndex)
+            {
+                const TType &paramType =
+                    node->getChildNode(paramIndex)->getAsTyped()->getType();
+                if (paramType.getBasicType() != EbtFloat)
+                {
+                    TType floatParamType = paramType;
+                    floatParamType.setBasicType(EbtFloat);
+                    parameters[paramIndex] = castBasicType(parameters[paramIndex], paramType,
+                                                           floatParamType, nullptr);
+                }
+            }
+        }
+
         if (extendScalarToVector)
         {
             extendScalarParamsToVector(node, builtInResultTypeId, &parameters);
@@ -3196,6 +3274,44 @@ spirv::IdRef OutputSPIRVTraverser::visitOperator(TIntermOperator *node, spirv::I
         // It's an extended instruction.
         ASSERT(extendedInst != spv::GLSLstd450Bad);
 
+        // GLSL allows implicit conversions from int (and uint) to float.  For example:
+        //
+        //     min(someFloat, 0)  // 0 is an int literal
+        //     clamp(x, 0, 1)
+        //     pow(x, 2)
+        //     step(0, x)
+        //     smoothstep(0, 1, x)
+        //
+        // These are valid GLSL, and the AST contains the int literal as-is.  However, the
+        // corresponding GLSL.std.450 instructions (FMin, FClamp, Pow, Step, SmoothStep, ...)
+        // require every operand to have the same type as the result.  If we emit the int
+        // operand directly we produce invalid SPIR-V (e.g. `OpExtInst %float ... FMin %f %int_0`),
+        // which the validator rejects.
+        //
+        // Fix this by inserting an explicit int/uint -> float conversion for any operand whose
+        // basic type is not float before emitting the extended instruction.
+        //
+        // Ldexp is intentionally excluded: its second operand is specified to be an integer in
+        // both GLSL and GLSL.std.450, so it must not be coerced to float.
+        //
+        // This conversion is done before extendScalarParamsToVector so that scalar operands are
+        // already float when they get broadcast into vectors.
+        if (RequiresFloatOperandsMatchingResult(extendedInst))
+        {
+            for (size_t paramIndex = 0; paramIndex < parameters.size(); ++paramIndex)
+            {
+                const TType &paramType =
+                    node->getChildNode(paramIndex)->getAsTyped()->getType();
+                if (paramType.getBasicType() != EbtFloat)
+                {
+                    TType floatParamType = paramType;
+                    floatParamType.setBasicType(EbtFloat);
+                    parameters[paramIndex] =
+                        castBasicType(parameters[paramIndex], paramType, floatParamType, nullptr);
+                }
+            }
+        }
+
         if (extendScalarToVector)
         {
             extendScalarParamsToVector(node, builtInResultTypeId, &parameters);
@@ -3242,6 +3358,46 @@ spirv::IdRef OutputSPIRVTraverser::createCompare(TIntermOperator *node, spirv::I
     // Load the left and right values.
     spirv::IdRefList parameters = loadAllParams(node, 0, nullptr);
     ASSERT(parameters.size() == 2);
+
+    // GLSL allows implicit int/uint to float conversion in the == and != operators,
+    // for example `floatVar == 0` or `floatVar != 1`.  The SPIR-V OpFOrdEqual and
+    // OpFUnordNotEqual instructions require both operands to have exactly the same
+    // type, so if either operand is float, coerce the other one to float.  Without
+    // this, the translator emits e.g.
+    //
+    //     %r = OpFOrdEqual %bool %float_value %int_0
+    //
+    // which the SPIR-V validator rejects with
+    // "Expected left and right operands to have the same type: FOrdEqual".
+    {
+        bool anyFloat = false;
+        for (size_t paramIndex = 0; paramIndex < parameters.size(); ++paramIndex)
+        {
+            const TType &paramType =
+                node->getChildNode(paramIndex)->getAsTyped()->getType();
+            if (paramType.getBasicType() == EbtFloat)
+            {
+                anyFloat = true;
+                break;
+            }
+        }
+
+        if (anyFloat)
+        {
+            for (size_t paramIndex = 0; paramIndex < parameters.size(); ++paramIndex)
+            {
+                const TType &paramType =
+                    node->getChildNode(paramIndex)->getAsTyped()->getType();
+                if (paramType.getBasicType() != EbtFloat)
+                {
+                    TType floatParamType = paramType;
+                    floatParamType.setBasicType(EbtFloat);
+                    parameters[paramIndex] = castBasicType(parameters[paramIndex], paramType,
+                                                           floatParamType, nullptr);
+                }
+            }
+        }
+    }
 
     // In GLSL, operators == and != can operate on the following:
     //
@@ -4261,56 +4417,38 @@ spirv::IdRef OutputSPIRVTraverser::createInterpolate(TIntermOperator *node,
 
 spirv::IdRef OutputSPIRVTraverser::castFloatType(spirv::IdRef value,
                                                  const TType &valueType,
+                                                 const SpirvTypeSpec &expectedTypeSpec,
                                                  spirv::IdRef *resultTypeIdOut)
 {
     ASSERT(valueType.getBasicType() == EbtFloat);
     SpirvType valueSpirvType = mBuilder.getSpirvType(valueType, {});
-    spirv::IdRef castTypeId;  // default to invalid
-    spirv::IdRef castValue;   // default fo invalid
-    // OpFConvert only works for scalar or vector data types
-    // If it is matrix type, we need to first extract each column, convert each column, and
-    // composite a new matrix
+    spirv::IdRef castTypeId;
+    spirv::IdRef castValue;
+
     if (valueType.isMatrix())
     {
-        // Get the matrix column SPIR-V type Id.
-        // We need this type Id to create the OpCompositeExtract instruction that extract each
-        // column of the matrix
         TType currentMatrixColumnType = valueType;
         currentMatrixColumnType.toMatrixColumnType();
         SpirvType currentMatrixColumnSpirvType = mBuilder.getSpirvType(currentMatrixColumnType, {});
-        // In below case:
-        // uniform mat3x4 uniMat3x4[5];
-        // uniMat3x4[i] qualifier is EvqTemporary, in which case the
-        // typeSpec.precision is not set to UseFP16.
-        // We need to set the bit to true to get the correct 16-bit float data type.
         currentMatrixColumnSpirvType.typeSpec.precision = SPIRVPrecisionChoice::UseFP16;
         const spirv::IdRef currentMatrixColumnTypeId =
             mBuilder.getSpirvTypeData(currentMatrixColumnSpirvType, nullptr).id;
 
-        // Get the converted matrix column SPIR-V type Id.
-        // We need this type Id to creat the OpFConvert instruction that converts each column of the
-        // matrix
         SpirvType expectedMatrixColumnSpirvType          = currentMatrixColumnSpirvType;
-        expectedMatrixColumnSpirvType.typeSpec.precision = SPIRVPrecisionChoice::Default;
+        expectedMatrixColumnSpirvType.typeSpec.precision = expectedTypeSpec.precision;
         const spirv::IdRef expectedMatrixColumnTypeId =
             mBuilder.getSpirvTypeData(expectedMatrixColumnSpirvType, nullptr).id;
 
-        // Extract each column of the matrix and converted them to the expected type
         const size_t matrixColCount = valueType.getCols();
         spirv::IdRefList convertedMatrixColIds;
         for (size_t i = 0; i < matrixColCount; ++i)
         {
-            // Extract each column vector from the matrix
             const spirv::IdRef currentMatrixColumnExtractId =
                 mBuilder.getNewId(mBuilder.getDecorations(valueType));
             spirv::WriteCompositeExtract(mBuilder.getSpirvCurrentFunctionBlock(),
                                          currentMatrixColumnTypeId, currentMatrixColumnExtractId,
                                          value, {spirv::LiteralInteger(static_cast<uint32_t>(i))});
 
-            // Convert each column
-            // Decorate the converted matrix column with "RelaxedPrecision", if the current matrix
-            // column are using 16-bit floats, so that compilers will be able to treat the converted
-            // matrix column as 16-bit floats.
             const spirv::IdRef expectedMatrixColumnTypeExtractId =
                 mBuilder.getNewId(mBuilder.getDecorations(valueType));
             spirv::WriteFConvert(mBuilder.getSpirvCurrentFunctionBlock(),
@@ -4319,21 +4457,17 @@ spirv::IdRef OutputSPIRVTraverser::castFloatType(spirv::IdRef value,
             convertedMatrixColIds.push_back(expectedMatrixColumnTypeExtractId);
         }
 
-        // Finally construct the new matrix with the converted columns
-        valueSpirvType.typeSpec.precision = SPIRVPrecisionChoice::Default;
-        castTypeId                        = mBuilder.getSpirvTypeData(valueSpirvType, nullptr).id;
-        // Decorate the converted matrix with "RelaxedPrecision", too.
-        castValue = mBuilder.getNewId(mBuilder.getDecorations(valueType));
+        valueSpirvType.typeSpec.precision = expectedTypeSpec.precision;
+        castTypeId = mBuilder.getSpirvTypeData(valueSpirvType, nullptr).id;
+        castValue  = mBuilder.getNewId(mBuilder.getDecorations(valueType));
         spirv::WriteCompositeConstruct(mBuilder.getSpirvCurrentFunctionBlock(), castTypeId,
                                        castValue, convertedMatrixColIds);
     }
     else
     {
-        valueSpirvType.typeSpec.precision = SPIRVPrecisionChoice::Default;
-
+        valueSpirvType.typeSpec.precision = expectedTypeSpec.precision;
         castTypeId = mBuilder.getSpirvTypeData(valueSpirvType, nullptr).id;
-        // Decorate the converted variable with "RelaxedPrecision"
-        castValue = mBuilder.getNewId(mBuilder.getDecorations(valueType));
+        castValue  = mBuilder.getNewId(mBuilder.getDecorations(valueType));
         spirv::WriteFConvert(mBuilder.getSpirvCurrentFunctionBlock(), castTypeId, castValue, value);
     }
 
@@ -4341,7 +4475,6 @@ spirv::IdRef OutputSPIRVTraverser::castFloatType(spirv::IdRef value,
     {
         *resultTypeIdOut = castTypeId;
     }
-
     return castValue;
 }
 
@@ -4626,10 +4759,17 @@ spirv::IdRef OutputSPIRVTraverser::cast(spirv::IdRef value,
         }
         else
         {
-            // 32-bit floats and 16-bit floats cast is done here
-            ASSERT(valueTypeSpec.precision == SPIRVPrecisionChoice::UseFP16 &&
-                   expectedTypeSpec.precision == SPIRVPrecisionChoice::Default);
-            return castFloatType(value, valueType, resultTypeIdOut);
+            // 32-bit <-> 16-bit float conversion.  Both directions are supported so that a value
+            // normalized to Default precision by accessChainLoad() can be stored through a UseFP16
+            // access chain (and vice versa).  Emitting the OpStore without this conversion would
+            // trigger:
+            //
+            //     OpStore Pointer <id> 'X's type does not match Object <id> 'Y's type.
+            //
+            // |expectedTypeSpec.precision| carries the destination precision; castFloatType uses
+            // it to build the result type.
+            ASSERT(valueTypeSpec.precision != expectedTypeSpec.precision);
+            return castFloatType(value, valueType, expectedTypeSpec, resultTypeIdOut);
         }
     }
 
@@ -5266,14 +5406,84 @@ bool OutputSPIRVTraverser::visitBinary(Visit visit, TIntermBinary *node)
 
         case EOpAssign:
         {
-            // Load the right hand side of assignment.
+            const TType &leftType  = node->getLeft()->getType();
+            const TType &rightType = node->getRight()->getType();
+
+            // Load the right hand side of assignment using its own type so the loaded value
+            // has the correct SPIR-V type.
             const spirv::IdRef rightValue =
-                accessChainLoad(&mNodeData.back(), node->getRight()->getType(), nullptr);
+                accessChainLoad(&mNodeData.back(), rightType, nullptr);
             mNodeData.pop_back();
 
-            // Store into the access chain.  Since the result of the (a = b) expression is b, change
-            // the access chain to an unindexed rvalue which is |rightValue|.
-            accessChainStore(&mNodeData.back(), rightValue, node->getLeft()->getType());
+            // If the basic types differ, insert an explicit conversion.  GLSL allows assignment
+            // between ivec/uvec/bvec/vec types with implicit scalar conversion (for example
+            // `shadowTexCoord = UV2;` where shadowTexCoord is vec2 and UV2 is ivec2).  The
+            // right-hand side is loaded with its own type, so without an explicit cast the
+            // value stored has the wrong basic type and OpStore is rejected by the validator:
+            //
+            //     OpStore Pointer <id> 'X's type does not match Object <id> 'Y's type.
+            //
+            // castBasicType emits the necessary OpConvertSToF / OpConvertUToF / OpSelect etc.
+            spirv::IdRef valueToStore = rightValue;
+            if (leftType.getBasicType() != rightType.getBasicType())
+            {
+                valueToStore = castBasicType(rightValue, rightType, leftType, nullptr);
+            }
+
+            // Defensive handling of a shape mismatch between the two sides of the assignment.
+            // Such a mismatch can be produced by an earlier AST transform that shrinks an array
+            // without also updating the assignment's RHS type.  The known case is shrinking
+            // webgl_FragData from vec4[N] down to vec4[1] while leaving the RHS of the
+            // assignment as vec4[N].  If the mismatched value were passed straight through to
+            // accessChainStore(), the generated OpStore would have a pointer type and an object
+            // type that disagree, and the SPIR-V validator would reject the module with:
+            //
+            //     OpStore Pointer <id> 'X's type does not match Object <id> 'Y's type.
+            //
+            // To fix that, the value is rebuilt with the destination's shape: as many leading
+            // elements are copied from the source as fit, and any remaining destination slots
+            // are filled with OpConstantNull.  The result therefore has exactly the same shape
+            // as the destination, so OpStore is well-typed.
+            if (leftType.isArray() && rightType.isArray() &&
+                leftType.getOutermostArraySize() != rightType.getOutermostArraySize())
+            {
+                TType elementType(rightType);
+                elementType.toArrayElementType();
+                const spirv::IdRef elementTypeId = mBuilder.getTypeData(elementType, {}).id;
+                const spirv::IdRef destTypeId    = mBuilder.getTypeData(leftType, {}).id;
+
+                const SpirvDecorations decorations = mBuilder.getDecorations(leftType);
+
+                const size_t destSize  = leftType.getOutermostArraySize();
+                const size_t srcSize   = rightType.getOutermostArraySize();
+                const size_t copyCount = destSize < srcSize ? destSize : srcSize;
+
+                spirv::IdRefList elements;
+                elements.reserve(destSize);
+
+                for (size_t i = 0; i < copyCount; ++i)
+                {
+                    const spirv::IdRef elementId = mBuilder.getNewId(decorations);
+                    spirv::WriteCompositeExtract(
+                        mBuilder.getSpirvCurrentFunctionBlock(), elementTypeId, elementId,
+                        valueToStore, {spirv::LiteralInteger(static_cast<uint32_t>(i))});
+                    elements.push_back(elementId);
+                }
+
+                const spirv::IdRef nullElement = mBuilder.getNullConstant(elementTypeId);
+                for (size_t i = copyCount; i < destSize; ++i)
+                {
+                    elements.push_back(nullElement);
+                }
+
+                valueToStore = mBuilder.getNewId(decorations);
+                spirv::WriteCompositeConstruct(mBuilder.getSpirvCurrentFunctionBlock(),
+                                       destTypeId, valueToStore, elements);
+            }
+
+            // Store into the access chain.  Since the result of the (a = b) expression is b,
+            // change the access chain to an unindexed rvalue which is |rightValue|.
+            accessChainStore(&mNodeData.back(), valueToStore, leftType);
             nodeDataInitRValue(&mNodeData.back(), rightValue, resultTypeId);
             break;
         }

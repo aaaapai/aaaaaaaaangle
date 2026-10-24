@@ -9,6 +9,10 @@
 #include "image_util/copyimage.h"
 #include "common/unsafe_buffers.h"
 
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
+#    include <arm_neon.h>
+#endif
+
 namespace angle
 {
 
@@ -28,6 +32,41 @@ void CopyBGRA8ToRGBA8Fast(const uint8_t *source,
                           int destWidth,
                           int destHeight)
 {
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
+    // NEON can process 4 pixels per iteration using a lookup table.
+    // For correctness on little-endian, the mask bytes are arranged as {B,G,R,A} -> {R,G,B,A}.
+    static const uint8_t shuffleMaskData[16] = {
+        2, 1, 0, 3,  6, 5, 4, 7,  10, 9, 8, 11,  14, 13, 12, 15
+    };
+    uint8x16_t shuffleMask = vld1q_u8(shuffleMaskData);
+
+    // Only use SIMD if width is large enough and pitches are 4-byte aligned.
+    if (destWidth >= 4 && (srcYAxisPitch % 4 == 0) && (destYAxisPitch % 4 == 0))
+    {
+        const int srcStride = srcYAxisPitch / 4;
+        const int dstStride = destYAxisPitch / 4;
+        for (int y = 0; y < destHeight; ++y)
+        {
+            const uint32_t *src32 = reinterpret_cast<const uint32_t*>(source + y * srcYAxisPitch);
+            uint32_t *dst32       = reinterpret_cast<uint32_t*>(dest + y * destYAxisPitch);
+            int x = 0;
+            for (; x + 3 < destWidth; x += 4)
+            {
+                uint8x16_t in = vld1q_u8(reinterpret_cast<const uint8_t*>(&src32[x]));
+                uint8x16_t out = vqtbl1q_u8(in, shuffleMask);
+                vst1q_u8(reinterpret_cast<uint8_t*>(&dst32[x]), out);
+            }
+            // Handle remaining pixels with scalar.
+            for (; x < destWidth; ++x)
+            {
+                dst32[x] = SwizzleBGRAToRGBA(src32[x]);
+            }
+        }
+        return;
+    }
+#endif
+
+    // Fallback scalar loop.
     for (int y = 0; y < destHeight; ++y)
     {
         const uint32_t *src32 =

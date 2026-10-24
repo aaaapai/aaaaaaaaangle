@@ -1213,6 +1213,13 @@ angle::FormatID WindowSurfaceVk::getActualFormatID(vk::Renderer *renderer)
     {
         actualFormatID = angle::FormatID::R5G6B5_UNORM;
     }
+
+    if (renderer->getFeatures().preferBGRA8ToRGBA8.enabled &&
+        intendedFormatID == angle::FormatID::R8G8B8A8_UNORM)
+    {
+        actualFormatID = angle::FormatID::B8G8R8A8_UNORM;
+    }
+
     return actualFormatID;
 }
 
@@ -2064,11 +2071,15 @@ angle::Result WindowSurfaceVk::queryAndAdjustSurfaceCaps(
         }
     }
 
-    if (mIsSurfaceSizedBySwapchain)
+    // Always query the actual window size.  On Fuchsia and some Android drivers,
+    // vkGetPhysicalDeviceSurfaceCapabilitiesKHR does not provide useful extents; on Android,
+    // currentExtent may also lag behind ANativeWindow_setBuffersGeometry.  Therefore, the
+    // platform-specific window size is used as the source of truth for buffer geometry.
+    //
+    // The IsAndroid() check limits this override to the platform where the lag has been
+    // observed.  Removing it makes the override unconditional for all platforms.
+    if (mIsSurfaceSizedBySwapchain || IsAndroid())
     {
-        // vkGetPhysicalDeviceSurfaceCapabilitiesKHR does not provide useful extents for some
-        // platforms (e.g. Fuchsia).  Therefore, we must query the window size via a
-        // platform-specific mechanism.  Add those extents to the surfaceCapsOut
         gl::Extents windowExtents;
         ANGLE_TRY(getCurrentWindowSize(context, &windowExtents));
         surfaceCapsOut->currentExtent.width  = windowExtents.width;
@@ -2141,6 +2152,15 @@ angle::Result WindowSurfaceVk::prepareSwapchainForAcquireNextImage(vk::ErrorCont
                 return angle::Result::Continue;
             }
         }
+
+        // Validation: report the exact reason the swapchain is being invalidated.  If this line
+        // does not appear after calling ANativeWindow_setBuffersGeometry, the size/transform/
+        // minImageCount comparison above did not detect a change.
+        INFO() << "Swapchain size changed: " << mWidth << "x" << mHeight << " -> "
+               << surfaceCaps.currentExtent.width << "x" << surfaceCaps.currentExtent.height
+               << " (transform " << std::hex << mPreTransform << " -> "
+               << surfaceCaps.currentTransform << std::dec << ", minImageCount " << mMinImageCount
+               << " -> " << minImageCount << ")";
 
         invalidateSwapchain(renderer);
     }

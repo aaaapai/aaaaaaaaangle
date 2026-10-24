@@ -15,6 +15,7 @@
 #else
 #    include <unordered_map>
 #    include <unordered_set>
+#    include <ska/flat_hash_map.hpp>
 #endif  // defined(ANGLE_USE_ABSEIL)
 
 namespace angle
@@ -38,7 +39,7 @@ template <typename Key,
           typename T,
           class Hash     = std::hash<Key>,
           class KeyEqual = std::equal_to<Key>>
-using HashMap = std::unordered_map<Key, T, Hash, KeyEqual>;
+using HashMap = ankerl::unordered_dense::map<Key, T, Hash, KeyEqual>;
 template <typename Key, class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>>
 using HashSet = std::unordered_set<Key, Hash, KeyEqual>;
 #    if __cpp_lib_generic_unordered_lookup >= 201811L

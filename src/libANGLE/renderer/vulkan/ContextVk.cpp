@@ -53,10 +53,10 @@ namespace
 {
 // If the total size of copyBufferToImage commands in the outside command buffer reaches the
 // threshold below, the latter is flushed.
-static constexpr VkDeviceSize kMaxBufferToImageCopySize = 64 * 1024 * 1024;
+static constexpr VkDeviceSize kMaxBufferToImageCopySize = 21 * 1024 * 1024;
 // If the number of render passes in a command buffer reaches the threshold below, it will be
 // flushed and submitted.
-static constexpr VkDeviceSize kMaxRenderPassCountPerCommandBuffer = 128;
+static constexpr VkDeviceSize kMaxRenderPassCountPerCommandBuffer = 32;
 // The number of queueSerials we will reserve for outsideRenderPassCommands when we generate one for
 // RenderPassCommands.
 static constexpr size_t kMaxReservedOutsideRenderPassQueueSerials = 15;
@@ -72,7 +72,7 @@ static constexpr GLbitfield kWriteAfterAccessMemoryBarriers =
 
 // The number of minimum commands in the command buffer to prefer submit at FBO boundary or
 // immediately submit when the device is idle after calling to flush.
-static constexpr size_t kMinCommandCountToSubmit = 1024;
+static constexpr size_t kMinCommandCountToSubmit = 64;
 
 constexpr bool useVulkanSecondaryCommandBuffer()
 {
@@ -1657,7 +1657,7 @@ angle::Result ContextVk::onFrameBoundary(const gl::Context *contextGL)
     return mRenderer->onFrameBoundary(contextGL);
 }
 
-angle::Result ContextVk::setupDraw(const gl::Context *context,
+inline angle::Result ContextVk::setupDraw(const gl::Context *context,
                                    gl::PrimitiveMode mode,
                                    GLint firstVertexOrInvalid,
                                    GLsizei vertexOrIndexCount,
@@ -1667,22 +1667,17 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
                                    const void *indices,
                                    DirtyBits dirtyBitMask)
 {
-    // Set any dirty bits that depend on draw call parameters or other objects.
-    if (mode != mCurrentDrawMode)
+    if (mode != mCurrentDrawMode) [[unlikely]]
     {
         updateTopology(mode);
     }
-    if (mGraphicsDriverUniforms.updateBaseInstance(baseInstance))
+
+    if (mGraphicsDriverUniforms.updateBaseInstance(baseInstance)) [[likely]]
     {
         mGraphicsDirtyBits.set(DIRTY_BIT_DRIVER_UNIFORMS);
     }
 
-    // Avoid potential tile memory fallback since we can't handle framebuffer change here. Luckily
-    // this will only possible in simulated mode since on qualcomm
-    // getMinRenderPassWriteCommandCountToEarlySubmit is set to UINT32_MAX. Submit pending commands
-    // if the number of write-commands in the current render pass reaches a threshold to avoid
-    // delaying the submission too much.
-    if (ANGLE_UNLIKELY(mRenderPassCommands->getCommandBuffer().getRenderPassWriteCommandCount() >
+    if ((mRenderPassCommands->getCommandBuffer().getRenderPassWriteCommandCount() >
                        mRenderer->getMinRenderPassWriteCommandCountToEarlySubmit()) &&
         mCommandsPendingSubmissionCount > 0 && mImageWithTileMemory == nullptr)
     {
@@ -1691,9 +1686,9 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
         mCommandsPendingSubmissionCount = 0;
     }
 
-    // Must be called before the command buffer is started. Can call finish.
     VertexArrayVk *vertexArrayVk = getVertexArray();
-    if (vertexArrayVk->getStreamingVertexAttribsMask().any())
+
+    if (vertexArrayVk->getStreamingVertexAttribsMask().any()) [[unlikely]]
     {
         gl::AttributesMask strideDirtyAttribMask;
 
@@ -1706,11 +1701,9 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
                 &strideDirtyAttribMask));
         }
 
-        // We may switch between merged attrib and non-merged. If stride changed, and
-        // mGraphicsPipelineDesc is using it, we must update mGraphicsPipelineDesc and
-        // invalidate graphics pipeline.
-        if (strideDirtyAttribMask.any() && !getFeatures().supportsVertexInputDynamicState.enabled &&
-            !getFeatures().useVertexInputBindingStrideDynamicState.enabled)
+        if (strideDirtyAttribMask.any() && 
+            !getFeatures().supportsVertexInputDynamicState.enabled &&
+            !getFeatures().useVertexInputBindingStrideDynamicState.enabled) [[unlikely]]
         {
             for (size_t attribIndex : strideDirtyAttribMask)
             {
@@ -1725,16 +1718,13 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
     }
 
     ProgramExecutableVk *executableVk = vk::GetImpl(mState.getProgramExecutable());
-    if (executableVk->updateAndCheckDirtyUniforms())
+    if (executableVk->updateAndCheckDirtyUniforms()) [[likely]]
     {
         mGraphicsDirtyBits.set(DIRTY_BIT_UNIFORMS);
     }
 
-    // Update transform feedback offsets on every draw call when emulating transform feedback.  This
-    // relies on the fact that no geometry/tessellation, indirect or indexed calls are supported in
-    // ES3.1 (and emulation is not done for ES3.2).
     if (getFeatures().emulateTransformFeedback.enabled &&
-        mState.isTransformFeedbackActiveUnpaused())
+        mState.isTransformFeedbackActiveUnpaused()) [[unlikely]]
     {
         ASSERT(firstVertexOrInvalid != -1);
         TransformFeedbackVk *transformFeedbackVk =
@@ -1748,11 +1738,10 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
         mGraphicsDirtyBits.set(DIRTY_BIT_DRIVER_UNIFORMS);
     }
 
-    DirtyBits dirtyBits = mGraphicsDirtyBits & dirtyBitMask;
+    const DirtyBits dirtyBits = mGraphicsDirtyBits & dirtyBitMask;
 
-    if (dirtyBits.any())
+    if (dirtyBits.any()) [[likely]]
     {
-        // Flush any relevant dirty bits.
         for (DirtyBits::Iterator dirtyBitIter = dirtyBits.begin(); dirtyBitIter != dirtyBits.end();
              ++dirtyBitIter)
         {
@@ -1761,15 +1750,10 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
                 (this->*mGraphicsDirtyBitHandlers[*dirtyBitIter])(&dirtyBitIter, dirtyBitMask));
         }
 
-        // Reset the processed dirty bits, except for those that are expected to persist between
-        // draw calls (such as the framebuffer fetch barrier which needs to be issued again and
-        // again).
         mGraphicsDirtyBits &= (~dirtyBitMask | mPersistentGraphicsDirtyBits);
     }
 
-    // Render pass must be always available at this point.
     ASSERT(hasActiveRenderPass());
-
     ASSERT(mState.getAndResetDirtyUniformBlocks().none());
 
     return angle::Result::Continue;
@@ -1868,17 +1852,15 @@ angle::Result ContextVk::setupIndexedDraw(const gl::Context *context,
                      mIndexedDirtyBitsMask);
 }
 
-angle::Result ContextVk::setupIndirectDraw(const gl::Context *context,
-                                           gl::PrimitiveMode mode,
-                                           DirtyBits dirtyBitMask,
-                                           vk::BufferHelper *indirectBuffer)
+ANGLE_INLINE angle::Result ContextVk::setupIndirectDraw(const gl::Context *context,
+                                                         gl::PrimitiveMode mode,
+                                                         DirtyBits dirtyBitMask,
+                                                         vk::BufferHelper *indirectBuffer)
 {
-    GLint firstVertex     = -1;
-    GLsizei vertexCount   = 0;
-    GLsizei instanceCount = 1;
+    constexpr GLint firstVertex = -1;
+    constexpr GLsizei vertexCount = 0;
+    constexpr GLsizei instanceCount = 1;
 
-    // Break the render pass if the indirect buffer was previously used as the output from transform
-    // feedback.
     if (mCurrentTransformFeedbackQueueSerial.valid() &&
         indirectBuffer->writtenByCommandBuffer(mCurrentTransformFeedbackQueueSerial))
     {
@@ -1889,22 +1871,22 @@ angle::Result ContextVk::setupIndirectDraw(const gl::Context *context,
     ANGLE_TRY(setupDraw(context, mode, firstVertex, vertexCount, 0, instanceCount,
                         gl::DrawElementsType::InvalidEnum, nullptr, dirtyBitMask));
 
-    // Process indirect buffer after render pass has started.
     mRenderPassCommands->bufferRead(this, VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
                                     vk::PipelineStage::DrawIndirect, indirectBuffer);
 
     return angle::Result::Continue;
 }
 
-angle::Result ContextVk::setupIndexedIndirectDraw(const gl::Context *context,
-                                                  gl::PrimitiveMode mode,
-                                                  gl::DrawElementsType indexType,
-                                                  vk::BufferHelper *indirectBuffer)
+ANGLE_INLINE angle::Result ContextVk::setupIndexedIndirectDraw(const gl::Context *context,
+                                                               gl::PrimitiveMode mode,
+                                                               gl::DrawElementsType indexType,
+                                                               vk::BufferHelper *indirectBuffer)
 {
     ASSERT(mode != gl::PrimitiveMode::LineLoop);
 
     VertexArrayVk *vertexArrayVk = getVertexArray();
-    mCurrentIndexBuffer          = vertexArrayVk->getCurrentElementArrayBuffer();
+    mCurrentIndexBuffer = vertexArrayVk->getCurrentElementArrayBuffer();
+
     if (indexType != mCurrentDrawElementsType)
     {
         mCurrentDrawElementsType = indexType;
@@ -4195,60 +4177,53 @@ angle::Result ContextVk::multiDrawArraysIndirectHelper(const gl::Context *contex
                                                        GLsizei stride)
 {
     VertexArrayVk *vertexArrayVk = getVertexArray();
+
     if (drawcount > 1 && !CanMultiDrawIndirectUseCmd(this, vertexArrayVk, mode, drawcount, stride))
     {
         return rx::MultiDrawArraysIndirectGeneral(this, context, mode, indirect, drawcount, stride);
     }
 
-    // Stride must be a multiple of the size of VkDrawIndirectCommand (stride = 0 is invalid when
-    // drawcount > 1).
-    uint32_t vkStride = (stride == 0 && drawcount > 1) ? sizeof(VkDrawIndirectCommand) : stride;
+    constexpr uint32_t kDefaultStride = sizeof(VkDrawIndirectCommand);
+    uint32_t vkStride = (stride == 0 && drawcount > 1) ? kDefaultStride : static_cast<uint32_t>(stride);
 
-    gl::Buffer *indirectBuffer            = mState.getTargetBuffer(gl::BufferBinding::DrawIndirect);
-    vk::BufferHelper *currentIndirectBuf  = &vk::GetImpl(indirectBuffer)->getBuffer();
+    gl::Buffer *indirectBuffer = mState.getTargetBuffer(gl::BufferBinding::DrawIndirect);
+    vk::BufferHelper *currentIndirectBuf = &vk::GetImpl(indirectBuffer)->getBuffer();
     VkDeviceSize currentIndirectBufOffset = reinterpret_cast<VkDeviceSize>(indirect);
 
-    if (vertexArrayVk->getStreamingVertexAttribsMask().any())
+    if (drawcount <= 1)
     {
-        // Handling instanced vertex attributes is not covered for drawcount > 1.
-        ASSERT(drawcount <= 1);
+        if (vertexArrayVk->getStreamingVertexAttribsMask().any())
+        {
+            ANGLE_TRY(currentIndirectBuf->invalidate(mRenderer, 0, sizeof(VkDrawIndirectCommand)));
+            uint8_t *buffPtr;
+            ANGLE_TRY(currentIndirectBuf->map(this, &buffPtr));
+            const VkDrawIndirectCommand *indirectData =
+                reinterpret_cast<const VkDrawIndirectCommand *>(
+                    ANGLE_UNSAFE_TODO(buffPtr + currentIndirectBufOffset));
 
-        // We have instanced vertex attributes that need to be emulated for Vulkan.
-        // invalidate any cache and map the buffer so that we can read the indirect data.
-        // Mapping the buffer will cause a flush.
-        ANGLE_TRY(currentIndirectBuf->invalidate(mRenderer, 0, sizeof(VkDrawIndirectCommand)));
-        uint8_t *buffPtr;
-        ANGLE_TRY(currentIndirectBuf->map(this, &buffPtr));
-        const VkDrawIndirectCommand *indirectData = reinterpret_cast<VkDrawIndirectCommand *>(
-            ANGLE_UNSAFE_TODO(buffPtr + currentIndirectBufOffset));
+            ANGLE_TRY(drawArraysInstanced(context, mode, indirectData->firstVertex,
+                                          indirectData->vertexCount, indirectData->instanceCount));
 
-        ANGLE_TRY(drawArraysInstanced(context, mode, indirectData->firstVertex,
-                                      indirectData->vertexCount, indirectData->instanceCount));
+            currentIndirectBuf->unmap(mRenderer);
+            return angle::Result::Continue;
+        }
 
-        currentIndirectBuf->unmap(mRenderer);
-        return angle::Result::Continue;
-    }
-
-    if (mode == gl::PrimitiveMode::LineLoop)
-    {
-        // Line loop only supports handling at most one indirect parameter.
-        ASSERT(drawcount <= 1);
-
-        ASSERT(indirectBuffer);
-        vk::BufferHelper *dstIndirectBuf = nullptr;
-
-        ANGLE_TRY(setupLineLoopIndirectDraw(context, mode, currentIndirectBuf,
-                                            currentIndirectBufOffset, &dstIndirectBuf));
-
-        mRenderPassCommandBuffer->drawIndexedIndirect(
-            dstIndirectBuf->getBuffer(), dstIndirectBuf->getOffset(), drawcount, vkStride);
-        return angle::Result::Continue;
+        if (mode == gl::PrimitiveMode::LineLoop)
+        {
+            vk::BufferHelper *dstIndirectBuf = nullptr;
+            ANGLE_TRY(setupLineLoopIndirectDraw(context, mode, currentIndirectBuf,
+                                                currentIndirectBufOffset, &dstIndirectBuf));
+            mRenderPassCommandBuffer->drawIndexedIndirect(
+                dstIndirectBuf->getBuffer(), dstIndirectBuf->getOffset(), drawcount, vkStride);
+            return angle::Result::Continue;
+        }
     }
 
     ANGLE_TRY(setupIndirectDraw(context, mode, mNonIndexedDirtyBitsMask, currentIndirectBuf));
 
     mRenderPassCommandBuffer->drawIndirect(
-        currentIndirectBuf->getBuffer(), currentIndirectBuf->getOffset() + currentIndirectBufOffset,
+        currentIndirectBuf->getBuffer(),
+        currentIndirectBuf->getOffset() + currentIndirectBufOffset,
         drawcount, vkStride);
 
     return angle::Result::Continue;
@@ -4294,47 +4269,51 @@ angle::Result ContextVk::multiDrawElementsIndirectHelper(const gl::Context *cont
                                                          GLsizei stride)
 {
     VertexArrayVk *vertexArrayVk = getVertexArray();
+
     if (drawcount > 1 && !CanMultiDrawIndirectUseCmd(this, vertexArrayVk, mode, drawcount, stride))
     {
         return rx::MultiDrawElementsIndirectGeneral(this, context, mode, type, indirect, drawcount,
                                                     stride);
     }
 
-    // Stride must be a multiple of the size of VkDrawIndexedIndirectCommand (stride = 0 is invalid
-    // when drawcount > 1).
-    uint32_t vkStride =
-        (stride == 0 && drawcount > 1) ? sizeof(VkDrawIndexedIndirectCommand) : stride;
+    constexpr uint32_t kDefaultStride = sizeof(VkDrawIndexedIndirectCommand);
+    uint32_t vkStride = (stride == 0 && drawcount > 1) ? kDefaultStride : static_cast<uint32_t>(stride);
 
     gl::Buffer *indirectBuffer = mState.getTargetBuffer(gl::BufferBinding::DrawIndirect);
     ASSERT(indirectBuffer);
-    vk::BufferHelper *currentIndirectBuf  = &vk::GetImpl(indirectBuffer)->getBuffer();
+    vk::BufferHelper *currentIndirectBuf = &vk::GetImpl(indirectBuffer)->getBuffer();
     VkDeviceSize currentIndirectBufOffset = reinterpret_cast<VkDeviceSize>(indirect);
 
-    // Reset the index buffer offset
     mGraphicsDirtyBits.set(DIRTY_BIT_INDEX_BUFFER);
     mCurrentIndexBufferOffset = 0;
 
-    if (vertexArrayVk->getStreamingVertexAttribsMask().any())
+    if (drawcount <= 1)
     {
-        // Handling instanced vertex attributes is not covered for drawcount > 1.
-        ASSERT(drawcount <= 1);
+        if (vertexArrayVk->getStreamingVertexAttribsMask().any())
+        {
+            ANGLE_TRY(
+                currentIndirectBuf->invalidate(mRenderer, 0, sizeof(VkDrawIndexedIndirectCommand)));
+            uint8_t *buffPtr;
+            ANGLE_TRY(currentIndirectBuf->map(this, &buffPtr));
+            const VkDrawIndexedIndirectCommand *indirectData =
+                reinterpret_cast<const VkDrawIndexedIndirectCommand *>(
+                    ANGLE_UNSAFE_TODO(buffPtr + currentIndirectBufOffset));
 
-        // We have instanced vertex attributes that need to be emulated for Vulkan.
-        // invalidate any cache and map the buffer so that we can read the indirect data.
-        // Mapping the buffer will cause a flush.
-        ANGLE_TRY(
-            currentIndirectBuf->invalidate(mRenderer, 0, sizeof(VkDrawIndexedIndirectCommand)));
-        uint8_t *buffPtr;
-        ANGLE_TRY(currentIndirectBuf->map(this, &buffPtr));
-        const VkDrawIndexedIndirectCommand *indirectData =
-            reinterpret_cast<VkDrawIndexedIndirectCommand *>(
-                ANGLE_UNSAFE_TODO(buffPtr + currentIndirectBufOffset));
+            ANGLE_TRY(drawElementsInstanced(context, mode, indirectData->indexCount, type, nullptr,
+                                            indirectData->instanceCount));
 
-        ANGLE_TRY(drawElementsInstanced(context, mode, indirectData->indexCount, type, nullptr,
-                                        indirectData->instanceCount));
+            currentIndirectBuf->unmap(mRenderer);
+            return angle::Result::Continue;
+        }
 
-        currentIndirectBuf->unmap(mRenderer);
-        return angle::Result::Continue;
+        if (mode == gl::PrimitiveMode::LineLoop)
+        {
+            vk::BufferHelper *currentIndexBuf = vertexArrayVk->getCurrentElementArrayBuffer();
+            ANGLE_TRY(setupLineLoopIndexedIndirectDraw(context, mode, type, currentIndexBuf,
+                                                       currentIndirectBuf, currentIndirectBufOffset,
+                                                       &currentIndirectBuf));
+            currentIndirectBufOffset = 0;
+        }
     }
 
     if (shouldConvertUint8VkIndexType(type) && mGraphicsDirtyBits[DIRTY_BIT_INDEX_BUFFER])
@@ -4349,28 +4328,14 @@ angle::Result ContextVk::multiDrawElementsIndirectHelper(const gl::Context *cont
         currentIndirectBufOffset = 0;
     }
 
-    // If the line-loop handling function modifies the element array buffer in the vertex array,
-    // there is a possibility that the modified version is used as a source for the next line-loop
-    // draw, which can lead to errors. To avoid this, a local index buffer pointer is used to pass
-    // the current index buffer (after translation, in case it is needed) and use the resulting
-    // index buffer for draw.
-    vk::BufferHelper *currentIndexBuf = vertexArrayVk->getCurrentElementArrayBuffer();
-    if (mode == gl::PrimitiveMode::LineLoop)
-    {
-        // Line loop only supports handling at most one indirect parameter.
-        ASSERT(drawcount <= 1);
-        ANGLE_TRY(setupLineLoopIndexedIndirectDraw(context, mode, type, currentIndexBuf,
-                                                   currentIndirectBuf, currentIndirectBufOffset,
-                                                   &currentIndirectBuf));
-        currentIndirectBufOffset = 0;
-    }
-    else
+    if (drawcount > 1 || mode != gl::PrimitiveMode::LineLoop)
     {
         ANGLE_TRY(setupIndexedIndirectDraw(context, mode, type, currentIndirectBuf));
     }
 
     mRenderPassCommandBuffer->drawIndexedIndirect(
-        currentIndirectBuf->getBuffer(), currentIndirectBuf->getOffset() + currentIndirectBufOffset,
+        currentIndirectBuf->getBuffer(),
+        currentIndirectBuf->getOffset() + currentIndirectBufOffset,
         drawcount, vkStride);
 
     return angle::Result::Continue;

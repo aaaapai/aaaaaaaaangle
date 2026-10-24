@@ -131,7 +131,6 @@ const char *GetOperatorString(TOperator op)
             return "^=";
         case EOpBitwiseOrAssign:
             return "|=";
-
         default:
             UNREACHABLE();
             break;

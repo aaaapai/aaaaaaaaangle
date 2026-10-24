@@ -340,6 +340,30 @@ const TSymbol *TSymbolTable::findGlobal(const ImmutableString &name) const
     return mTable[0]->find(name);
 }
 
+const TSymbol *TSymbolTable::findGlobalWithConversion(
+    const std::vector<ImmutableString> &names) const
+{
+    for (const ImmutableString &name : names)
+    {
+        const TSymbol *target = findGlobal(name);
+        if (target != nullptr)
+            return target;
+    }
+    return nullptr;
+}
+
+const TSymbol *TSymbolTable::findBuiltInWithConversion(const std::vector<ImmutableString> &names,
+                                                       int shaderVersion) const
+{
+    for (const ImmutableString &name : names)
+    {
+        const TSymbol *target = findBuiltIn(name, shaderVersion);
+        if (target != nullptr)
+            return target;
+    }
+    return nullptr;
+}
+
 bool TSymbolTable::declare(TSymbol *symbol)
 {
     ASSERT(!mTable.empty());
@@ -443,10 +467,20 @@ void TSymbolTable::initializeBuiltIns(sh::GLenum type,
     // We need just one precision stack level for predefined precisions.
     mPrecisionStack.emplace_back(new PrecisionStackLevel);
 
+    if (std::getenv("ANGLE_DEFAULT_UNDEFINED")) {
+    setDefaultPrecision(EbtInt, EbpUndefined);
+    setDefaultPrecision(EbtFloat, EbpUndefined);
+    } else {
+
     switch (type)
     {
         case GL_FRAGMENT_SHADER:
+            if (!std::getenv("ANGLE_DEFAULT_EbpHIGH")) {
             setDefaultPrecision(EbtInt, EbpMedium);
+            } else {
+            setDefaultPrecision(EbtInt, EbpHigh);
+            setDefaultPrecision(EbtFloat, EbpHigh);
+            }
             break;
         case GL_VERTEX_SHADER:
         case GL_COMPUTE_SHADER:
@@ -458,6 +492,8 @@ void TSymbolTable::initializeBuiltIns(sh::GLenum type,
             break;
         default:
             UNREACHABLE();
+    }
+
     }
 
     // Set defaults for sampler types that have default precision, even those that are
@@ -499,11 +535,13 @@ const TSymbol *SymbolRule::get(ShShaderSpec shaderSpec,
                                const ShBuiltInResources &resources,
                                const TSymbolTableBase &symbolTable) const
 {
+    if (!std::getenv("ANGLE_SYMBOLTABAL_RELIEF")) {
     if (mVersion == kESSL1Only && shaderVersion != static_cast<int>(kESSL1Only))
         return nullptr;
 
     if (mVersion > shaderVersion)
         return nullptr;
+    }
 
     if (!CheckShaderType(static_cast<Shader>(mShaders), shaderType))
         return nullptr;
@@ -549,11 +587,13 @@ bool UnmangledEntry::matches(const ImmutableString &name,
     if (!CheckShaderType(static_cast<Shader>(mShaderType), shaderType))
         return false;
 
+    if (!std::getenv("ANGLE_SYMBOLTABAL_RELIEF")) {
     if (mESSLVersion == kESSL1Only && shaderVersion != static_cast<int>(kESSL1Only))
         return false;
 
     if (mESSLVersion > shaderVersion)
         return false;
+    }
 
     bool anyExtension        = false;
     bool anyExtensionEnabled = false;
@@ -570,5 +610,6 @@ bool UnmangledEntry::matches(const ImmutableString &name,
         return true;
 
     return anyExtensionEnabled;
+
 }
 }  // namespace sh

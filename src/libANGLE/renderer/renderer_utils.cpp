@@ -1939,18 +1939,25 @@ angle::Result MultiDrawElementsIndirectGeneral(ContextImpl *contextImpl,
                                                GLsizei stride)
 {
     const GLubyte *indirectPtr = static_cast<const GLubyte *>(indirect);
+    constexpr size_t cmdSize = sizeof(gl::DrawElementsIndirectCommand);
 
-    for (auto count = 0; count < drawcount; count++)
+    if (stride == 0)
     {
-        ANGLE_TRY(contextImpl->drawElementsIndirect(
-            context, mode, type,
-            reinterpret_cast<const gl::DrawElementsIndirectCommand *>(indirectPtr)));
-        if (stride == 0)
+        for (GLsizei count = 0; count < drawcount; ++count)
         {
-            indirectPtr += sizeof(gl::DrawElementsIndirectCommand);
+            ANGLE_TRY(contextImpl->drawElementsIndirect(
+                context, mode, type,
+                reinterpret_cast<const gl::DrawElementsIndirectCommand *>(indirectPtr)));
+            indirectPtr += cmdSize;
         }
-        else
+    }
+    else
+    {
+        for (GLsizei count = 0; count < drawcount; ++count)
         {
+            ANGLE_TRY(contextImpl->drawElementsIndirect(
+                context, mode, type,
+                reinterpret_cast<const gl::DrawElementsIndirectCommand *>(indirectPtr)));
             indirectPtr += stride;
         }
     }

@@ -1,0 +1,6 @@
+declare_args() {
+  angle_extra_cflags = []
+  angle_extra_cflags_c = []
+  angle_extra_cflags_cc = []
+  angle_extra_ldflags = []
+}

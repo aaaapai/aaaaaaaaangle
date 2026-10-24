@@ -15,6 +15,9 @@
 #include "common/WorkerThread.h"
 #include "image_util/AstcDecompressor.h"
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+
 namespace angle
 {
 namespace

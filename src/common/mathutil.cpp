@@ -51,18 +51,18 @@ unsigned int convertRGBFloatsTo999E5(float red, float green, float blue)
     const float blue_c  = std::max<float>(0, std::min(g_sharedexp_max, blue));
 
     const float max_c = std::max<float>({red_c, green_c, blue_c});
-    const float exp_p =
-        std::max<float>(-g_sharedexp_bias - 1, floor(log(max_c))) + 1 + g_sharedexp_bias;
+    // Use log2 and exp2 for faster and more accurate exponent calculation
+    const float exp_p = std::max<float>(-g_sharedexp_bias - 1,
+                                        std::floor(std::log2(max_c))) + 1 + g_sharedexp_bias;
     const int max_s = static_cast<int>(
-        floor((max_c / (pow(2.0f, exp_p - g_sharedexp_biased_mantissabits))) + 0.5f));
-    const int exp_s =
-        static_cast<int>((max_s < pow(2.0f, g_sharedexp_mantissabits)) ? exp_p : exp_p + 1);
-    const float pow2_exp = pow(2.0f, static_cast<float>(exp_s) - g_sharedexp_biased_mantissabits);
+        std::floor((max_c / std::exp2(exp_p - g_sharedexp_biased_mantissabits)) + 0.5f));
+    const int exp_s = static_cast<int>((max_s < (1 << g_sharedexp_mantissabits)) ? exp_p : exp_p + 1);
+    const float pow2_exp = std::exp2(static_cast<float>(exp_s) - g_sharedexp_biased_mantissabits);
 
     RGB9E5Data output;
-    output.R = static_cast<unsigned int>(floor((red_c / pow2_exp) + 0.5f));
-    output.G = static_cast<unsigned int>(floor((green_c / pow2_exp) + 0.5f));
-    output.B = static_cast<unsigned int>(floor((blue_c / pow2_exp) + 0.5f));
+    output.R = static_cast<unsigned int>(std::floor((red_c / pow2_exp) + 0.5f));
+    output.G = static_cast<unsigned int>(std::floor((green_c / pow2_exp) + 0.5f));
+    output.B = static_cast<unsigned int>(std::floor((blue_c / pow2_exp) + 0.5f));
     output.E = exp_s;
 
     return bitCast<unsigned int>(output);
@@ -72,8 +72,8 @@ void convert999E5toRGBFloats(unsigned int input, float *red, float *green, float
 {
     const RGB9E5Data *inputData = reinterpret_cast<const RGB9E5Data *>(&input);
 
-    const float pow2_exp =
-        pow(2.0f, static_cast<float>(inputData->E) - g_sharedexp_biased_mantissabits);
+    // Use ldexp for faster exponent to float conversion
+    const float pow2_exp = std::ldexp(1.0f, inputData->E - g_sharedexp_biased_mantissabits);
 
     *red   = inputData->R * pow2_exp;
     *green = inputData->G * pow2_exp;

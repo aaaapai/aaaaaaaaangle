@@ -1,0 +1,70 @@
+name: BUILD ANGLE
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - linux
+          - all
+      android_arch:
+        description: 'Android architectures (ignored unless platform is android or all)'
+        required: true
+        default: 'arm64+arm64-fastdebug'
+        type: choice
+        options:
+          - 'arm64+arm64-fastdebug'
+          - 'all'
+
+jobs:
+  android:
+    if: ${{ inputs.platform == 'android' || inputs.platform == 'all' }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(inputs.android_arch == 'all' && '["x86","x86_64","arm32","arm64","arm64-fastdebug"]' || '["arm64","arm64-fastdebug"]') }}
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - uses: $/.github/actions/angle-build
+        with:
+          platform: android
+          arch: ${{ matrix.arch }}
+          out-dir: Android-${{ matrix.arch }}
+          upload-path: '*.so'
+
+  linux:
+    if: ${{ inputs.platform == 'linux' || inputs.platform == 'all' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - uses: $/.github/actions/angle-build
+        with:
+          platform: linux
+          arch: x86_64
+          out-dir: linux-x86_64
+          upload-path: '*.so'
+
+  ios:
+    if: ${{ inputs.platform == 'ios' || inputs.platform == 'all' }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - uses: $/.github/actions/angle-build
+        with:
+          platform: ios
+          arch: arm64
+          out-dir: ios-arm64
+          upload-path: '*.framework'

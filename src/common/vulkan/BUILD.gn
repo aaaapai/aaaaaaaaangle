@@ -97,6 +97,7 @@ if (angle_enable_vulkan || angle_build_vulkan_system_info) {
 
     configs += [ "$angle_root:angle_no_cfi_icall" ]
   }
+
 }
 
 if (angle_enable_vulkan) {

@@ -75,7 +75,19 @@ VkImageTiling AhbDescUsageToVkImageTiling(const AHardwareBuffer_Desc &ahbDescrip
 
 // Map AHB usage flags to VkImageUsageFlags using this table from the Vulkan spec
 // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/chap11.html#memory-external-android-hardware-buffer-usage
-VkImageUsageFlags AhbUsageToVkImageUsage(const uint64_t ahbUsage,
+//
+// When the AHB does not declare AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER but the
+// underlying VkFormat is renderable, the corresponding color or depth/stencil
+// attachment usage bit is still added.  VkImage usage is a superset of what the
+// AHB strictly advertises; VkImage usage only needs to be a subset of what the
+// driver supports for the given format/tiling.  This keeps the usage set
+// consistent with the renderability check below and with RenderTargetVk::init().
+//
+// External-format imports are excluded because VUID-VkImageCreateInfo-pNext-02397
+// restricts their usage bits.
+VkImageUsageFlags AhbUsageToVkImageUsage(vk::Renderer *renderer,
+                                         angle::FormatID formatID,
+                                         const uint64_t ahbUsage,
                                          bool isDepthOrStencilFormat,
                                          bool isExternal)
 {
@@ -91,7 +103,18 @@ VkImageUsageFlags AhbUsageToVkImageUsage(const uint64_t ahbUsage,
         usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     }
 
-    if ((ahbUsage & AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER) != 0)
+    const bool ahbDeclaresFramebuffer =
+        (ahbUsage & AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER) != 0;
+    const VkFormatFeatureFlagBits attachmentFeature =
+        isDepthOrStencilFormat ? VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+                               : VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+    const bool formatIsRenderable =
+        renderer->hasImageFormatFeatureBits(formatID, attachmentFeature);
+
+    // Add the attachment usage if the AHB declares GPU_FRAMEBUFFER, or if this is
+    // not an external-format import and the underlying VkFormat supports the
+    // attachment feature.
+    if (ahbDeclaresFramebuffer || (!isExternal && formatIsRenderable))
     {
         if (isDepthOrStencilFormat)
         {
@@ -106,11 +129,14 @@ VkImageUsageFlags AhbUsageToVkImageUsage(const uint64_t ahbUsage,
     return usage;
 }
 
-VkImageUsageFlags AhbDescUsageToVkImageUsage(const AHardwareBuffer_Desc &ahbDescription,
+VkImageUsageFlags AhbDescUsageToVkImageUsage(vk::Renderer *renderer,
+                                             angle::FormatID formatID,
+                                             const AHardwareBuffer_Desc &ahbDescription,
                                              bool isDepthOrStencilFormat,
                                              bool isExternal)
 {
-    return AhbUsageToVkImageUsage(ahbDescription.usage, isDepthOrStencilFormat, isExternal);
+    return AhbUsageToVkImageUsage(renderer, formatID, ahbDescription.usage,
+                                  isDepthOrStencilFormat, isExternal);
 }
 
 // Map AHB usage flags to VkImageCreateFlags using this table from the Vulkan spec
@@ -147,8 +173,8 @@ bool IsAhbFormatSupported(vk::Renderer *renderer,
                           uint64_t ahbUsage)
 {
     const angle::Format &format = angle::Format::Get(formatID);
-    VkImageUsageFlags usage =
-        AhbUsageToVkImageUsage(ahbUsage, format.hasDepthOrStencilBits(), /*isExternal=*/false);
+    VkImageUsageFlags usage     = AhbUsageToVkImageUsage(
+        renderer, formatID, ahbUsage, format.hasDepthOrStencilBits(), /*isExternal=*/false);
     if (renderer->getFeatures().forceSampleUsageForAhbBackedImages.enabled)
     {
         usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -501,7 +527,8 @@ angle::Result HardwareBufferImageSiblingVkAndroid::initImpl(DisplayVk *displayVk
     functions.describe(hardwareBuffer, &ahbDescription);
     VkImageTiling imageTilingMode = AhbDescUsageToVkImageTiling(ahbDescription);
     VkImageUsageFlags usage =
-        AhbDescUsageToVkImageUsage(ahbDescription, isDepthOrStencilFormat, isExternal);
+        AhbDescUsageToVkImageUsage(renderer, imageFormat.id, ahbDescription,
+                               isDepthOrStencilFormat, isExternal);
 
     if (isExternal)
     {

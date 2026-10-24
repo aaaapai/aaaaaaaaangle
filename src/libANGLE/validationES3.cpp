@@ -260,18 +260,19 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
     if (gl::IsYuvFormat(format))
     {
-        if (!context->getExtensions().yuvInternalFormatANGLE)
+        /*if (!context->getExtensions().yuvInternalFormatANGLE)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidFormat);
             return false;
-        }
+        }*/
     }
     else
     {
         if (!ValidES3Format(format))
         {
-            ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidFormat);
-            return false;
+            //ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidFormat);
+            std::cout << "Invalid format.";
+            //return false;
         }
     }
 
@@ -285,11 +286,19 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // GLint instead of a GLenum. Therefor an invalid internal format gives a GL_INVALID_VALUE
     // error instead of a GL_INVALID_ENUM error. As this validation function is only called in
     // the validation codepaths for glTexImage2D/3D, we record a GL_INVALID_VALUE error.
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!ValidES3InternalFormat(internalFormat))
     {
-        ANGLE_VALIDATION_ERRORF(GL_INVALID_VALUE, kInvalidInternalFormat, internalFormat);
-        return false;
+        //ANGLE_VALIDATION_ERRORF(GL_INVALID_VALUE, kInvalidInternalFormat, internalFormat);
+        std::cout << "Invalid internal format";
+        WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalFormat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
+        //return false;
     }
+#endif
 
     // From the ES 3.0 spec section 3.8.3:
     // Textures with a base internal format of DEPTH_COMPONENT or DEPTH_STENCIL are supported by
@@ -309,28 +318,42 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
     if (gl::IsYuvFormat(format))
     {
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
         if (type != GL_UNSIGNED_BYTE)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-            return false;
+            WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalFormat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
+            //return false;
         }
+#endif
     }
     else
     {
         if (!ValidES3FormatCombination(format, type, internalFormat) &&
             !ValidES3ExtensionFormatCombination(format, type, internalFormat))
         {
-            ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-            return false;
+            /*ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+            return false;*/
         }
     }
 
     const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
-        return false;
+        WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalFormat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
+        //return false;
     }
+#endif
 
     return true;
 }
@@ -359,7 +382,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
     {
         // According to ANGLE_yuv_internal_format, the texture needs to be an immutable
         // texture, texture target can only be TEXTURE_2D and there is no mipmap support
-        if (!context->getExtensions().yuvInternalFormatANGLE || !isSubImage)
+        /*if (!context->getExtensions().yuvInternalFormatANGLE || !isSubImage)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidFormat);
             return false;
@@ -369,13 +392,13 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
             return false;
-        }
+        }*/
 
-        if (level != 0)
+        /*if (level != 0)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidMipLevel);
             return false;
-        }
+        }*/
     }
 
     // Validate image size
@@ -409,7 +432,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
 
     const Caps &caps = context->getCaps();
 
-    switch (texType)
+    /*switch (texType)
     {
         case TextureType::_2D:
             if (width > (caps.max2DTextureSize >> level) ||
@@ -493,7 +516,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         default:
             ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, ToGLenum(texType));
             return false;
-    }
+    }*/
 
     Texture *texture = context->getTextureByType(texType);
     if (!texture)
@@ -557,7 +580,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
             // GL_DEPTH_COMPONENT32_OES texture support is enabled if GL_OES_depth_texture is
             // supported (to support GL_EXT_texture_storage in ES2). But for ES3 glTexImage2D, it is
             // only valid if GL_OES_depth32 is also supported.
-            if (internalformat == GL_DEPTH_COMPONENT32_OES &&
+            /*if (internalformat == GL_DEPTH_COMPONENT32_OES &&
                 (!context->getExtensions().requiredInternalformatOES ||
                  !context->getExtensions().depth32OES))
             {
@@ -575,7 +598,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
                 return false;
-            }
+            }*/
         }
 
         if (!ValidateTexImageFormatCombination(context, entryPoint, texType, actualInternalFormat,

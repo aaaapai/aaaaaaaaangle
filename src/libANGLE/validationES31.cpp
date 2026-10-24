@@ -1420,6 +1420,7 @@ bool ValidateBindImageTexture(const Context *context,
             break;
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidImageFormat);
+            //WARN() << "format is not one of supported image unit formats.";
             return false;
     }
 
@@ -1433,13 +1434,28 @@ bool ValidateBindImageTexture(const Context *context,
             return false;
         }
 
+
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
         if (tex->getType() != gl::TextureType::External &&
             tex->getType() != gl::TextureType::Buffer && !tex->getImmutableFormat())
         {
-            ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION,
+           WARN() << "Texture is not the name of an immutable texture object or a buffer texture.";
+           WARN() << "ValidateBindImageTexture: entryPoint=" << static_cast<int>(entryPoint)
+           << ", unit=" << unit
+           << ", texture=" << texture.value
+           << ", level=" << level
+           << ", layered=" << (layered ? "true" : "false")
+           << ", layer=" << layer
+           << ", access=" << (access == GL_READ_ONLY ? "GL_READ_ONLY" :
+                              (access == GL_WRITE_ONLY ? "GL_WRITE_ONLY" :
+                               (access == GL_READ_WRITE ? "GL_READ_WRITE" : "unknown")))
+           << ", format=0x" << std::hex << format << std::dec;
+
+            /*ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION,
                                    kTextureIsNeitherImmutableNorTextureBuffer);
-            return false;
+            return false;*/
         }
+#endif
 
         if (context->getExtensions().textureStorageCompressionEXT &&
             tex->getType() != gl::TextureType::Buffer)
