@@ -178,10 +178,10 @@ constexpr size_t kAllocationCountThresholdForDynamicVertexDataSize = 4096;
 
 // Maximum size to use VMA image suballocation. Any allocation greater than or equal to this
 // value will use a dedicated VkDeviceMemory.
-constexpr size_t kImageSizeThresholdForDedicatedMemoryAllocation = 8 * 1024 * 1024;
+constexpr size_t kImageSizeThresholdForDedicatedMemoryAllocation = 4 * 1024 * 1024;
 
 // Maximum size for an allocated memory for a single object.
-constexpr VkDeviceSize kMemoryAllocationSizeLimit = 1 * 1024 * 1024 * 1024;
+constexpr VkDeviceSize kMemoryAllocationSizeLimit =  320 * 1024 * 1024; // 320MB (upstream: 1GB)
 
 // Pipeline cache header version. It should be incremented any time there is an update to the cache
 // header or data structure.
@@ -5130,7 +5130,7 @@ void Renderer::calculatePendingGarbageSizeLimit()
     }
 
     // We set the limit to a portion of the heap size we found.
-    constexpr float kGarbageSizeLimitCoefficient = 0.2f;
+    constexpr float kGarbageSizeLimitCoefficient = 0.08f;
     mPendingGarbageSizeLimit =
         static_cast<VkDeviceSize>(maxHeapSize * kGarbageSizeLimitCoefficient);
 }

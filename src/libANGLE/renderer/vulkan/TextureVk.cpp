@@ -1214,6 +1214,11 @@ angle::Result TextureVk::ghostOnOverwrite(ContextVk *contextVk,
     // of the image around.  Just start over with a completely new image; data is about to be
     // uploaded to it.
     releaseImage(contextVk);
+    if (contextVk->hasExcessPendingGarbage())
+    {
+        ANGLE_TRY(contextVk->finishImpl(QueueSubmitReason::OutOfMemory));
+        contextVk->clearAllGarbage();
+    }
     ANGLE_TRY(ensureImageAllocated(contextVk, format));
     ANGLE_TRY(initImage(contextVk, format.getIntendedFormatID(),
                         format.getActualImageFormatID(getRequiredFormatSupport()),
@@ -3319,6 +3324,12 @@ angle::Result TextureVk::respecifyImageStorage(ContextVk *contextVk)
 
         // If we didn't own the image, release the current and create a new one
         releaseImage(contextVk);
+        
+        if (contextVk->hasExcessPendingGarbage())
+        {
+           ANGLE_TRY(contextVk->finishImpl(QueueSubmitReason::OutOfMemory));
+           contextVk->clearAllGarbage();
+        }
 
         // Create the image helper
         ANGLE_TRY(ensureImageAllocated(contextVk, format));

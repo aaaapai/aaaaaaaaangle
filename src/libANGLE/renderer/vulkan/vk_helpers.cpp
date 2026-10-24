@@ -11284,8 +11284,8 @@ void ImageHelper::pruneSupersededUpdatesForLevel(ContextVk *contextVk,
                                                  const gl::OwnerLevel level,
                                                  const PruneReason reason)
 {
-    constexpr VkDeviceSize kSubresourceUpdateSizeBeforePruning = 16 * 1024 * 1024;  // 16 MB
-    constexpr int kUpdateCountThreshold                        = 1024;
+    constexpr VkDeviceSize kSubresourceUpdateSizeBeforePruning = 6 * 1024 * 1024;  // 6 MB
+    constexpr int kUpdateCountThreshold                        = 320;
     SubresourceUpdates *levelUpdates                           = getLevelUpdates(level);
 
     // If we are below pruning threshold, nothing to do.

@@ -59,7 +59,7 @@ static constexpr VkDeviceSize kMaxBufferToImageCopySize = 21 * 1024 * 1024;
 static constexpr VkDeviceSize kMaxRenderPassCountPerCommandBuffer = 32;
 // The number of queueSerials we will reserve for outsideRenderPassCommands when we generate one for
 // RenderPassCommands.
-static constexpr size_t kMaxReservedOutsideRenderPassQueueSerials = 15;
+static constexpr size_t kMaxReservedOutsideRenderPassQueueSerials = 6;
 
 // Dumping the command stream is disabled by default.
 static constexpr bool kEnableCommandStreamDiagnostics = false;
@@ -7148,6 +7148,12 @@ angle::Result ContextVk::initImageAllocation(vk::ImageHelper *imageHelper,
     if (hasProtectedContent)
     {
         flags |= VK_MEMORY_PROPERTY_PROTECTED_BIT;
+    }
+
+    if (hasExcessPendingGarbage()) [[unlikely]]
+    {
+        ANGLE_TRY(finishImpl(QueueSubmitReason::OutOfMemory));
+        clearAllGarbage();
     }
 
     // Get memory requirements for the allocation.
