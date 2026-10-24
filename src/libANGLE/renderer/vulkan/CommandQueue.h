@@ -30,8 +30,8 @@ namespace vk
 class ExternalFence;
 using SharedExternalFence = std::shared_ptr<ExternalFence>;
 
-constexpr size_t kInFlightCommandsLimit    = 50u;   // was 64 (upstream: 50)
-constexpr size_t kMaxFinishedCommandsLimit = 64u;   // was 80 (upstream: 64)
+constexpr size_t kInFlightCommandsLimit    = 21u;   // was 21 (upstream: 50)
+constexpr size_t kMaxFinishedCommandsLimit = 40u;   // was 40 (upstream: 64)
 static_assert(kInFlightCommandsLimit <= kMaxFinishedCommandsLimit);
 
 struct CommandQueuePerfCounters
