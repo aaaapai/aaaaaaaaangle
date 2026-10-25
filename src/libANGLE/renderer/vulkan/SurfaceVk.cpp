@@ -1593,6 +1593,13 @@ angle::Result WindowSurfaceVk::recreateSwapchain(vk::ErrorContext *context)
     ASSERT(mAcquireOperation.state == ImageAcquireState::Unacquired);
     ASSERT(mSwapchain == VK_NULL_HANDLE);
 
+    vk::Renderer *renderer = context->getRenderer();
+    if (renderer->getPendingGarbageSize() > renderer->getPendingGarbageSizeLimit() / 2) [[unlikely]]
+    {
+        ANGLE_TRY(finish(context));
+        renderer->cleanupGarbage(nullptr);
+    }
+
     // May happen in case if it is recreate after a previous failure.
     if (!mSwapchainImages.empty() || mDepthStencilImage.valid() || hasAncillaryColor())
     {
@@ -2919,7 +2926,7 @@ angle::Result WindowSurfaceVk::throttleCPU(vk::ErrorContext *context,
     mSwapHistory.front()   = currentSubmitSerial;
     mSwapHistory.next();
 
-    if (swapSerial.valid() && !context->getRenderer()->hasQueueSerialFinished(swapSerial))
+    /*if (swapSerial.valid() && !context->getRenderer()->hasQueueSerialFinished(swapSerial))
     {
         // Make this call after unlocking the EGL lock.  Renderer::finishQueueSerial is necessarily
         // thread-safe because it can get called from any number of GL commands, which don't
@@ -2934,7 +2941,7 @@ angle::Result WindowSurfaceVk::throttleCPU(vk::ErrorContext *context,
                 ANGLE_UNUSED_VARIABLE(resultOut);
                 (void)context->getRenderer()->finishQueueSerial(context, swapSerial);
             });
-    }
+    }*/ // Should it throttle?
 
     return angle::Result::Continue;
 }

@@ -181,7 +181,7 @@ constexpr size_t kAllocationCountThresholdForDynamicVertexDataSize = 4096;
 constexpr size_t kImageSizeThresholdForDedicatedMemoryAllocation = 4 * 1024 * 1024;
 
 // Maximum size for an allocated memory for a single object.
-constexpr VkDeviceSize kMemoryAllocationSizeLimit =  320 * 1024 * 1024; // 320MB (upstream: 1GB)
+constexpr VkDeviceSize kMemoryAllocationSizeLimit =  1 * 1024 * 1024 * 1024; // 1GB
 
 // Pipeline cache header version. It should be incremented any time there is an update to the cache
 // header or data structure.
