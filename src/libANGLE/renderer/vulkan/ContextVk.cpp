@@ -59,7 +59,7 @@ static constexpr VkDeviceSize kMaxBufferToImageCopySize = 21 * 1024 * 1024;
 static constexpr VkDeviceSize kMaxRenderPassCountPerCommandBuffer = 32;
 // The number of queueSerials we will reserve for outsideRenderPassCommands when we generate one for
 // RenderPassCommands.
-static constexpr size_t kMaxReservedOutsideRenderPassQueueSerials = 10;
+static constexpr size_t kMaxReservedOutsideRenderPassQueueSerials = 6;
 
 // Dumping the command stream is disabled by default.
 static constexpr bool kEnableCommandStreamDiagnostics = false;
