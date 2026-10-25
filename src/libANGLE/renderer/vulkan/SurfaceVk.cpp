@@ -1594,11 +1594,8 @@ angle::Result WindowSurfaceVk::recreateSwapchain(vk::ErrorContext *context)
     ASSERT(mSwapchain == VK_NULL_HANDLE);
 
     vk::Renderer *renderer = context->getRenderer();
-    if (renderer->getPendingGarbageSize() > renderer->getPendingGarbageSizeLimit() / 2) [[unlikely]]
-    {
-        ANGLE_TRY(finish(context));
-        renderer->cleanupGarbage(nullptr);
-    }
+    ANGLE_TRY(finish(context));
+    renderer->cleanupGarbage(nullptr);
 
     // May happen in case if it is recreate after a previous failure.
     if (!mSwapchainImages.empty() || mDepthStencilImage.valid() || hasAncillaryColor())
