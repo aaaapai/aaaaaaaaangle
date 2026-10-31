@@ -1045,6 +1045,43 @@ pub mod ffi {
             is_offset_array: bool,
         ) -> *mut TIntermTyped;
 
+        unsafe fn built_in_atomiccounteradd(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccountersubtract(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccountermin(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccountermax(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccounterand(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccounteror(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccounterxor(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccounterexchange(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccountercompswap(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+
         // SAFETY: Pointers must be obtained from C++ and passed back to it.
         unsafe fn branch_discard(block: *mut TIntermBlock);
         // SAFETY: Pointers must be obtained from C++ and passed back to it.
@@ -1173,10 +1210,19 @@ impl From<ImageInternalFormat> for ffi::ASTLayoutImageInternalFormat {
             ImageInternalFormat::RGBA32F => ffi::ASTLayoutImageInternalFormat::RGBA32F,
             ImageInternalFormat::RGBA16F => ffi::ASTLayoutImageInternalFormat::RGBA16F,
             ImageInternalFormat::R32F => ffi::ASTLayoutImageInternalFormat::R32F,
+            ImageInternalFormat::RG32UI => ffi::ASTLayoutImageInternalFormat::RG32UI,
+            ImageInternalFormat::RG16F => ffi::ASTLayoutImageInternalFormat::RG16F,
             ImageInternalFormat::RGBA32UI => ffi::ASTLayoutImageInternalFormat::RGBA32UI,
             ImageInternalFormat::RGBA16UI => ffi::ASTLayoutImageInternalFormat::RGBA16UI,
             ImageInternalFormat::RGBA8UI => ffi::ASTLayoutImageInternalFormat::RGBA8UI,
             ImageInternalFormat::R32UI => ffi::ASTLayoutImageInternalFormat::R32UI,
+            ImageInternalFormat::R16F => ffi::ASTLayoutImageInternalFormat::R16F,
+            ImageInternalFormat::RG8UI => ffi::ASTLayoutImageInternalFormat::RG8UI,
+            ImageInternalFormat::R11FG11FB10F => ffi::ASTLayoutImageInternalFormat::R11FG11FB10F,
+            ImageInternalFormat::RGBA16SNORM => ffi::ASTLayoutImageInternalFormat::RGBA16SNORM,
+            ImageInternalFormat::R16UI => ffi::ASTLayoutImageInternalFormat::R16UI,
+            ImageInternalFormat::RG16UI => ffi::ASTLayoutImageInternalFormat::RG16UI,
+            ImageInternalFormat::RGBA16 => ffi::ASTLayoutImageInternalFormat::RGBA16,
             ImageInternalFormat::RGBA32I => ffi::ASTLayoutImageInternalFormat::RGBA32I,
             ImageInternalFormat::RGBA16I => ffi::ASTLayoutImageInternalFormat::RGBA16I,
             ImageInternalFormat::RGBA8I => ffi::ASTLayoutImageInternalFormat::RGBA8I,
@@ -2931,6 +2977,34 @@ impl ast::Target for Generator<'_> {
                 BuiltInOpCode::Saturate => {
                     (Some(ffi::built_in_saturate(self.legacy_compiler, &args)), None)
                 }
+                BuiltInOpCode::AtomicCounterAdd => {
+    (Some(ffi::built_in_atomiccounteradd(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterSubtract => {
+    (Some(ffi::built_in_atomiccountersubtract(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterMin => {
+    (Some(ffi::built_in_atomiccountermin(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterMax => {
+    (Some(ffi::built_in_atomiccountermax(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterAnd => {
+    (Some(ffi::built_in_atomiccounterand(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterOr => {
+    (Some(ffi::built_in_atomiccounteror(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterXor => {
+    (Some(ffi::built_in_atomiccounterxor(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterExchange => {
+    (Some(ffi::built_in_atomiccounterexchange(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterCompSwap => {
+    (Some(ffi::built_in_atomiccountercompswap(self.legacy_compiler, &args)), None)
+}
+
             }
         };
         if let Some(result) = result {

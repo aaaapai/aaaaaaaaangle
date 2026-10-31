@@ -39,7 +39,7 @@ class BinaryInputStream : angle::NonCopyable
 
     // readInt will generate an error for bool types
     template <class IntT>
-    IntT readInt()
+    ANGLE_INLINE IntT readInt()
     {
         static_assert(!std::is_same<bool, std::remove_cv<IntT>()>(), "Use readBool");
         using PromotedIntT = typename PromotedIntegerType<IntT>::type;
@@ -50,7 +50,7 @@ class BinaryInputStream : angle::NonCopyable
     }
 
     template <class IntT>
-    void readInt(IntT *outValue)
+    ANGLE_INLINE void readInt(IntT *outValue)
     {
         *outValue = readInt<IntT>();
     }
@@ -83,28 +83,28 @@ class BinaryInputStream : angle::NonCopyable
     }
 
     template <class EnumT>
-    EnumT readEnum()
+    ANGLE_INLINE EnumT readEnum()
     {
         using UnderlyingType = typename std::underlying_type<EnumT>::type;
         return static_cast<EnumT>(readInt<UnderlyingType>());
     }
 
     template <class EnumT>
-    void readEnum(EnumT *outValue)
+    ANGLE_INLINE void readEnum(EnumT *outValue)
     {
         *outValue = readEnum<EnumT>();
     }
 
-    bool readBool()
+    ANGLE_INLINE bool readBool()
     {
         int value = 0;
         read(angle::byte_span_from_ref(value));
         return value > 0;
     }
 
-    void readBool(bool *outValue) { *outValue = readBool(); }
+    ANGLE_INLINE void readBool(bool *outValue) { *outValue = readBool(); }
 
-    void readBytes(angle::Span<uint8_t> outArray) { read(outArray); }
+    ANGLE_INLINE void readBytes(angle::Span<uint8_t> outArray) { read(outArray); }
 
     std::string readString()
     {
@@ -125,7 +125,6 @@ class BinaryInputStream : angle::NonCopyable
 
         angle::CheckedNumeric<size_t> checkedOffset(mOffset);
         checkedOffset += length;
-
         if (!checkedOffset.IsValid() || checkedOffset.ValueOrDie() > mData.size())
         {
             mError = true;
@@ -136,7 +135,7 @@ class BinaryInputStream : angle::NonCopyable
         mOffset = checkedOffset.ValueOrDie();
     }
 
-    float readFloat()
+    ANGLE_INLINE float readFloat()
     {
         float f = 0.0f;
         read(angle::byte_span_from_ref(f));
@@ -157,17 +156,17 @@ class BinaryInputStream : angle::NonCopyable
         mOffset = checkedOffset.ValueOrDie();
     }
 
-    bool error() const { return mError; }
-    bool endOfStream() const { return mOffset == mData.size(); }
+    ANGLE_INLINE bool error() const { return mError; }
+    ANGLE_INLINE bool endOfStream() const { return mOffset == mData.size(); }
 
     // data() and size() methods allow implicit conversion to span.
-    const uint8_t *data() const { return mData.data(); }
-    size_t size() const { return mData.size(); }
+    ANGLE_INLINE const uint8_t *data() const { return mData.data(); }
+    ANGLE_INLINE size_t size() const { return mData.size(); }
 
-    angle::Span<const uint8_t> remainingSpan() const { return mData.subspan(mOffset); }
+    ANGLE_INLINE angle::Span<const uint8_t> remainingSpan() const { return mData.subspan(mOffset); }
 
   private:
-    void read(angle::Span<uint8_t> dstSpan)
+    ANGLE_INLINE void read(angle::Span<uint8_t> dstSpan)
     {
         angle::CheckedNumeric<size_t> checkedOffset(mOffset);
         checkedOffset += dstSpan.size();
@@ -194,9 +193,12 @@ class BinaryOutputStream : angle::NonCopyable
     BinaryOutputStream()  = default;
     ~BinaryOutputStream() = default;
 
+    // Pre-allocate internal buffer to avoid reallocations.
+    void reserve(size_t capacity) { mData.reserve(capacity); }
+
     // writeInt also handles bool types
     template <class IntT>
-    void writeInt(IntT param)
+    ANGLE_INLINE void writeInt(IntT param)
     {
         static_assert(std::is_integral<IntT>::value, "Not an integral type");
         static_assert(!std::is_same<bool, std::remove_cv<IntT>()>(), "Use writeBool");
@@ -208,7 +210,7 @@ class BinaryOutputStream : angle::NonCopyable
 
     // Specialized writeInt for values that can also be exactly -1.
     template <class UintT>
-    void writeIntOrNegOne(UintT param)
+    ANGLE_INLINE void writeIntOrNegOne(UintT param)
     {
         if (param == static_cast<UintT>(-1))
         {
@@ -248,38 +250,39 @@ class BinaryOutputStream : angle::NonCopyable
     }
 
     template <class EnumT>
-    void writeEnum(EnumT param)
+    ANGLE_INLINE void writeEnum(EnumT param)
     {
         using UnderlyingType = typename std::underlying_type<EnumT>::type;
         writeInt<UnderlyingType>(static_cast<UnderlyingType>(param));
     }
 
-    void writeString(std::string_view v)
+    ANGLE_INLINE void writeString(std::string_view v)
     {
         writeInt(v.size());
         write(angle::as_byte_span(v));
     }
 
-    void writeBytes(angle::Span<const uint8_t> bytes) { write(bytes); }
+    ANGLE_INLINE void writeBytes(angle::Span<const uint8_t> bytes) { write(bytes); }
 
-    void writeBool(bool value)
+    ANGLE_INLINE void writeBool(bool value)
     {
         const int intValue = value ? 1 : 0;
         write(angle::byte_span_from_ref(intValue));
     }
 
-    void writeFloat(float value) { write(angle::byte_span_from_ref(value)); }
+    ANGLE_INLINE void writeFloat(float value) { write(angle::byte_span_from_ref(value)); }
 
     // data() and size() methods allow implicit conversion to span.
-    const uint8_t *data() const { return mData.data(); }
-    size_t size() const { return mData.size(); }
+    ANGLE_INLINE const uint8_t *data() const { return mData.data(); }
+    ANGLE_INLINE size_t size() const { return mData.size(); }
 
     // No further use of this stream allowed after data is taken.
     std::vector<uint8_t> takeData() { return std::move(mData); }
 
   private:
-    void write(angle::Span<const uint8_t> srcSpan)
+    ANGLE_INLINE void write(angle::Span<const uint8_t> srcSpan)
     {
+        // Insert copies the entire span in one call, efficiently using memmove.
         mData.insert(mData.end(), srcSpan.begin(), srcSpan.end());
     }
 

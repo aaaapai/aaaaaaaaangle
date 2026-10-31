@@ -391,6 +391,41 @@ class RewritePLSToImagesTraverser : public RewritePLSTraverser
             case TLayoutImageInternalFormat::EiifR32UI:
                 imageType->setBasicType(EbtUImage2D);
                 break;
+            case TLayoutImageInternalFormat::EiifRG16F:
+                imageType->setBasicType(EbtImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
+            case TLayoutImageInternalFormat::EiifR11FG11FB10F:
+                imageType->setBasicType(EbtImage2D);
+                break;
+            case TLayoutImageInternalFormat::EiifR16F:
+                imageType->setBasicType(EbtImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
+            case TLayoutImageInternalFormat::EiifRGBA16:
+                imageType->setBasicType(EbtImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
+            case TLayoutImageInternalFormat::EiifRG8UI:
+                imageType->setBasicType(EbtUImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
+            case TLayoutImageInternalFormat::EiifRG16UI:
+                imageType->setBasicType(EbtUImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
+            case TLayoutImageInternalFormat::EiifRGBA16_SNORM:
+                imageType->setBasicType(EbtImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
+            case TLayoutImageInternalFormat::EiifRG32UI:
+                imageType->setBasicType(EbtUImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
+            case EiifR16UI:
+                imageType->setBasicType(EbtUImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
             default:
                 UNREACHABLE();
         }
@@ -810,6 +845,33 @@ class RewritePLSToFramebufferFetchTraverser : public RewritePLSTraverser
                     break;
                 case EiifR32UI:
                     accessVarType = new TType(EbtUInt, 1);
+                    break;
+                case EiifRG16F:
+                    accessVarType = new TType(EbtFloat, 2);
+                    break;
+                case EiifRG32UI:
+                    accessVarType = new TType(EbtUInt, 2);
+                    break;
+                case EiifR11FG11FB10F:
+                    accessVarType = new TType(EbtFloat, 3);
+                    break;
+                case EiifR16UI:
+                    accessVarType = new TType(EbtUInt, 1);
+                    break;
+                case EiifR16F:
+                    accessVarType = new TType(EbtFloat, 1);
+                    break;
+                case EiifRGBA16:
+                    accessVarType = new TType(EbtFloat, 4);
+                    break;
+                case EiifRG8UI:
+                    accessVarType = new TType(EbtUInt, 2);
+                    break;
+                case EiifRG16UI:
+                    accessVarType = new TType(EbtUInt, 2);
+                    break;
+                case EiifRGBA16_SNORM:
+                    accessVarType = new TType(EbtFloat, 4);
                     break;
             }
             accessVarType->setPrecision(plsType.getPrecision());

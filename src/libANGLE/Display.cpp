@@ -350,7 +350,7 @@ class PlatformDisplayMap : angle::NonCopyable
         }
 
         Display *display = createDisplayFunc();
-        if (display != nullptr)
+        if (display != nullptr) [[likely]]
         {
             mDisplays.insert(std::make_pair(key, display));
         }
@@ -958,7 +958,7 @@ Error SyncSet::createSync(const ThreadSafeDisplay *display,
 {
     std::lock_guard<angle::SimpleMutex> lock(mMutex);
     SyncID id;
-    if (!mHandleAllocator.allocate(&id.value))
+    if (!mHandleAllocator.allocate(&id.value)) [[unlikely]]
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -966,7 +966,7 @@ Error SyncSet::createSync(const ThreadSafeDisplay *display,
     std::unique_ptr<Sync> sync;
 
     SyncPool &pool = mSyncPools[type];
-    if (!pool.empty())
+    if (!pool.empty()) [[unlikely]]
     {
         sync = std::move(pool.back());
         pool.pop_back();
@@ -977,7 +977,7 @@ Error SyncSet::createSync(const ThreadSafeDisplay *display,
     }
 
     Error err = sync->initialize(display, currentContext, id, attribs);
-    if (err.isError())
+    if (err.isError()) [[unlikely]]
     {
         mHandleAllocator.release(id.value);
         sync->onDestroy(display);
@@ -996,7 +996,7 @@ ScopedSyncRef SyncSet::getSync(ThreadSafeDisplay *display, SyncID syncID) const
 {
     std::lock_guard<angle::SimpleMutex> lock(mMutex);
     auto iter = mSyncMap.find(syncID.value);
-    if (iter != mSyncMap.end())
+    if (iter != mSyncMap.end()) [[likely]]
     {
         return ScopedSyncRef(display, iter->second);
     }
@@ -1007,7 +1007,7 @@ Sync *SyncSet::removeSync(SyncID syncID)
 {
     std::lock_guard<angle::SimpleMutex> lock(mMutex);
     auto iter = mSyncMap.find(syncID.value);
-    if (iter == mSyncMap.end())
+    if (iter == mSyncMap.end()) [[unlikely]]
     {
         return nullptr;
     }
@@ -1078,7 +1078,7 @@ void SyncSet::clearPools()
 angle::ScratchBuffer ScratchBuffers::requestScratchBuffer()
 {
     std::lock_guard<angle::SimpleMutex> lock(mMutex);
-    if (!mScratchBuffers.empty())
+    if (!mScratchBuffers.empty()) [[likely]]
     {
         angle::ScratchBuffer buffer = std::move(mScratchBuffers.back());
         mScratchBuffers.pop_back();
@@ -1232,7 +1232,7 @@ Error ThreadSafeDisplay::createSync(const gl::Context *currentContext,
 {
     ASSERT(isInitialized());
 
-    if (mThreadSafeImpl->testDeviceLost())
+    if (mThreadSafeImpl->testDeviceLost()) [[unlikely]]
     {
         ANGLE_TRY(restoreLostDevice());
     }
@@ -1245,7 +1245,7 @@ Error ThreadSafeDisplay::restoreLostDevice() const
     // If reset notifications have been requested, application must delete all contexts first
     const bool noResetNotificationRequested = mState.contextMap.forEach(
         [](gl::Context *context) { return !context->isResetNotificationEnabled(); });
-    if (!noResetNotificationRequested)
+    if (!noResetNotificationRequested) [[unlikely]]
     {
         return egl::Error(EGL_CONTEXT_LOST);
     }
@@ -1269,7 +1269,7 @@ bool ThreadSafeDisplay::isValidContext(const gl::ContextID contextID) const
 
 void ThreadSafeDisplay::runPendingInternalCleanup() const
 {
-    if (mPendingInternalCleanup.exchange(false, std::memory_order_acq_rel))
+    if (mPendingInternalCleanup.exchange(false, std::memory_order_acq_rel)) [[unlikely]]
     {
         Display *display = const_cast<Display *>(static_cast<const Display *>(this));
         ScopedDisplayLockAndRef lockAndRef(*display);
@@ -1355,12 +1355,12 @@ Display *Display::GetDisplayFromNativeDisplay(EGLenum platform,
             }
             return new Display(platform, nativeDisplay, nullptr);
         });
-    if (display == nullptr)
+    if (display == nullptr) [[unlikely]]
     {
         return nullptr;
     }
     // Apply new attributes if the display is not initialized yet.
-    if (!display->initFromNativeDisplay(updatedAttribMap, nativePlatformType))
+    if (!display->initFromNativeDisplay(updatedAttribMap, nativePlatformType)) [[unlikely]]
     {
         return nullptr;
     }
@@ -1538,7 +1538,7 @@ bool Display::initFromNativeDisplay(const AttributeMap &attribMap,
         EGLAttrib deviceType  = mAttributeMap.get(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE);
         rx::DisplayImpl *impl =
             CreateDisplayFromAttribs(displayType, deviceType, nativePlatformType, getState());
-        if (impl == nullptr)
+        if (impl == nullptr) [[unlikely]]
         {
             // No valid display implementation for these attributes
             return false;
@@ -1582,13 +1582,13 @@ Error Display::initialize()
 
     ANGLE_TRACE_EVENT0("gpu.angle", "egl::Display::initialize");
 
-    if (isInitialized())
+    if (isInitialized()) [[unlikely]]
     {
         return NoError();
     }
 
     Error error = mImplementation->initialize(this);
-    if (error.isError())
+    if (error.isError()) [[unlikely]]
     {
         // Log extended error message here
         ERR() << "ANGLE Display::initialize error " << error.getID() << ": " << error.getMessage();
@@ -1598,7 +1598,7 @@ Error Display::initialize()
     mCaps = mImplementation->getCaps();
 
     mConfigSet = mImplementation->generateConfigs();
-    if (mConfigSet.size() == 0)
+    if (mConfigSet.size() == 0) [[unlikely]]
     {
         mImplementation->terminate();
         return egl::Error(EGL_NOT_INITIALIZED, "No configs were generated.");
@@ -1637,12 +1637,12 @@ Error Display::initialize()
         // an external device
         ASSERT(mDevice != nullptr);
     }
-    else if (GetClientExtensions().deviceQueryEXT)
+    else if (GetClientExtensions().deviceQueryEXT) [[likely]]
     {
         std::unique_ptr<rx::DeviceImpl> impl(mImplementation->createDevice());
         ASSERT(impl);
         error = impl->initialize();
-        if (error.isError())
+        if (error.isError()) [[unlikely]]
         {
             ERR() << "Failed to initialize display because device creation failed: "
                   << error.getMessage();
@@ -1781,7 +1781,7 @@ Error Display::terminate(Thread *thread, TerminateReason terminateReason)
 
     mState.contextMap.pruneUnreferenced(&mInvalidContextMap);
 
-    if (!mState.contextMap.empty())
+    if (!mState.contextMap.empty()) [[unlikely]]
     {
         // There was at least 1 context that was current on some thread, early return.
         return NoError();
@@ -1838,13 +1838,13 @@ Error Display::terminate(Thread *thread, TerminateReason terminateReason)
 
 Error Display::releaseThread()
 {
-    if (mPendingInternalCleanup)
+    if (mPendingInternalCleanup) [[unlikely]]
     {
         mPendingInternalCleanup = false;
         ANGLE_TRY(terminate(nullptr, TerminateReason::InternalCleanup));
     }
     // Need to check if initialized, because makeCurrent() may terminate the Display.
-    if (!isInitialized())
+    if (!isInitialized()) [[unlikely]]
     {
         return NoError();
     }
@@ -1855,7 +1855,7 @@ Error Display::releaseThread()
 void Display::onUnlockMutex()
 {
     mDisplayMutex.assertLocked();
-    if (mPendingInternalCleanup)
+    if (mPendingInternalCleanup) [[unlikely]]
     {
         mPendingInternalCleanup = false;
         (void)terminate(nullptr, TerminateReason::InternalCleanup);
@@ -1899,13 +1899,13 @@ Error Display::createWindowSurface(const Config *configuration,
                                    const AttributeMap &attribs,
                                    Surface **outSurface)
 {
-    if (mThreadSafeImpl->testDeviceLost())
+    if (mThreadSafeImpl->testDeviceLost()) [[unlikely]]
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     SurfaceID id;
-    if (!mState.surfaceMap.allocateHandle(&id))
+    if (!mState.surfaceMap.allocateHandle(&id)) [[unlikely]]
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -1934,13 +1934,13 @@ Error Display::createPbufferSurface(const Config *configuration,
 {
     ASSERT(isInitialized());
 
-    if (mThreadSafeImpl->testDeviceLost())
+    if (mThreadSafeImpl->testDeviceLost()) [[unlikely]]
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     SurfaceID id;
-    if (!mState.surfaceMap.allocateHandle(&id))
+    if (!mState.surfaceMap.allocateHandle(&id)) [[unlikely]]
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -1965,13 +1965,13 @@ Error Display::createPbufferFromClientBuffer(const Config *configuration,
 {
     ASSERT(isInitialized());
 
-    if (mThreadSafeImpl->testDeviceLost())
+    if (mThreadSafeImpl->testDeviceLost()) [[unlikely]]
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     SurfaceID id;
-    if (!mState.surfaceMap.allocateHandle(&id))
+    if (!mState.surfaceMap.allocateHandle(&id)) [[unlikely]]
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -1996,13 +1996,13 @@ Error Display::createPixmapSurface(const Config *configuration,
 {
     ASSERT(isInitialized());
 
-    if (mThreadSafeImpl->testDeviceLost())
+    if (mThreadSafeImpl->testDeviceLost()) [[unlikely]]
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     SurfaceID id;
-    if (!mState.surfaceMap.allocateHandle(&id))
+    if (!mState.surfaceMap.allocateHandle(&id)) [[unlikely]]
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -2028,13 +2028,13 @@ Error Display::createImage(const gl::Context *context,
 {
     ASSERT(isInitialized());
 
-    if (mThreadSafeImpl->testDeviceLost())
+    if (mThreadSafeImpl->testDeviceLost()) [[unlikely]]
     {
         ANGLE_TRY(restoreLostDevice());
     }
 
     ImageID id;
-    if (!mImageHandleAllocator.allocate(&id.value))
+    if (!mImageHandleAllocator.allocate(&id.value)) [[unlikely]]
     {
         return Error(EGL_BAD_ALLOC, gl::err::kHandleExhaustion);
     }
@@ -2100,7 +2100,7 @@ Error Display::createContext(const Config *configuration,
     ASSERT(!mTerminatedByApi);
     ASSERT(isInitialized());
 
-    if (mThreadSafeImpl->testDeviceLost())
+    if (mThreadSafeImpl->testDeviceLost()) [[unlikely]]
     {
         ANGLE_TRY(restoreLostDevice());
     }
@@ -2190,7 +2190,7 @@ Error Display::createContext(const Config *configuration,
                         sharedContextMutex, programCachePointer, shaderCachePointer, attribs,
                         mDisplayExtensions, GetClientExtensions());
     Error error = context->initialize();
-    if (error.isError())
+    if (error.isError()) [[unlikely]]
     {
         delete context;
         return error;
@@ -2215,7 +2215,7 @@ Error ThreadSafeDisplay::makeCurrent(Thread *thread,
                                      egl::Surface *readSurface,
                                      gl::Context *context)
 {
-    if (!isInitialized())
+    if (!isInitialized()) [[unlikely]]
     {
         return NoError();
     }
@@ -2269,7 +2269,7 @@ Error ThreadSafeDisplay::makeCurrent(Thread *thread,
     // Display and release all of its resources once the entry point's surface locks are released.
     // The caller runs it: eglMakeCurrent() in an unlocked tail call, and the entry points that lock
     // the display before unlocking it (Display::releaseThread() or Display::onUnlockMutex()).
-    if (mTerminatedByApi.load(std::memory_order_acquire) && contextChanged)
+    if (mTerminatedByApi.load(std::memory_order_acquire) && contextChanged) [[unlikely]]
     {
         mPendingInternalCleanup.store(true, std::memory_order_release);
     }
@@ -2371,7 +2371,7 @@ Error Display::destroyContext(Thread *thread, gl::Context *context)
 
         // If the context is still current on at least 1 thread, just return since it'll be
         // released once no threads have it current anymore.
-        if (context->isReferenced())
+        if (context->isReferenced()) [[unlikely]]
         {
             return NoError();
         }
@@ -2379,7 +2379,7 @@ Error Display::destroyContext(Thread *thread, gl::Context *context)
 
     // For external context, we cannot change the current native context, and the API user should
     // make sure the native context is current.
-    if (context->isExternal())
+    if (context->isExternal()) [[unlikely]]
     {
         // Need AddRefLock because there may be ContextMutex destruction.
         ScopedContextMutexAddRefLock lock(context->getContextMutex());
@@ -2416,7 +2416,7 @@ bool Display::testDeviceLost()
 {
     ASSERT(isInitialized());
 
-    if (!mState.deviceLost && mThreadSafeImpl->testDeviceLost())
+    if (!mState.deviceLost && mThreadSafeImpl->testDeviceLost()) [[unlikely]]
     {
         notifyDeviceLost();
     }
@@ -2699,7 +2699,7 @@ Error Display::valdiatePixmap(const Config *config,
 
 bool Display::isValidDisplay(const egl::Display *display)
 {
-    if (GetANGLEPlatformDisplayMap()->contains(display))
+    if (GetANGLEPlatformDisplayMap()->contains(display)) [[likely]]
     {
         return true;
     }

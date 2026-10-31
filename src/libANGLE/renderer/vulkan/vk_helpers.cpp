@@ -1810,15 +1810,14 @@ void RenderPassCommandBufferHelper::updateStartedRenderPassWithDepthStencilMode(
 
     // Determine read-only mode for depth or stencil
     const bool readOnlyMode =
-        mDepthStencilAttachmentIndex != kAttachmentIndexInvalid &&
-        resolveAttachment->getImage() == nullptr &&
-        (dsUsageFlags.test(readOnlyAttachmentUsage) || !renderPassHasWriteOrClear);
+    mDepthStencilAttachmentIndex != kAttachmentIndexInvalid &&
+    resolveAttachment->getImage() == nullptr &&
+    dsUsageFlags.test(readOnlyAttachmentUsage) && !renderPassHasWriteOrClear;
 
     // If readOnlyMode is false, we are switching out of read only mode due to depth/stencil write.
     // We must not be in the read only feedback loop mode because the logic in
     // DIRTY_BIT_READ_ONLY_DEPTH_FEEDBACK_LOOP_MODE should ensure we end the previous renderpass and
     // a new renderpass will start with feedback loop disabled.
-    ASSERT(readOnlyMode || !dsUsageFlags.test(readOnlyAttachmentUsage));
 
     ImageHelper *depthStencilImage = mDepthAttachment.getImage();
     if (depthStencilImage)
@@ -11328,8 +11327,8 @@ void ImageHelper::pruneSupersededUpdatesForLevel(ContextVk *contextVk,
                                                  const gl::OwnerLevel level,
                                                  const PruneReason reason)
 {
-    constexpr VkDeviceSize kSubresourceUpdateSizeBeforePruning = 16 * 1024 * 1024;  // 16 MB
-    constexpr int kUpdateCountThreshold                        = 1024;
+    constexpr VkDeviceSize kSubresourceUpdateSizeBeforePruning = 6 * 1024 * 1024;  // 6 MB
+    constexpr int kUpdateCountThreshold                        = 320;
     SubresourceUpdates *levelUpdates                           = getLevelUpdates(level);
 
     // If we are below pruning threshold, nothing to do.
@@ -13679,6 +13678,17 @@ angle::Result BufferViewHelper::getView(ErrorContext *context,
     const angle::Format &bufferFormat = format.getActualBufferFormat();
     const GLuint pixelBytes           = bufferFormat.pixelBytes;
     VkDeviceSize size                 = mSize - mSize % pixelBytes;
+
+    const VkPhysicalDeviceLimits &limits = renderer->getPhysicalDeviceProperties().limits;
+    const VkDeviceSize maxTexelBufferElements = limits.maxTexelBufferElements;
+    const VkDeviceSize maxRangeBytes = maxTexelBufferElements * pixelBytes;
+
+    if (size > maxRangeBytes) {
+        WARN() << "BufferView range (" << size << ") exceeds maxTexelBufferElements ("
+                 << maxRangeBytes << "), truncating to " << (maxRangeBytes - maxRangeBytes % pixelBytes)
+                 << " bytes";
+        size = maxRangeBytes - (maxRangeBytes % pixelBytes);
+    }
 
     VkBufferViewCreateInfo viewCreateInfo = {};
     viewCreateInfo.sType                  = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;

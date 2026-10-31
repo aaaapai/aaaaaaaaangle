@@ -1,0 +1,95 @@
+diff --git a/third_party/vulkan-loader/src/BUILD.gn b/third_party/vulkan-loader/src/BUILD.gn
+index 5a73707..5ec880c 100644
+--- a/third_party/vulkan-loader/src/BUILD.gn
++++ b/third_party/vulkan-loader/src/BUILD.gn
+@@ -53,14 +53,14 @@ config("vulkan_internal_config") {
+       "EXTRASYSCONFDIR=\"/pkg/data\"",
+     ]
+   }
+-  if (is_linux || is_chromeos || is_mac) {
++  if (is_linux || is_chromeos || is_mac || is_ios) {
+     defines += [
+       "SYSCONFDIR=\"/etc\"",
+       "FALLBACK_CONFIG_DIRS=\"/etc/xdg\"",
+       "FALLBACK_DATA_DIRS=\"/usr/local/share:/usr/share\"",
+     ]
+   }
+-  if (is_apple && !vulkan_loader_shared) {
++  if (is_apple) {
+     defines += [ "APPLE_STATIC_LOADER" ]
+   }
+ }
+@@ -108,7 +108,7 @@ config("vulkan_loader_config") {
+ if (!is_android) {
+   if (is_fuchsia) {
+     library_type = "sdk_shared_library"
+-  } else if (vulkan_loader_shared) {
++  } else if (vulkan_loader_shared && !is_ios) {
+     library_type = "shared_library"
+   } else {
+     library_type = "static_library"
+@@ -272,7 +272,7 @@ if (!is_android) {
+         "loader/loader_linux.h",
+       ]
+     }
+-    if (is_mac) {
++    if (is_apple) {
+       frameworks = [ "CoreFoundation.framework" ]
+     }
+     public_deps = [ "$vulkan_headers_dir:vulkan_headers" ]
+diff --git a/build/config/c++/BUILD.gn b/build/config/c++/BUILD.gn
+index 8975d68..e816df0 100644
+--- a/build/config/c++/BUILD.gn
++++ b/build/config/c++/BUILD.gn
+@@ -4,6 +4,7 @@ import("//build/config/chrome_build.gni")
+ import("//build/config/compiler/compiler.gni")
+ import("//build/config/dcheck_always_on.gni")
+ import("//buildtools/deps_revisions.gni")
++import("//gni/angle_flags.gni")
+ 
+ assert(use_custom_libcxx, "should only be used if use_custom_libcxx is set")
+ 
+@@ -19,6 +20,19 @@ config("runtime_library") {
+   ldflags = []
+   libs = []
+ 
++  if (angle_extra_cflags != []) {
++    cflags += angle_extra_cflags
++  }
++  if (angle_extra_cflags_c != []) {
++    cflags_c += angle_extra_cflags_c
++  }
++  if (angle_extra_cflags_cc != []) {
++    cflags_cc += angle_extra_cflags_cc
++  }
++  if (angle_extra_ldflags != []) {
++    ldflags += angle_extra_ldflags
++  }
++
+   # Fixed libc++ configuration macros are in
+   # buildtools/third_party/libc++/__config_site. This config only has defines
+   # that vary depending on gn args, and non-define flags.
+diff --git a/third_party/abseil-cpp/BUILD.gn b/third_party/abseil-cpp/BUILD.gn
+index 3761b75..4902ed5 100644
+--- a/third_party/abseil-cpp/BUILD.gn
++++ b/third_party/abseil-cpp/BUILD.gn
+@@ -12,6 +12,7 @@ import("//build/config/sanitizers/sanitizers.gni")
+ import("//build/toolchain/toolchain.gni")
+ import("//build_overrides/build.gni")
+ import("//third_party/abseil-cpp/absl.gni")
++import("//gni/angle_flags.gni")
+ 
+ config("absl_component_build") {
+   defines = [ "ABSL_CONSUME_DLL" ]
+@@ -233,6 +234,11 @@ config("absl_define_config") {
+ 
+ config("absl_default_cflags_cc") {
+   cflags_cc = []
++  
++  if (angle_extra_cflags_cc != []) {
++    cflags_cc += angle_extra_cflags_cc
++  }
++
+   if (is_clang) {
+     cflags_cc += [
+       # TODO(crbug.com/588506): Explicitly enable conversion warnings.

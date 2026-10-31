@@ -1657,6 +1657,34 @@ TIntermTyped *built_in_texturegatheroffset(TCompiler *compiler,
     return BuiltIn(compiler, builtIn, args, kNoVersionOverride);
 }
 
+TIntermTyped *built_in_atomiccounteradd(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterAdd", args, kNoVersionOverride);
+}
+TIntermTyped *built_in_atomiccountersubtract(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterSubtract", args, kNoVersionOverride);
+}
+TIntermTyped *built_in_atomiccountermin(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterMin", args, kNoVersionOverride);
+}
+TIntermTyped *built_in_atomiccountermax(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterMax", args, kNoVersionOverride);
+}
+TIntermTyped *built_in_atomiccounterand(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterAnd", args, kNoVersionOverride);
+}
+TIntermTyped *built_in_atomiccounteror(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterOr", args, kNoVersionOverride);
+}
+TIntermTyped *built_in_atomiccounterxor(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterXor", args, kNoVersionOverride);
+}
+TIntermTyped *built_in_atomiccounterexchange(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterExchange", args, kNoVersionOverride);
+}
+TIntermTyped *built_in_atomiccountercompswap(TCompiler *compiler, rust::Slice<const Expression> args) {
+    return BuiltIn(compiler, "atomicCounterCompSwap", args, kNoVersionOverride);
+}
+
 void branch_discard(TIntermBlock *block)
 {
     block->appendStatement(new TIntermBranch(EOpKill, nullptr));

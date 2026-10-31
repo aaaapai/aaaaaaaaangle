@@ -1106,6 +1106,10 @@ void ProgramExecutable::save(gl::BinaryOutputStream *stream) const
 
 std::string ProgramExecutable::getInfoLogString() const
 {
+    if (mInfoLog == nullptr)
+    {
+        return std::string();
+    }
     return mInfoLog->str();
 }
 
@@ -2646,6 +2650,10 @@ void ProgramExecutable::setUniformGeneric(UniformLocation location,
                                           GLsizei count,
                                           const UniformT *v)
 {
+    if (mImplementation == nullptr)
+    {
+        return;
+    }
     if (shouldIgnoreUniform(location))
     {
         return;
@@ -2681,6 +2689,12 @@ void ProgramExecutable::setUniform1iv(Context *context,
                                       GLsizei count,
                                       const GLint *v)
 {
+
+    if (mImplementation == nullptr)
+    {
+        return;
+    }
+
     if (shouldIgnoreUniform(location))
     {
         return;
@@ -3229,6 +3243,16 @@ void ProgramExecutable::setBaseInstanceUniform(GLuint baseInstance)
 
 void ProgramExecutable::waitForPostLinkTasks(const Context *context)
 {
+    if (mImplementation == nullptr)
+    {
+        // The executable has already been destroyed (or was never fully constructed).
+        // There is nothing left to wait on, and dereferencing mImplementation here
+        // would produce a SIGSEGV at a small offset from null.
+        mPostLinkSubTasks.clear();
+        mPostLinkSubTaskWaitableEvents.clear();
+        return;
+    }
+
     if (mPostLinkSubTasks.empty())
     {
         return;

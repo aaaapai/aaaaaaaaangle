@@ -94,6 +94,7 @@ libangle_common_sources =
       "src/common/base/anglebase/sha1.cc",
       "src/common/base/anglebase/trace_event/trace_categories.cc",
       "src/common/debug.cpp",
+      "src/common/log_stub.cpp",
       "src/common/entry_points_enum_autogen.cpp",
       "src/common/event_tracer.cpp",
       "src/common/mathutil.cpp",

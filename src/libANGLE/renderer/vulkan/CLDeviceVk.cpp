@@ -462,7 +462,7 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
     {
         versionedExtensionList.push_back(
             cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_fp64"});
-    }
+    //}
     if (info.imageSupport && info.image3D_MaxDepth > 1)
     {
         versionedExtensionList.push_back(

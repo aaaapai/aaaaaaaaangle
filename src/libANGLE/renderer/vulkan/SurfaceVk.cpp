@@ -1215,6 +1215,13 @@ angle::FormatID WindowSurfaceVk::getActualFormatID(vk::Renderer *renderer)
     {
         actualFormatID = angle::FormatID::R5G6B5_UNORM;
     }
+
+    if (renderer->getFeatures().preferBGRA8ToRGBA8.enabled &&
+        intendedFormatID == angle::FormatID::R8G8B8A8_UNORM)
+    {
+        actualFormatID = angle::FormatID::B8G8R8A8_UNORM;
+    }
+
     return actualFormatID;
 }
 
@@ -1587,6 +1594,10 @@ angle::Result WindowSurfaceVk::recreateSwapchain(vk::ErrorContext *context)
     // Swapchain must be already invalidated.
     ASSERT(mAcquireOperation.state == ImageAcquireState::Unacquired);
     ASSERT(mSwapchain == VK_NULL_HANDLE);
+
+    vk::Renderer *renderer = context->getRenderer();
+    ANGLE_TRY(finish(context));
+    renderer->cleanupGarbage(nullptr);
 
     // May happen in case if it is recreate after a previous failure.
     if (!mSwapchainImages.empty() || mDepthStencilImage.valid() || hasAncillaryColor())
@@ -2066,11 +2077,15 @@ angle::Result WindowSurfaceVk::queryAndAdjustSurfaceCaps(
         }
     }
 
-    if (mIsSurfaceSizedBySwapchain)
+    // Always query the actual window size.  On Fuchsia and some Android drivers,
+    // vkGetPhysicalDeviceSurfaceCapabilitiesKHR does not provide useful extents; on Android,
+    // currentExtent may also lag behind ANativeWindow_setBuffersGeometry.  Therefore, the
+    // platform-specific window size is used as the source of truth for buffer geometry.
+    //
+    // The IsAndroid() check limits this override to the platform where the lag has been
+    // observed.  Removing it makes the override unconditional for all platforms.
+    if (mIsSurfaceSizedBySwapchain || IsAndroid())
     {
-        // vkGetPhysicalDeviceSurfaceCapabilitiesKHR does not provide useful extents for some
-        // platforms (e.g. Fuchsia).  Therefore, we must query the window size via a
-        // platform-specific mechanism.  Add those extents to the surfaceCapsOut
         gl::Extents windowExtents;
         ANGLE_TRY(getCurrentWindowSize(context, &windowExtents));
         surfaceCapsOut->currentExtent.width  = windowExtents.width;
@@ -2143,6 +2158,15 @@ angle::Result WindowSurfaceVk::prepareSwapchainForAcquireNextImage(vk::ErrorCont
                 return angle::Result::Continue;
             }
         }
+
+        // Validation: report the exact reason the swapchain is being invalidated.  If this line
+        // does not appear after calling ANativeWindow_setBuffersGeometry, the size/transform/
+        // minImageCount comparison above did not detect a change.
+        INFO() << "Swapchain size changed: " << mWidth << "x" << mHeight << " -> "
+               << surfaceCaps.currentExtent.width << "x" << surfaceCaps.currentExtent.height
+               << " (transform " << std::hex << mPreTransform << " -> "
+               << surfaceCaps.currentTransform << std::dec << ", minImageCount " << mMinImageCount
+               << " -> " << minImageCount << ")";
 
         invalidateSwapchain(renderer);
     }
@@ -2901,7 +2925,7 @@ angle::Result WindowSurfaceVk::throttleCPU(vk::ErrorContext *context,
     mSwapHistory.front()   = currentSubmitSerial;
     mSwapHistory.next();
 
-    if (swapSerial.valid() && !context->getRenderer()->hasQueueSerialFinished(swapSerial))
+    /*if (swapSerial.valid() && !context->getRenderer()->hasQueueSerialFinished(swapSerial))
     {
         // Make this call after unlocking the EGL lock.  Renderer::finishQueueSerial is necessarily
         // thread-safe because it can get called from any number of GL commands, which don't
@@ -2916,7 +2940,7 @@ angle::Result WindowSurfaceVk::throttleCPU(vk::ErrorContext *context,
                 ANGLE_UNUSED_VARIABLE(resultOut);
                 (void)context->getRenderer()->finishQueueSerial(context, swapSerial);
             });
-    }
+    }*/ // Should it throttle?
 
     return angle::Result::Continue;
 }

@@ -246,7 +246,7 @@ void DispatchTableGL::initProcsDesktopGL(const gl::Version &version,
         ASSIGN("glDrawElementsInstancedARB", drawElementsInstanced);
     }
 
-    if (extensions.count("GL_ARB_fragment_program") != 0)
+    if ((extensions.count("GL_ARB_fragment_program") != 0) || (extensions.count("GL_FRAGMENT_PROGRAM_ARB") != 0))
     {
         ASSIGN("glGetProgramivARB", getProgramiv);
         ASSIGN("glIsProgramARB", isProgram);

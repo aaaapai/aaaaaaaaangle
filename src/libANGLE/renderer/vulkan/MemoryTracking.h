@@ -19,6 +19,9 @@
 #include "common/hash_containers.h"
 #include "common/vulkan/vk_headers.h"
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+
 namespace rx
 {
 namespace vk

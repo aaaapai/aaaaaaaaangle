@@ -334,6 +334,15 @@ TIntermTyped *built_in_texturegather(TCompiler *compiler, rust::Slice<const Expr
 TIntermTyped *built_in_texturegatheroffset(TCompiler *compiler,
                                            rust::Slice<const Expression> args,
                                            bool isOffsetArray);
+TIntermTyped *built_in_atomiccounteradd(TCompiler *compiler, rust::Slice<const Expression> args);
+TIntermTyped *built_in_atomiccountersubtract(TCompiler *compiler, rust::Slice<const Expression> args);
+TIntermTyped *built_in_atomiccountermin(TCompiler *compiler, rust::Slice<const Expression> args);
+TIntermTyped *built_in_atomiccountermax(TCompiler *compiler, rust::Slice<const Expression> args);
+TIntermTyped *built_in_atomiccounterand(TCompiler *compiler, rust::Slice<const Expression> args);
+TIntermTyped *built_in_atomiccounteror(TCompiler *compiler, rust::Slice<const Expression> args);
+TIntermTyped *built_in_atomiccounterxor(TCompiler *compiler, rust::Slice<const Expression> args);
+TIntermTyped *built_in_atomiccounterexchange(TCompiler *compiler, rust::Slice<const Expression> args);
+TIntermTyped *built_in_atomiccountercompswap(TCompiler *compiler, rust::Slice<const Expression> args);
 
 void branch_discard(TIntermBlock *block);
 void branch_return_value(TIntermBlock *block, const Expression &value);

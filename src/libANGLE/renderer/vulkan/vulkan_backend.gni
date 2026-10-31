@@ -224,7 +224,7 @@ if (is_fuchsia) {
   ]
 }
 
-if (is_mac) {
+if (is_apple) {
   vulkan_backend_sources += [
     "mac/DisplayVkMac.h",
     "mac/DisplayVkMac.mm",

@@ -40,18 +40,18 @@ class VectorBase
     using VectorN = Vector<Dimension, Type>;
 
     // Constructors
-    VectorBase() = default;
-    explicit VectorBase(Type element);
+    constexpr VectorBase() = default;
+    explicit constexpr VectorBase(Type element);
 
     template <typename Type2>
-    VectorBase(const VectorBase<Dimension, Type2> &other);
+    constexpr VectorBase(const VectorBase<Dimension, Type2> &other);
 
     template <typename Arg1, typename Arg2, typename... Args>
-    VectorBase(const Arg1 &arg1, const Arg2 &arg2, const Args &...args);
+    constexpr VectorBase(const Arg1 &arg1, const Arg2 &arg2, const Args &...args);
 
     // Access the vector backing storage directly
-    const Type *data() const { return mData; }
-    Type *data() { return mData; }
+    constexpr const Type *data() const { return mData; }
+    constexpr Type *data() { return mData; }
     constexpr size_t size() const { return Dimension; }
 
     // Load or store the pointer from / to raw data
@@ -59,31 +59,31 @@ class VectorBase
     static void Store(const VectorN &source, Type *destination);
 
     // Index the vector
-    Type &operator[](size_t i) { return ANGLE_UNSAFE_TODO(mData[i]); }
-    const Type &operator[](size_t i) const { return ANGLE_UNSAFE_TODO(mData[i]); }
+    constexpr Type &operator[](size_t i) { return ANGLE_UNSAFE_TODO(mData[i]); }
+    constexpr const Type &operator[](size_t i) const { return ANGLE_UNSAFE_TODO(mData[i]); }
 
     // Basic arithmetic operations
-    VectorN operator+() const;
-    VectorN operator-() const;
-    VectorN operator+(const VectorN &other) const;
-    VectorN operator-(const VectorN &other) const;
-    VectorN operator*(const VectorN &other) const;
-    VectorN operator/(const VectorN &other) const;
-    VectorN operator*(Type other) const;
-    VectorN operator/(Type other) const;
-    friend VectorN operator*(Type a, const VectorN &b) { return b * a; }
+    constexpr VectorN operator+() const;
+    constexpr VectorN operator-() const;
+    constexpr VectorN operator+(const VectorN &other) const;
+    constexpr VectorN operator-(const VectorN &other) const;
+    constexpr VectorN operator*(const VectorN &other) const;
+    constexpr VectorN operator/(const VectorN &other) const;
+    constexpr VectorN operator*(Type other) const;
+    constexpr VectorN operator/(Type other) const;
+    friend constexpr VectorN operator*(Type a, const VectorN &b) { return b * a; }
 
     // Compound arithmetic operations
-    VectorN &operator+=(const VectorN &other);
-    VectorN &operator-=(const VectorN &other);
-    VectorN &operator*=(const VectorN &other);
-    VectorN &operator/=(const VectorN &other);
-    VectorN &operator*=(Type other);
-    VectorN &operator/=(Type other);
+    constexpr VectorN &operator+=(const VectorN &other);
+    constexpr VectorN &operator-=(const VectorN &other);
+    constexpr VectorN &operator*=(const VectorN &other);
+    constexpr VectorN &operator/=(const VectorN &other);
+    constexpr VectorN &operator*=(Type other);
+    constexpr VectorN &operator/=(Type other);
 
     // Comparison operators
-    bool operator==(const VectorBase<Dimension, Type> &other) const;
-    bool operator!=(const VectorBase<Dimension, Type> &other) const;
+    constexpr bool operator==(const VectorBase<Dimension, Type> &other) const;
+    constexpr bool operator!=(const VectorBase<Dimension, Type> &other) const;
 
     // Other arithmetic operations
     Type length() const;
@@ -93,18 +93,15 @@ class VectorBase
 
   protected:
     template <size_t CurrentIndex, size_t OtherDimension, typename OtherType, typename... Args>
-    void initWithList(const Vector<OtherDimension, OtherType> &arg1, const Args &...args);
+    constexpr void initWithList(const Vector<OtherDimension, OtherType> &arg1, const Args &...args);
 
-    // Some old compilers consider this function an alternative for initWithList(Vector)
-    // when the variant above is more precise. Use SFINAE on the return value to hide
-    // this variant for non-arithmetic types. The return value is still void.
     template <size_t CurrentIndex, typename OtherType, typename... Args>
-    typename std::enable_if<std::is_arithmetic<OtherType>::value>::type initWithList(
+    constexpr typename std::enable_if<std::is_arithmetic<OtherType>::value>::type initWithList(
         OtherType arg1,
         const Args &...args);
 
     template <size_t CurrentIndex>
-    void initWithList() const;
+    constexpr void initWithList() const;
 
     template <size_t Dimension2, typename Type2>
     friend class VectorBase;
@@ -119,15 +116,17 @@ template <typename Type>
 class Vector<2, Type> : public VectorBase<2, Type>
 {
   public:
-    // Import the constructors defined in VectorBase
     using VectorBase<2, Type>::VectorBase;
 
     // Element shorthands
     Type &x() { return this->mData[0]; }
     Type &y() { return this->mData[1]; }
-
     const Type &x() const { return this->mData[0]; }
     const Type &y() const { return this->mData[1]; }
+
+    // Optimized length and dot for 2D
+    Type lengthSquared() const { return x() * x() + y() * y(); }
+    Type dot(const Vector<2, Type> &other) const { return x() * other.x() + y() * other.y(); }
 };
 
 template <typename Type>
@@ -137,7 +136,6 @@ template <typename Type>
 class Vector<3, Type> : public VectorBase<3, Type>
 {
   public:
-    // Import the constructors defined in VectorBase
     using VectorBase<3, Type>::VectorBase;
 
     // Additional operations
@@ -147,10 +145,15 @@ class Vector<3, Type> : public VectorBase<3, Type>
     Type &x() { return this->mData[0]; }
     Type &y() { return this->mData[1]; }
     Type &z() { return this->mData[2]; }
-
     const Type &x() const { return this->mData[0]; }
     const Type &y() const { return this->mData[1]; }
     const Type &z() const { return this->mData[2]; }
+
+    // Optimized length and dot for 3D
+    Type lengthSquared() const { return x() * x() + y() * y() + z() * z(); }
+    Type dot(const Vector<3, Type> &other) const {
+        return x() * other.x() + y() * other.y() + z() * other.z();
+    }
 };
 
 template <typename Type>
@@ -160,7 +163,6 @@ template <typename Type>
 class Vector<4, Type> : public VectorBase<4, Type>
 {
   public:
-    // Import the constructors defined in VectorBase
     using VectorBase<4, Type>::VectorBase;
 
     // Element shorthands
@@ -168,11 +170,18 @@ class Vector<4, Type> : public VectorBase<4, Type>
     Type &y() { return this->mData[1]; }
     Type &z() { return this->mData[2]; }
     Type &w() { return this->mData[3]; }
-
     const Type &x() const { return this->mData[0]; }
     const Type &y() const { return this->mData[1]; }
     const Type &z() const { return this->mData[2]; }
     const Type &w() const { return this->mData[3]; }
+
+    // Optimized length and dot for 4D
+    Type lengthSquared() const {
+        return x() * x() + y() * y() + z() * z() + w() * w();
+    }
+    Type dot(const Vector<4, Type> &other) const {
+        return x() * other.x() + y() * other.y() + z() * other.z() + w() * other.w();
+    }
 };
 
 template <typename Type>
@@ -181,7 +190,7 @@ std::ostream &operator<<(std::ostream &ostream, const Vector<4, Type> &vector);
 // Implementation of constructors and misc operations
 
 template <size_t Dimension, typename Type>
-VectorBase<Dimension, Type>::VectorBase(Type element)
+constexpr VectorBase<Dimension, Type>::VectorBase(Type element)
 {
     for (size_t i = 0; i < Dimension; ++i)
     {
@@ -191,7 +200,7 @@ VectorBase<Dimension, Type>::VectorBase(Type element)
 
 template <size_t Dimension, typename Type>
 template <typename Type2>
-VectorBase<Dimension, Type>::VectorBase(const VectorBase<Dimension, Type2> &other)
+constexpr VectorBase<Dimension, Type>::VectorBase(const VectorBase<Dimension, Type2> &other)
 {
     for (size_t i = 0; i < Dimension; ++i)
     {
@@ -199,27 +208,19 @@ VectorBase<Dimension, Type>::VectorBase(const VectorBase<Dimension, Type2> &othe
     }
 }
 
-// Ideally we would like to have only two constructors:
-//  - a scalar constructor that takes Type as a parameter
-//  - a compound constructor
-// However if we define the compound constructor for when it has a single arguments, then calling
-// Vector2(0.0) will be ambiguous. To solve this we take advantage of there being a single compound
-// constructor with a single argument, which is the copy constructor. We end up with three
-// constructors:
-//  - the scalar constructor
-//  - the copy constructor
-//  - the compound constructor for two or more arguments, hence the arg1, and arg2 here.
 template <size_t Dimension, typename Type>
 template <typename Arg1, typename Arg2, typename... Args>
-VectorBase<Dimension, Type>::VectorBase(const Arg1 &arg1, const Arg2 &arg2, const Args &...args)
+constexpr VectorBase<Dimension, Type>::VectorBase(const Arg1 &arg1, const Arg2 &arg2,
+                                                  const Args &...args)
 {
     initWithList<0>(arg1, arg2, args...);
 }
 
 template <size_t Dimension, typename Type>
 template <size_t CurrentIndex, size_t OtherDimension, typename OtherType, typename... Args>
-void VectorBase<Dimension, Type>::initWithList(const Vector<OtherDimension, OtherType> &arg1,
-                                               const Args &...args)
+constexpr void VectorBase<Dimension, Type>::initWithList(
+    const Vector<OtherDimension, OtherType> &arg1,
+    const Args &...args)
 {
     static_assert(CurrentIndex + OtherDimension <= Dimension,
                   "Too much data in the vector constructor.");
@@ -233,7 +234,7 @@ void VectorBase<Dimension, Type>::initWithList(const Vector<OtherDimension, Othe
 
 template <size_t Dimension, typename Type>
 template <size_t CurrentIndex, typename OtherType, typename... Args>
-typename std::enable_if<std::is_arithmetic<OtherType>::value>::type
+constexpr typename std::enable_if<std::is_arithmetic<OtherType>::value>::type
 VectorBase<Dimension, Type>::initWithList(OtherType arg1, const Args &...args)
 {
     static_assert(CurrentIndex + 1 <= Dimension, "Too much data in the vector constructor.");
@@ -243,7 +244,7 @@ VectorBase<Dimension, Type>::initWithList(OtherType arg1, const Args &...args)
 
 template <size_t Dimension, typename Type>
 template <size_t CurrentIndex>
-void VectorBase<Dimension, Type>::initWithList() const
+constexpr void VectorBase<Dimension, Type>::initWithList() const
 {
     static_assert(CurrentIndex == Dimension, "Not enough data in the vector constructor.");
 }
@@ -270,7 +271,7 @@ void VectorBase<Dimension, Type>::Store(const Vector<Dimension, Type> &source, T
 
 // Implementation of basic arithmetic operations
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> VectorBase<Dimension, Type>::operator+() const
+constexpr Vector<Dimension, Type> VectorBase<Dimension, Type>::operator+() const
 {
     Vector<Dimension, Type> result;
     for (size_t i = 0; i < Dimension; ++i)
@@ -281,7 +282,7 @@ Vector<Dimension, Type> VectorBase<Dimension, Type>::operator+() const
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> VectorBase<Dimension, Type>::operator-() const
+constexpr Vector<Dimension, Type> VectorBase<Dimension, Type>::operator-() const
 {
     Vector<Dimension, Type> result;
     for (size_t i = 0; i < Dimension; ++i)
@@ -292,7 +293,7 @@ Vector<Dimension, Type> VectorBase<Dimension, Type>::operator-() const
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> VectorBase<Dimension, Type>::operator+(
+constexpr Vector<Dimension, Type> VectorBase<Dimension, Type>::operator+(
     const Vector<Dimension, Type> &other) const
 {
     Vector<Dimension, Type> result;
@@ -304,7 +305,7 @@ Vector<Dimension, Type> VectorBase<Dimension, Type>::operator+(
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> VectorBase<Dimension, Type>::operator-(
+constexpr Vector<Dimension, Type> VectorBase<Dimension, Type>::operator-(
     const Vector<Dimension, Type> &other) const
 {
     Vector<Dimension, Type> result;
@@ -316,7 +317,7 @@ Vector<Dimension, Type> VectorBase<Dimension, Type>::operator-(
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> VectorBase<Dimension, Type>::operator*(
+constexpr Vector<Dimension, Type> VectorBase<Dimension, Type>::operator*(
     const Vector<Dimension, Type> &other) const
 {
     Vector<Dimension, Type> result;
@@ -328,7 +329,7 @@ Vector<Dimension, Type> VectorBase<Dimension, Type>::operator*(
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> VectorBase<Dimension, Type>::operator/(
+constexpr Vector<Dimension, Type> VectorBase<Dimension, Type>::operator/(
     const Vector<Dimension, Type> &other) const
 {
     Vector<Dimension, Type> result;
@@ -340,7 +341,7 @@ Vector<Dimension, Type> VectorBase<Dimension, Type>::operator/(
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> VectorBase<Dimension, Type>::operator*(Type other) const
+constexpr Vector<Dimension, Type> VectorBase<Dimension, Type>::operator*(Type other) const
 {
     Vector<Dimension, Type> result;
     for (size_t i = 0; i < Dimension; ++i)
@@ -351,7 +352,7 @@ Vector<Dimension, Type> VectorBase<Dimension, Type>::operator*(Type other) const
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> VectorBase<Dimension, Type>::operator/(Type other) const
+constexpr Vector<Dimension, Type> VectorBase<Dimension, Type>::operator/(Type other) const
 {
     Vector<Dimension, Type> result;
     for (size_t i = 0; i < Dimension; ++i)
@@ -363,7 +364,7 @@ Vector<Dimension, Type> VectorBase<Dimension, Type>::operator/(Type other) const
 
 // Implementation of compound arithmetic operations
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator+=(
+constexpr Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator+=(
     const Vector<Dimension, Type> &other)
 {
     for (size_t i = 0; i < Dimension; ++i)
@@ -374,7 +375,7 @@ Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator+=(
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator-=(
+constexpr Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator-=(
     const Vector<Dimension, Type> &other)
 {
     for (size_t i = 0; i < Dimension; ++i)
@@ -385,7 +386,7 @@ Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator-=(
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator*=(
+constexpr Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator*=(
     const Vector<Dimension, Type> &other)
 {
     for (size_t i = 0; i < Dimension; ++i)
@@ -396,7 +397,7 @@ Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator*=(
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator/=(
+constexpr Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator/=(
     const Vector<Dimension, Type> &other)
 {
     for (size_t i = 0; i < Dimension; ++i)
@@ -407,7 +408,7 @@ Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator/=(
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator*=(Type other)
+constexpr Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator*=(Type other)
 {
     for (size_t i = 0; i < Dimension; ++i)
     {
@@ -417,7 +418,7 @@ Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator*=(Type other)
 }
 
 template <size_t Dimension, typename Type>
-Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator/=(Type other)
+constexpr Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator/=(Type other)
 {
     for (size_t i = 0; i < Dimension; ++i)
     {
@@ -428,7 +429,8 @@ Vector<Dimension, Type> &VectorBase<Dimension, Type>::operator/=(Type other)
 
 // Implementation of comparison operators
 template <size_t Dimension, typename Type>
-bool VectorBase<Dimension, Type>::operator==(const VectorBase<Dimension, Type> &other) const
+constexpr bool VectorBase<Dimension, Type>::operator==(
+    const VectorBase<Dimension, Type> &other) const
 {
     for (size_t i = 0; i < Dimension; ++i)
     {
@@ -441,7 +443,8 @@ bool VectorBase<Dimension, Type>::operator==(const VectorBase<Dimension, Type> &
 }
 
 template <size_t Dimension, typename Type>
-bool VectorBase<Dimension, Type>::operator!=(const VectorBase<Dimension, Type> &other) const
+constexpr bool VectorBase<Dimension, Type>::operator!=(
+    const VectorBase<Dimension, Type> &other) const
 {
     return !(*this == other);
 }
@@ -506,7 +509,8 @@ std::ostream &operator<<(std::ostream &ostream, const Vector<2, Type> &vector)
 template <typename Type>
 Vector<3, Type> Vector<3, Type>::cross(const Vector<3, Type> &other) const
 {
-    return Vector<3, Type>(y() * other.z() - z() * other.y(), z() * other.x() - x() * other.z(),
+    return Vector<3, Type>(y() * other.z() - z() * other.y(),
+                           z() * other.x() - x() * other.z(),
                            x() * other.y() - y() * other.x());
 }
 

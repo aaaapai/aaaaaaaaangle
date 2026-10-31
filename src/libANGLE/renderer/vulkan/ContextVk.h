@@ -948,6 +948,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     void invalidateDriverUniforms();
 
     void updateCurrentActiveStreamingAttribsMask(const gl::Context *context);
+    
+    void clearAllGarbage();
 
   private:
     // Dirty bits.
@@ -1413,7 +1415,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                  QueueSubmitReason reason);
     angle::Result flushImpl(const gl::Context *context);
 
-    void clearAllGarbage();
     void dumpCommandStreamDiagnostics();
     angle::Result flushOutsideRenderPassCommands();
     angle::Result flushAndSubmitCommandsImpl(const vk::Semaphore *signalSemaphore,

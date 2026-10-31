@@ -370,7 +370,7 @@ struct Caps
     GLuint subPixelBits = 4;
 
     // GL_EXT_blend_func_extended
-    GLuint maxDualSourceDrawBuffers = 0;
+    GLuint maxDualSourceDrawBuffers = 8;
 
     // GL_EXT_texture_filter_anisotropic
     GLfloat maxTextureAnisotropy = 0.0f;

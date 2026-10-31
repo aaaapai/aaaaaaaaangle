@@ -12,7 +12,12 @@
 
 #include "libANGLE/renderer/vulkan/SurfaceVk.h"
 
-#include <Cocoa/Cocoa.h>
+#if TARGET_OS_OSX
+#    include <Cocoa/Cocoa.h>
+#else
+#    include <UIKit/UIKit.h>
+#    include <QuartzCore/CAMetalLayer.h>
+#endif
 
 namespace rx
 {

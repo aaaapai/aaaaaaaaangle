@@ -16,7 +16,12 @@
 #include "libANGLE/renderer/vulkan/vk_caps_utils.h"
 #include "libANGLE/renderer/vulkan/vk_renderer.h"
 
-#import <Cocoa/Cocoa.h>
+#if TARGET_OS_OSX
+#    import <Cocoa/Cocoa.h>
+#else
+#    import <UIKit/UIKit.h>
+#    import <QuartzCore/CAMetalLayer.h>
+#endif
 
 namespace rx
 {
@@ -42,7 +47,6 @@ SurfaceImpl *DisplayVkMac::createPbufferFromClientBuffer(const egl::SurfaceState
                                                          const egl::AttributeMap &attribs)
 {
     ASSERT(buftype == EGL_IOSURFACE_ANGLE);
-
     return new IOSurfaceSurfaceVkMac(state, clientBuffer, attribs, mRenderer);
 }
 

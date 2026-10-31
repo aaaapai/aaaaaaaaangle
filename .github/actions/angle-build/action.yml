@@ -1,0 +1,132 @@
+name: 'Build ANGLE'
+description: 'Build ANGLE for a given platform/arch'
+
+inputs:
+  platform:
+    description: 'android | ios | linux'
+    required: true
+  arch:
+    description: 'Target architecture'
+    required: true
+  out-dir:
+    description: 'GN output directory name'
+    required: true
+  upload-path:
+    description: 'Glob of files/directories to upload, relative to the out-dir'
+    required: false
+    default: '*.so'
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Cache depot_tools
+      id: cache-depot-tools
+      uses: actions/cache@main
+      with:
+        path: |
+          depot_tools
+          third_party/llvm-build
+          tools/flex-bison
+          build/linux
+          third_party/rust-toolchain
+          tools/glslang
+        key: depot-tools-${{ runner.os }}-${{ inputs.platform }}-v1
+        restore-keys: |
+          depot-tools-${{ runner.os }}-${{ inputs.platform }}-
+
+    - name: Setup depot_tools
+      if: steps.cache-depot-tools.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" = "macOS" ]; then
+          sudo rm -rf /Users/runner/Library/Android/sdk
+        else
+          sudo rm -rf /usr/local/lib/android/sdk
+        fi
+        git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+
+    - name: Run gclient sync
+      shell: bash
+      run: |
+        export PATH=`pwd`/depot_tools:$PATH
+        if [ ! -f .gclient ]; then
+          python3 scripts/bootstrap.py
+        fi
+        COMMIT_COUNT=$(git ls-remote origin | wc -l)
+        echo "ANGLE_COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_ENV
+        echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
+        gclient sync --no-history --shallow --reset --force
+
+    - name: Apply patches
+      shell: bash
+      run: |
+        git apply --verbose angle-patches.diff || true
+
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@main
+      with:
+        key: angle-ccache-${{ runner.os }}-${{ inputs.platform }}-${{ inputs.arch }}
+        max-size: '8G'
+        update-package-index: true
+        restore: true
+        variant: 'ccache'
+        save: true
+        append-timestamp: true
+        install: 'yes'
+        job-summary: 'CCache Statistics'
+
+    - name: Build ANGLE
+      shell: bash
+      run: |
+        export PATH=`pwd`/depot_tools:$PATH
+        ccache -z
+        cp .gn .gn.bak 2>/dev/null; if grep -q 'expand_directory_allowlist' .gn 2>/dev/null; then sed -i 's|]|,\n  "//build/modules/BUILD.gn"\n]|' .gn; else echo 'expand_directory_allowlist = [ "//build/modules/BUILD.gn" ]' >> .gn; fi
+        gn gen out/${{ inputs.out-dir }} --threads=16
+        gn args out/${{ inputs.out-dir }} --list --short
+        autoninja -C out/${{ inputs.out-dir }} -j 16
+
+    - name: List build outputs
+      if: success()
+      shell: bash
+      run: |
+        echo "=== Top-level ==="
+        ls -la out/${{ inputs.out-dir }}/ || true
+        echo "=== Frameworks ==="
+        find out/${{ inputs.out-dir }} -maxdepth 3 -name "*.framework" -type d || true
+        echo "=== Dylibs ==="
+        find out/${{ inputs.out-dir }} -maxdepth 3 -name "*.dylib" || true
+        echo "=== .so ==="
+        find out/${{ inputs.out-dir }} -maxdepth 3 -name "*.so" || true
+
+    - name: Ad-hoc re-sign frameworks (iOS)
+      if: inputs.platform == 'ios'
+      shell: bash
+      run: |
+        set -e
+        shopt -s nullglob
+        for fw in out/${{ inputs.out-dir }}/*.framework; do
+          [ -d "$fw" ] || continue
+          echo ">>> Re-signing $fw"
+          codesign --force --sign - "$fw"
+          codesign -dv "$fw" 2>&1 | grep -i adhoc
+          BIN="$fw/$(basename "$fw" .framework)"
+          if [ -f "$BIN" ]; then
+            lipo -info "$BIN"
+          fi
+        done
+
+    - name: Dump logs on failure
+      if: failure()
+      shell: bash
+      run: |
+        find out/${{ inputs.out-dir }} -name "siso_output" -exec cat {} \;
+        chmod +x ./out/${{ inputs.out-dir }}/siso_failed_commands.sh
+        ./out/${{ inputs.out-dir }}/siso_failed_commands.sh
+
+    - name: Upload angle
+      uses: actions/upload-artifact@main
+      with:
+        name: angle-${{ inputs.platform }}-${{ inputs.arch }}-${{ github.run_number }}
+        path: out/${{ inputs.out-dir }}/${{ inputs.upload-path }}
+        if-no-files-found: warn

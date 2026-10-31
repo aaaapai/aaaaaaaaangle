@@ -52,7 +52,8 @@ class ExternalFence final : angle::NonCopyable
 };
 
 using SharedExternalFence  = std::shared_ptr<ExternalFence>;
-using MapVkResultToApiType = std::function<void(VkResult, angle::Result, void *)>;
+// No call site requires a capturing callable; use the exact type instead of type erasure.
+using MapVkResultToApiType = void(*)(VkResult, angle::Result, void *);
 
 class SyncHelperInterface : angle::NonCopyable
 {
