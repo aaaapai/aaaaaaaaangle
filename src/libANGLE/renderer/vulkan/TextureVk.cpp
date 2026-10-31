@@ -1407,7 +1407,7 @@ angle::Result TextureVk::copyImage(const gl::Context *context,
 
     // The texture level being redefined might be the same as the one bound to the framebuffer.
     // In that case, snapshot the source image first, then redefine, then copy from the snapshot.
-    vk::RendererScoped<vk::ImageHelper> sourceImageCopy(renderer);
+    vk::RendererScoped<vk::ImageHelper> sourceImageCopy(renderer, VK_IMAGE_TYPE_2D);
     gl::Rectangle clippedSourceArea;
     gl::Offset modifiedDestOffset(0, 0, 0);
     bool hasCopyArea = false;
@@ -2014,7 +2014,7 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
     {
         // Create a temporary image to stage the copy
         std::unique_ptr<vk::RefCounted<vk::ImageHelper>> stagingImage;
-        stagingImage = std::make_unique<vk::RefCounted<vk::ImageHelper>>();
+        stagingImage = std::make_unique<vk::RefCounted<vk::ImageHelper>>(VK_IMAGE_TYPE_2D);
 
         ANGLE_TRY(stagingImage->get().init2DStaging(
             contextVk, mState.hasProtectedContent(),
@@ -2179,7 +2179,7 @@ angle::Result TextureVk::copySubImageImplWithDraw(ContextVk *contextVk,
 
         // Create a temporary image to stage the copy
         std::unique_ptr<vk::RefCounted<vk::ImageHelper>> stagingImage;
-        stagingImage = std::make_unique<vk::RefCounted<vk::ImageHelper>>();
+        stagingImage = std::make_unique<vk::RefCounted<vk::ImageHelper>>(VK_IMAGE_TYPE_2D);
 
         ANGLE_TRY(stagingImage->get().init2DStaging(
             contextVk, mState.hasProtectedContent(),
@@ -2326,7 +2326,7 @@ angle::Result TextureVk::setStorageExternalMemory(const gl::Context *context,
 
     releaseAndDeleteImageAndViews(contextVk);
 
-    setImageHelper(contextVk, new vk::ImageHelper(), true);
+    setImageHelper(contextVk, new vk::ImageHelper(gl_vk::GetImageType(type)), true);
 
     mImage->setTilingMode(gl_vk::GetTilingMode(mState.getTilingMode()));
 
@@ -2589,7 +2589,7 @@ angle::Result TextureVk::ensureImageAllocated(ContextVk *contextVk, const vk::Fo
 {
     if (mImage == nullptr)
     {
-        setImageHelper(contextVk, new vk::ImageHelper(), true);
+        setImageHelper(contextVk, new vk::ImageHelper(gl_vk::GetImageType(mState.getType())), true);
     }
 
     initImageUsageFlags(contextVk, format.getIntendedFormat(),
@@ -2806,9 +2806,8 @@ angle::Result TextureVk::copyBufferDataToImage(ContextVk *contextVk,
 
     vk::CommandResources resources;
     resources.onBufferTransferRead(srcBuffer);
-    resources.onImageTransferWrite(level, 1, is3D ? gl::OwnerLayer(0) : layer,
-                                   region.imageSubresource.layerCount, mImage->getAspectFlags(),
-                                   mImage);
+    resources.onImageTransferWrite(level, 1, layer, is3D ? sourceArea.depth : layerCount,
+                                   mImage->getAspectFlags(), mImage);
 
     vk::OutsideRenderPassCommandBuffer *commandBuffer;
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(resources, &commandBuffer));
@@ -3110,13 +3109,13 @@ angle::Result TextureVk::copyAndStageImageData(ContextVk *contextVk,
 
     // Create a temp copy of srcImage for staging.
     std::unique_ptr<vk::RefCounted<vk::ImageHelper>> stagingImage;
-    stagingImage = std::make_unique<vk::RefCounted<vk::ImageHelper>>();
+    stagingImage = std::make_unique<vk::RefCounted<vk::ImageHelper>>(srcImage->getType());
 
     const uint32_t levelCount = srcImage->getLevelCount();
     const uint32_t layerCount = srcImage->getLayerCount();
 
     ANGLE_TRY(stagingImage->get().initStaging(
-        contextVk, mState.hasProtectedContent(), srcImage->getType(), srcImage->getExtents(),
+        contextVk, mState.hasProtectedContent(), srcImage->getExtents(),
         srcImage->getIntendedFormatID(), srcImage->getActualFormatID(), srcImage->getSamples(),
         vk::kImageUsageTransferBits, levelCount, layerCount));
 
@@ -3501,6 +3500,8 @@ angle::Result TextureVk::getAttachmentRenderTarget(const gl::Context *context,
         // Initialize mMultisampledImages and mMultisampledImageViews if necessary
         if (mMultisampledImages == nullptr)
         {
+            // Note: this uses ImageHelper's default constructor, which sets the image type
+            // correctly to VK_IMAGE_TYPE_2D.
             mMultisampledImages     = std::make_unique<MultiSampleImages>();
             mMultisampledImageViews = std::make_unique<MultiSampleImageViews>();
         }
@@ -3543,7 +3544,7 @@ angle::Result TextureVk::getAttachmentRenderTarget(const gl::Context *context,
         vk::Renderer *renderer = contextVk->getRenderer();
 
         // Allocate implicit RGB image and image view
-        mRgbDrawImageForYuvResolve      = std::make_unique<vk::ImageHelper>();
+        mRgbDrawImageForYuvResolve      = std::make_unique<vk::ImageHelper>(VK_IMAGE_TYPE_2D);
         mRgbDrawImageViewsForYuvResolve = std::make_unique<vk::ImageViewHelper>();
 
         // Initialize implicit RGB image and image view
@@ -5056,6 +5057,13 @@ angle::Result TextureVk::ensureRenderableWithFormat(ContextVk *contextVk,
                                                     TextureUpdateResult *updateResultOut)
 {
     if (mRequiredFormatSupport == vk::ImageFormatSupport::Renderable)
+    {
+        return angle::Result::Continue;
+    }
+
+    // respecifyImageStorage requires that the base level is cube complete (through
+    // getBaseLevelDesc).
+    if (mState.getType() == gl::TextureType::CubeMap && !mState.isCubeComplete())
     {
         return angle::Result::Continue;
     }
