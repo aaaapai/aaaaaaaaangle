@@ -1,0 +1,354 @@
+# ============================================================
+#  args.gn.in  -  ANGLE 参数模板
+#
+#    本文件不是 GN 语法！由 scripts/gen_args.sh 读取合并后，
+#    输出扁平 key=value 的 out/<out-dir>/args.gn 交给 GN。
+#
+#  section 优先级（后者覆盖前者同名 key）：
+#      platform-*  >  mode-*  >  arch-*  >  base
+#
+#  即：同名 key 出现在多个 section 时，优先级高的生效
+#     （platform 里可以覆盖 mode / arch / base 的同名 key）
+#
+#  polly：mode-release 的 cflags 里放 #@POLLY@ 占位符，
+#         由 gen_args.sh 在 release 且非 iOS 时替换为插件参数，
+#         其余情况删除该行。
+#
+#  约定：
+#   - section 头：`# ==SECTION:name==`（整行）
+#   - key 行：`key = value`；数组值以 `[` 开始、单独一行 `]` 结束
+# ============================================================
+
+
+# ==SECTION:base==
+is_component_build = false
+is_clang = true
+jobs = 6
+use_goma = false
+use_lld = true
+use_mold = false
+
+cc_wrapper = "ccache"
+c_wrapper = "ccache"
+
+enable_resource_allowlist_generation = false
+generate_debug_info = false
+
+use_cxx23 = true
+use_custom_libcxx = true
+use_custom_libcxx_for_host = false
+libcxx_abi_unstable = true
+rust_lto = "fat"
+
+use_clang_coverage = false
+optimize_for_fuzzing = false
+use_dummy_lastchange = false
+treat_warnings_as_errors = false
+
+angle_build_all = false
+angle_build_tests = false
+build_angle_deqp_tests = false
+angle_expose_non_conformant_extensions_and_versions = true
+angle_ir = false
+angle_standalone = false
+
+angle_enable_vulkan = true
+angle_enable_vulkan_validation_layers = false
+angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
+angle_enable_d3d9 = false
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_wgpu = false
+angle_enable_cl = false
+angle_enable_swiftshader = false
+
+# 后端默认值：GL 开启，Metal 关闭（iOS 在 platform-ios 覆盖）
+angle_enable_gl = true
+angle_enable_glsl = true
+angle_enable_essl = true
+angle_enable_metal = false
+angle_enable_msl = false
+
+
+# ==SECTION:mode-release==
+# -------- release --------
+is_debug = false
+symbol_level = 0
+dcheck_always_on = false
+angle_assert_always_on = false
+enable_iterator_debugging = false
+enable_stripping = true
+strip_debug_info = true
+exclude_unwind_tables = true
+use_lto = true
+use_rtti = false
+
+angle_has_frame_capture = false
+angle_force_context_check_every_call = false
+angle_enable_perf_counter_output = false
+angle_enable_trace = false
+
+angle_extra_cflags = [
+  "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
+  "-Wno-unused-command-line-argument",
+  "-Wno-error",
+  "-O3",
+  "-fno-semantic-interposition",
+  "-mllvm",
+  "-hot-cold-split=true",
+  "-fdata-sections",
+  "-ffunction-sections",
+  "-fmerge-all-constants",
+  "-ftree-vectorize",
+  "-fvectorize",
+  "-fslp-vectorize",
+  "-pipe",
+  "-integrated-as",
+  "-mllvm",
+  "-inlinehint-threshold=1000",
+  "-flto",
+  "-D_FILE_OFFSET_BITS=64",
+  "-D__USE_BSD",
+  "-D_ALLBSD_SOURCE",
+  "-DUNSAFE_BUFFERS_BUILD",
+  #@POLLY@
+]
+
+angle_extra_cflags_cc = [
+  "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
+  "-Wno-unused-command-line-argument",
+  "-Wno-error",
+  "-O3",
+  "-fno-semantic-interposition",
+  "-mllvm",
+  "-hot-cold-split=true",
+  "-fdata-sections",
+  "-ffunction-sections",
+  "-fmerge-all-constants",
+  "-ftree-vectorize",
+  "-fvectorize",
+  "-fslp-vectorize",
+  "-pipe",
+  "-integrated-as",
+  "-mllvm",
+  "-inlinehint-threshold=1000",
+  "-flto",
+  "-D_FILE_OFFSET_BITS=64",
+  "-D__USE_BSD",
+  "-D_ALLBSD_SOURCE",
+  "-DUNSAFE_BUFFERS_BUILD",
+  #@POLLY@
+]
+
+angle_extra_ldflags = [
+  "-fuse-ld=lld",
+  "-Wl,--gc-sections",
+  "-flto",
+  "-Wl,--lto-O3",
+  "-Wl,-O3",
+  "-Wl,--as-needed",
+]
+
+
+# ==SECTION:mode-debug==
+# -------- debug --------
+is_debug = true
+symbol_level = 2
+dcheck_always_on = true
+angle_assert_always_on = true
+enable_iterator_debugging = true
+enable_stripping = true
+strip_debug_info = false
+exclude_unwind_tables = false
+use_lto = false
+use_rtti = true
+
+angle_has_frame_capture = true
+angle_force_context_check_every_call = true
+angle_enable_perf_counter_output = true
+angle_enable_trace = true
+
+angle_extra_cflags = [
+  "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
+  "-Wno-unused-command-line-argument",
+  "-Wno-error",
+  "-g",
+  "-O1",
+  "-D_FILE_OFFSET_BITS=64",
+  "-D__USE_BSD",
+  "-D_ALLBSD_SOURCE",
+  "-DANGLE_ENABLE_DEBUG_ANNOTATIONS",
+]
+
+angle_extra_cflags_cc = [
+  "-g",
+  "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
+  "-Wno-unused-command-line-argument",
+  "-Wno-error",
+  "-O1",
+  "-D_FILE_OFFSET_BITS=64",
+  "-D__USE_BSD",
+  "-D_ALLBSD_SOURCE",
+  "-DANGLE_ENABLE_DEBUG_ANNOTATIONS",
+]
+
+angle_extra_ldflags = [
+  "-fuse-ld=lld",
+  "-Wl,--gc-sections",
+  "-Wl,--as-needed",
+]
+
+
+# ==SECTION:mode-fastdebug==
+# -------- fastdebug（仅 android-arm64）--------
+is_debug = true
+symbol_level = 2
+dcheck_always_on = true
+angle_assert_always_on = true
+enable_iterator_debugging = true
+enable_stripping = true
+strip_debug_info = false
+exclude_unwind_tables = false
+use_lto = true
+use_rtti = true
+
+angle_has_frame_capture = true
+angle_force_context_check_every_call = true
+angle_enable_perf_counter_output = true
+angle_enable_trace = true
+angle_always_log_info = true
+angle_enable_unwind_backtrace_support = true
+
+angle_extra_cflags = [
+  "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
+  "-Wno-unused-command-line-argument",
+  "-Wno-error",
+  "-g",
+  "-O2",
+  "-D_FILE_OFFSET_BITS=64",
+  "-D__USE_BSD",
+  "-D_ALLBSD_SOURCE",
+  "-DANGLE_ENABLE_DEBUG_ANNOTATIONS",
+]
+
+angle_extra_cflags_cc = [
+  "-g",
+  "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
+  "-Wno-unused-command-line-argument",
+  "-Wno-error",
+  "-O2",
+  "-D_FILE_OFFSET_BITS=64",
+  "-D__USE_BSD",
+  "-D_ALLBSD_SOURCE",
+  "-DANGLE_ENABLE_DEBUG_ANNOTATIONS",
+]
+
+angle_extra_ldflags = [
+  "-fuse-ld=lld",
+  "-Wl,--gc-sections",
+  "-Wl,--as-needed",
+]
+
+
+# ==SECTION:platform-android==
+# -------- Android：只用 base 默认后端，仅补 target_os 等 --------
+target_os = "android"
+android_ndk_api_level = 26
+angle_use_android_tls_slot = true
+enable_unused_resource_stripping = true
+
+
+# ==SECTION:platform-ios==
+# -------- iOS：无 GL 后端，有 Metal 后端 --------
+target_os = "ios"
+target_environment = "device"
+ios_enable_code_signing = false
+enable_unused_resource_stripping = false
+
+# iOS 后端覆盖：关闭 GL，开启 Metal
+angle_enable_gl = false
+angle_enable_metal = true
+angle_enable_msl = true
+# angle_enable_glsl / angle_enable_essl 保持 base 的 true
+# （Metal 后端输入是 GLSL/ESSL，翻译为 MSL）
+
+# iOS 不 strip framework，保留完整符号（无论 release/debug）
+enable_stripping = false
+strip_debug_info = false
+
+# iOS ldflags 精简版（覆盖 mode-* 的版本）
+angle_extra_ldflags = [
+  "-fuse-ld=lld",
+  "-flto",
+  "-Wl,-O3",
+]
+
+
+# ==SECTION:platform-linux==
+target_os = "linux"
+angle_use_wayland = true
+ozone_platform = "wayland"
+ozone_auto_platforms = false
+use_x11 = false
+enable_unused_resource_stripping = true
+
+
+# ==SECTION:arch-arm64==
+target_cpu = "arm64"
+arm_use_neon = true
+arm_version = 8
+
+
+# ==SECTION:arch-arm32==
+target_cpu = "arm"
+arm_use_neon = true
+arm_version = 7
+arm_use_thumb = false
+
+
+# ==SECTION:arch-x86==
+target_cpu = "x86"
+
+
+# ==SECTION:arch-x64==
+target_cpu = "x64"
