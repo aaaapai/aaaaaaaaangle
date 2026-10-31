@@ -29,7 +29,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: ${{ fromJSON(inputs.android_arch == 'all') && '["x86","x86_64", "arm32","arm64"]' || '["arm64","arm64-fastdebug"]' }}
+        # 注意：fromJSON 必须包住整个三元表达式，
+        #       即 fromJSON( cond && 'JSON_A' || 'JSON_B' )
+        arch: ${{ fromJSON(
+          inputs.android_arch == 'all'
+            && '["x86","x86_64","x86_64-debug","arm32","arm64","arm64-fastdebug"]'
+            || '["arm64","arm64-fastdebug"]'
+        ) }}
     steps:
       - uses: actions/checkout@main
         with:
