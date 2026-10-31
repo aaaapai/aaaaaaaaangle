@@ -30,6 +30,7 @@
 *.vcxproj.user
 *.vsp
 *~
+/depot_tools
 /src/tests/third_party/gles_conformance_tests
 /testing
 /third_party/abseil-cpp

@@ -29,12 +29,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: ${{ fromJSON(inputs.android_arch == 'all' && '["x86","x86_64","arm32","arm64","arm64-fastdebug"]' || '["arm64","arm64-fastdebug"]') }}
+        arch: ${{ fromJSON(
+          inputs.android_arch == 'all'
+            && '["x86","x86_64","x86_64-debug","arm32","arm64","arm64-fastdebug"]'
+            || '["arm64","arm64-fastdebug"]'
+        ) }}
     steps:
       - uses: actions/checkout@main
         with:
           fetch-depth: 1
-      - uses: $/.github/actions/angle-build
+      - uses: ./.github/actions/angle-build
         with:
           platform: android
           arch: ${{ matrix.arch }}
@@ -48,7 +52,7 @@ jobs:
       - uses: actions/checkout@main
         with:
           fetch-depth: 1
-      - uses: $/.github/actions/angle-build
+      - uses: ./.github/actions/angle-build
         with:
           platform: linux
           arch: x86_64
@@ -62,7 +66,7 @@ jobs:
       - uses: actions/checkout@main
         with:
           fetch-depth: 1
-      - uses: $/.github/actions/angle-build
+      - uses: ./.github/actions/angle-build
         with:
           platform: ios
           arch: arm64

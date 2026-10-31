@@ -6,7 +6,7 @@ inputs:
     description: 'android | ios | linux'
     required: true
   arch:
-    description: 'Target architecture'
+    description: 'Target architecture (arm64, arm32, x86, x86_64, arm64-fastdebug, x86_64-debug)'
     required: true
   out-dir:
     description: 'GN output directory name'
@@ -19,6 +19,24 @@ inputs:
 runs:
   using: 'composite'
   steps:
+
+    - name: Parse arch
+      id: parse-arch
+      shell: bash
+      run: |
+        ARCH_IN="${{ inputs.arch }}"
+        MODE=release
+        ARCH="$ARCH_IN"
+        if [[ "$ARCH_IN" == *-fastdebug ]]; then
+          ARCH="${ARCH_IN%-fastdebug}"
+          MODE=fastdebug
+        elif [[ "$ARCH_IN" == *-debug ]]; then
+          ARCH="${ARCH_IN%-debug}"
+          MODE=debug
+        fi
+        echo "arch=$ARCH" >> "$GITHUB_OUTPUT"
+        echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+        echo "[parse-arch] input=$ARCH_IN -> arch=$ARCH mode=$MODE"
 
     - name: Cache depot_tools
       id: cache-depot-tools
@@ -76,15 +94,29 @@ runs:
         install: 'yes'
         job-summary: 'CCache Statistics'
 
+    - name: Generate args.gn
+      shell: bash
+      run: |
+        bash scripts/gen_args.sh \
+          "${{ inputs.platform }}" \
+          "${{ steps.parse-arch.outputs.arch }}" \
+          "${{ steps.parse-arch.outputs.mode }}" \
+          "${{ inputs.out-dir }}"
+
     - name: Build ANGLE
       shell: bash
       run: |
         export PATH=`pwd`/depot_tools:$PATH
         ccache -z
-        cp .gn .gn.bak 2>/dev/null; if grep -q 'expand_directory_allowlist' .gn 2>/dev/null; then sed -i 's|]|,\n  "//build/modules/BUILD.gn"\n]|' .gn; else echo 'expand_directory_allowlist = [ "//build/modules/BUILD.gn" ]' >> .gn; fi
-        gn gen out/${{ inputs.out-dir }} --threads=16
-        gn args out/${{ inputs.out-dir }} --list --short
-        autoninja -C out/${{ inputs.out-dir }} -j 16
+        cp .gn .gn.bak 2>/dev/null || true
+        if grep -q 'expand_directory_allowlist' .gn 2>/dev/null; then
+          sed -i 's|]|,\n  "//build/modules/BUILD.gn"\n]|' .gn
+        else
+          echo 'expand_directory_allowlist = [ "//build/modules/BUILD.gn" ]' >> .gn
+        fi
+        gn gen "out/${{ inputs.out-dir }}" --threads=16
+        gn args "out/${{ inputs.out-dir }}" --list --short
+        autoninja -C "out/${{ inputs.out-dir }}" -j 16
 
     - name: List build outputs
       if: success()
@@ -109,7 +141,7 @@ runs:
           [ -d "$fw" ] || continue
           echo ">>> Re-signing $fw"
           codesign --force --sign - "$fw"
-          codesign -dv "$fw" 2>&1 | grep -i adhoc
+          codesign -dv "$fw" 2>&1 | grep -i adhoc || true
           BIN="$fw/$(basename "$fw" .framework)"
           if [ -f "$BIN" ]; then
             lipo -info "$BIN"
@@ -121,8 +153,10 @@ runs:
       shell: bash
       run: |
         find out/${{ inputs.out-dir }} -name "siso_output" -exec cat {} \;
-        chmod +x ./out/${{ inputs.out-dir }}/siso_failed_commands.sh
-        ./out/${{ inputs.out-dir }}/siso_failed_commands.sh
+        if [ -f ./out/${{ inputs.out-dir }}/siso_failed_commands.sh ]; then
+          chmod +x ./out/${{ inputs.out-dir }}/siso_failed_commands.sh
+          ./out/${{ inputs.out-dir }}/siso_failed_commands.sh
+        fi
 
     - name: Upload angle
       uses: actions/upload-artifact@main
