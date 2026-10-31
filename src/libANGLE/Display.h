@@ -15,6 +15,7 @@
 #include <atomic>
 #include <mutex>
 #include <optional>
+#include <thread>
 #include <vector>
 
 #include "common/SimpleMutex.h"
@@ -70,15 +71,13 @@ class ThreadSafeDisplay;
 template <typename DisplayT>
 class ScopedDisplayRefT;
 using ScopedDisplayRef           = ScopedDisplayRefT<Display>;
-using ScopedConstDisplayRef      = ScopedDisplayRefT<const Display>;
 using ScopedThreadSafeDisplayRef = ScopedDisplayRefT<ThreadSafeDisplay>;
 
 class ScopedDisplayMutexLock;
 
 template <typename DisplayT>
 class ScopedDisplayLockAndRefT;
-using ScopedDisplayLockAndRef      = ScopedDisplayLockAndRefT<Display>;
-using ScopedConstDisplayLockAndRef = ScopedDisplayLockAndRefT<const Display>;
+using ScopedDisplayLockAndRef = ScopedDisplayLockAndRefT<Display>;
 
 using ThreadSet = angle::HashSet<Thread *>;
 
@@ -164,8 +163,8 @@ class SyncSet final : angle::NonCopyable
                      const AttributeMap &attribs,
                      Sync **outSync);
 
-    // The returned ScopedSyncRef holds a reference to the display and releases the sync through it
-    // when it goes out of scope, so a mutable display is required here.
+    // The returned ScopedSyncRef releases the sync through the display when it goes out of scope,
+    // so a mutable display is required here.
     ScopedSyncRef getSync(ThreadSafeDisplay *display, SyncID syncID) const;
 
     Sync *removeSync(SyncID syncID);
@@ -205,6 +204,20 @@ class ScratchBuffers final : angle::NonCopyable
     std::vector<angle::ScratchBuffer> mScratchBuffers;
 };
 
+// These track the display references that the current thread holds, in builds with assertions, to
+// check that a thread holds at most one (see ThreadSafeDisplay::addRef()).
+#if defined(ANGLE_ENABLE_ASSERTS)
+void AssertCurrentThreadNotHoldingDisplayRefCount();
+void AssertCurrentThreadHoldingOneDisplayRefCount();
+void IncrementCurrentThreadDisplayRefCount();
+void DecrementCurrentThreadDisplayRefCount();
+#else
+inline void AssertCurrentThreadNotHoldingDisplayRefCount() {}
+inline void AssertCurrentThreadHoldingOneDisplayRefCount() {}
+inline void IncrementCurrentThreadDisplayRefCount() {}
+inline void DecrementCurrentThreadDisplayRefCount() {}
+#endif
+
 // Access to this class is thread safe, i.e. can be called from multiple threads without holding the
 // display's mutex lock.
 class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
@@ -237,7 +250,6 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
                      const AttributeMap &attribs,
                      Sync **outSync);
     Sync *removeSync(egl::SyncID syncID);
-    void destroySync(Sync *sync);
     void releaseSync(Sync *sync);
 
     ScopedSyncRef getSync(egl::SyncID syncID) const;
@@ -273,32 +285,60 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
                       Surface *readSurface,
                       gl::Context *context);
 
+    // After eglTerminate(), makeCurrent() schedules an internal cleanup of the display whenever the
+    // current context changes.  The cleanup invalidates the contexts that are no longer current,
+    // and terminates the display once none are left.  Entry points that lock the display run it
+    // before unlocking it (see Display::onUnlockMutex()), and eglMakeCurrent() runs it in an
+    // unlocked tail call.
+    bool hasPendingInternalCleanup() const
+    {
+        return mPendingInternalCleanup.load(std::memory_order_acquire);
+    }
+    // Runs the internal cleanup if it is still pending.  This locks the display and waits until no
+    // other thread references it, so the calling thread must not hold a reference to the display,
+    // nor any of its surface or context locks.
+    void runPendingInternalCleanup() const;
+
     Error destroySurfaceImpl(Surface *surface);
 
     virtual void releaseDisplayShareGroupResource(const gl::Context &context) = 0;
 
   protected:
-    [[nodiscard]] bool addRefIfNotTerminating() const
+    void addRef() const
     {
+        // Calling addRef() a second time on a thread that already holds a display reference is
+        // forbidden: if another thread enters terminate() in between, it will set kTerminatingBit
+        // and block in waitUntilUnreferenced(1) waiting for this thread's first reference to be
+        // released, while this second addRef() spins waiting for kTerminatingBit to clear,
+        // resulting in a deadlock. Code that runs while the current thread already holds a
+        // reference must rely on that reference instead.
+        AssertCurrentThreadNotHoldingDisplayRefCount();
+
         // std::memory_order_relaxed might be sufficient here, but std::memory_order_acquire is used
         // for safety since there is no performance difference.
         uint32_t count = mRefCount.load(std::memory_order_acquire);
-        while (!(count & kTerminatingBit))
+        for (;;)
         {
+            while ((count & kTerminatingBit) != 0)
+            {
+                std::this_thread::yield();
+                count = mRefCount.load(std::memory_order_acquire);
+            }
             if (mRefCount.compare_exchange_weak(count, count + 1, std::memory_order_acquire,
                                                 std::memory_order_acquire))
             {
-                return true;
+                IncrementCurrentThreadDisplayRefCount();
+                return;
             }
         }
-        return false;
     }
     void releaseRef() const
     {
+        DecrementCurrentThreadDisplayRefCount();
         uint32_t prev = mRefCount.fetch_sub(1, std::memory_order_release);
         ASSERT((prev & kRefCountMask) > 0);
     }
-    void onPendingInternalCleanup() const;
+
     bool isTerminating() const;
 
     // Returns whether the display has been initialized, disregarding whether it is currently being
@@ -469,6 +509,10 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     const std::string &getVendorString() const;
     const std::string &getVersionString() const;
     const std::string &getClientAPIString() const;
+    const std::string &getRendererString() const;
+
+    // Builds the string returned by glGetString(GL_RENDERER).
+    std::string generateRendererString(bool includeFullVersion) const;
 
     std::string getBackendRendererDescription() const;
     std::string getBackendVendorString() const;
@@ -569,6 +613,7 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     void initVendorString();
     void initVersionString();
     void initClientAPIString();
+    void initRendererString();
     void initializeFrontendFeatures();
 
     Error destroyInvalidEglObjects();
@@ -602,6 +647,7 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     std::string mVendorString;
     std::string mVersionString;
     std::string mClientAPIString;
+    std::string mRendererString;
 
     Device *mDevice;
     Surface *mSurface;
@@ -635,126 +681,25 @@ template <typename DisplayT>
 class [[nodiscard]] ScopedDisplayRefT final
 {
   public:
-    ScopedDisplayRefT() : mDisplay(nullptr), mHoldingRef(false) {}
-    explicit ScopedDisplayRefT(DisplayT &display)
-        : mDisplay(&display), mHoldingRef(display.addRefIfNotTerminating())
-    {}
+    ScopedDisplayRefT() : mDisplay(nullptr) {}
+    explicit ScopedDisplayRefT(DisplayT &display) : mDisplay(&display) { mDisplay->addRef(); }
     ~ScopedDisplayRefT()
     {
-        if (mHoldingRef)
+        if (mDisplay != nullptr)
         {
             mDisplay->releaseRef();
-            if constexpr (std::is_same_v<DisplayT, ThreadSafeDisplay>)
-            {
-                if (ANGLE_UNLIKELY(
-                        mDisplay->mPendingInternalCleanup.load(std::memory_order_acquire)))
-                {
-                    mDisplay->onPendingInternalCleanup();
-                }
-            }
         }
     }
 
-    ScopedDisplayRefT(const ScopedDisplayRefT &other)
-        : mDisplay(other.mDisplay),
-          mHoldingRef(other.mHoldingRef && other.mDisplay->addRefIfNotTerminating())
-    {}
-
-    template <typename OtherDisplayT,
-              std::enable_if_t<std::is_convertible_v<OtherDisplayT *, DisplayT *>, bool> = true>
-    ScopedDisplayRefT(const ScopedDisplayRefT<OtherDisplayT> &other)
-        : mDisplay(other.mDisplay),
-          mHoldingRef(other.mHoldingRef && other.mDisplay->addRefIfNotTerminating())
-    {}
-
-    ScopedDisplayRefT &operator=(const ScopedDisplayRefT &other)
-    {
-        if (this != &other)
-        {
-            if (mHoldingRef)
-            {
-                mDisplay->releaseRef();
-            }
-            mDisplay    = other.mDisplay;
-            mHoldingRef = other.mHoldingRef && other.mDisplay->addRefIfNotTerminating();
-        }
-        return *this;
-    }
-
-    template <typename OtherDisplayT,
-              std::enable_if_t<std::is_convertible_v<OtherDisplayT *, DisplayT *>, bool> = true>
-    ScopedDisplayRefT &operator=(const ScopedDisplayRefT<OtherDisplayT> &other)
-    {
-        if (static_cast<const void *>(this) != static_cast<const void *>(&other))
-        {
-            if (mHoldingRef)
-            {
-                mDisplay->releaseRef();
-            }
-            mDisplay    = other.mDisplay;
-            mHoldingRef = other.mHoldingRef && other.mDisplay->addRefIfNotTerminating();
-        }
-        return *this;
-    }
-
-    ScopedDisplayRefT(ScopedDisplayRefT &&other) noexcept
-        : mDisplay(other.mDisplay), mHoldingRef(other.mHoldingRef)
-    {
-        other.mDisplay    = nullptr;
-        other.mHoldingRef = false;
-    }
-
-    template <typename OtherDisplayT,
-              std::enable_if_t<std::is_convertible_v<OtherDisplayT *, DisplayT *>, bool> = true>
-    ScopedDisplayRefT(ScopedDisplayRefT<OtherDisplayT> &&other) noexcept
-        : mDisplay(other.mDisplay), mHoldingRef(other.mHoldingRef)
-    {
-        other.mDisplay    = nullptr;
-        other.mHoldingRef = false;
-    }
-
-    ScopedDisplayRefT &operator=(ScopedDisplayRefT &&other) noexcept
-    {
-        if (this != &other)
-        {
-            if (mHoldingRef)
-            {
-                mDisplay->releaseRef();
-            }
-            mDisplay          = other.mDisplay;
-            mHoldingRef       = other.mHoldingRef;
-            other.mDisplay    = nullptr;
-            other.mHoldingRef = false;
-        }
-        return *this;
-    }
-
-    template <typename OtherDisplayT,
-              std::enable_if_t<std::is_convertible_v<OtherDisplayT *, DisplayT *>, bool> = true>
-    ScopedDisplayRefT &operator=(ScopedDisplayRefT<OtherDisplayT> &&other) noexcept
-    {
-        if (static_cast<const void *>(this) != static_cast<const void *>(&other))
-        {
-            if (mHoldingRef)
-            {
-                mDisplay->releaseRef();
-            }
-            mDisplay          = other.mDisplay;
-            mHoldingRef       = other.mHoldingRef;
-            other.mDisplay    = nullptr;
-            other.mHoldingRef = false;
-        }
-        return *this;
-    }
+    ScopedDisplayRefT(const ScopedDisplayRefT &)            = delete;
+    ScopedDisplayRefT &operator=(const ScopedDisplayRefT &) = delete;
+    ScopedDisplayRefT(ScopedDisplayRefT &&)                 = delete;
+    ScopedDisplayRefT &operator=(ScopedDisplayRefT &&)      = delete;
 
     DisplayT *get() const { return mDisplay; }
 
   private:
-    template <typename OtherDisplayT>
-    friend class ScopedDisplayRefT;
-
     DisplayT *mDisplay;
-    bool mHoldingRef;
 };
 
 class [[nodiscard]] ScopedDisplayMutexLock final
@@ -766,8 +711,8 @@ class [[nodiscard]] ScopedDisplayMutexLock final
     ScopedDisplayMutexLock(const ScopedDisplayMutexLock &)            = delete;
     ScopedDisplayMutexLock &operator=(const ScopedDisplayMutexLock &) = delete;
 
-    ScopedDisplayMutexLock(ScopedDisplayMutexLock &&) noexcept            = default;
-    ScopedDisplayMutexLock &operator=(ScopedDisplayMutexLock &&) noexcept = default;
+    ScopedDisplayMutexLock(ScopedDisplayMutexLock &&)            = delete;
+    ScopedDisplayMutexLock &operator=(ScopedDisplayMutexLock &&) = delete;
 
   private:
     std::unique_lock<angle::SimpleMutex> mLock;
@@ -787,45 +732,21 @@ class [[nodiscard]] ScopedDisplayLockAndRefT final
     explicit ScopedDisplayLockAndRefT(DisplayT &display) : mLock(display), mDisplay(display) {}
     ~ScopedDisplayLockAndRefT()
     {
-        if constexpr (!std::is_const_v<DisplayT>)
+        if (mDisplay.get() != nullptr)
         {
-            if (mDisplay.get() != nullptr)
-            {
-                mDisplay.get()->onUnlockMutex();
-            }
+            mDisplay.get()->onUnlockMutex();
         }
     }
 
     ScopedDisplayLockAndRefT(const ScopedDisplayLockAndRefT &)            = delete;
     ScopedDisplayLockAndRefT &operator=(const ScopedDisplayLockAndRefT &) = delete;
 
-    ScopedDisplayLockAndRefT(ScopedDisplayLockAndRefT &&other) noexcept            = default;
-    ScopedDisplayLockAndRefT &operator=(ScopedDisplayLockAndRefT &&other) noexcept = default;
-
-    template <typename OtherDisplayT,
-              std::enable_if_t<std::is_convertible_v<OtherDisplayT *, DisplayT *>, bool> = true>
-    ScopedDisplayLockAndRefT(ScopedDisplayLockAndRefT<OtherDisplayT> &&other) noexcept
-        : mLock(std::move(other.mLock)), mDisplay(std::move(other.mDisplay))
-    {}
-
-    template <typename OtherDisplayT,
-              std::enable_if_t<std::is_convertible_v<OtherDisplayT *, DisplayT *>, bool> = true>
-    ScopedDisplayLockAndRefT &operator=(ScopedDisplayLockAndRefT<OtherDisplayT> &&other) noexcept
-    {
-        if (static_cast<const void *>(this) != static_cast<const void *>(&other))
-        {
-            mLock    = std::move(other.mLock);
-            mDisplay = std::move(other.mDisplay);
-        }
-        return *this;
-    }
+    ScopedDisplayLockAndRefT(ScopedDisplayLockAndRefT &&)            = delete;
+    ScopedDisplayLockAndRefT &operator=(ScopedDisplayLockAndRefT &&) = delete;
 
     DisplayT *get() const { return mDisplay.get(); }
 
   private:
-    template <typename OtherDisplayT>
-    friend class ScopedDisplayLockAndRefT;
-
     // mLock must be declared before mDisplay to ensure mDisplayMutex is locked before mRefCount
     // is incremented on construction, and mRefCount is decremented before mDisplayMutex is
     // unlocked on destruction.

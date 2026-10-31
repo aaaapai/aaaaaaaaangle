@@ -589,7 +589,12 @@ angle_win_msvc_parent_builder(
     ),
     targets = targets.bundle(
         additional_compile_targets = [
-            "all",
+            "angle",
+            "angle_shader_translator",
+            "angle_static",
+            "libfeature_support",
+            "libGLESv2_capture_complement",
+            "translator_fuzzer",
         ],
     ),
     gn_args = gn_args.config(
@@ -624,7 +629,12 @@ angle_win_msvc_parent_builder(
     ),
     targets = targets.bundle(
         additional_compile_targets = [
-            "all",
+            "angle",
+            "angle_shader_translator",
+            "angle_static",
+            "libfeature_support",
+            "libGLESv2_capture_complement",
+            "translator_fuzzer",
         ],
     ),
     gn_args = gn_args.config(
@@ -718,7 +728,12 @@ angle_win_msvc_parent_builder(
     ),
     targets = targets.bundle(
         additional_compile_targets = [
-            "all",
+            "angle",
+            "angle_shader_translator",
+            "angle_static",
+            "libfeature_support",
+            "libGLESv2_capture_complement",
+            "translator_fuzzer",
         ],
     ),
     gn_args = gn_args.config(
@@ -753,7 +768,12 @@ angle_win_msvc_parent_builder(
     ),
     targets = targets.bundle(
         additional_compile_targets = [
-            "all",
+            "angle",
+            "angle_shader_translator",
+            "angle_static",
+            "libfeature_support",
+            "libGLESv2_capture_complement",
+            "translator_fuzzer",
         ],
     ),
     gn_args = gn_args.config(
@@ -824,7 +844,12 @@ angle_win_msvc_parent_builder(
     ),
     targets = targets.bundle(
         additional_compile_targets = [
-            "all",
+            "angle",
+            "angle_shader_translator",
+            "angle_static",
+            "libfeature_support",
+            "libGLESv2_capture_complement",
+            "translator_fuzzer",
         ],
     ),
     gn_args = gn_args.config(
@@ -859,7 +884,12 @@ angle_win_msvc_parent_builder(
     ),
     targets = targets.bundle(
         additional_compile_targets = [
-            "all",
+            "angle",
+            "angle_shader_translator",
+            "angle_static",
+            "libfeature_support",
+            "libGLESv2_capture_complement",
+            "translator_fuzzer",
         ],
     ),
     gn_args = gn_args.config(
@@ -2335,6 +2365,20 @@ ci.thin_tester(
         mixins = [
             "win10_nvidia_gtx_1660_stable",
         ],
+        per_test_modifications = {
+            "angle_end2end_tests": targets.per_test_modification(
+                mixins = targets.mixin(
+                    args = [
+                        # anglebug.com/539554093 suspecting test timeout caused
+                        # by conflicting tests.
+                        "--max-processes=2",
+                    ],
+                    swarming = targets.swarming(
+                        shards = 6,
+                    ),
+                ),
+            ),
+        },
     ),
     targets_settings = targets.settings(
         browser_config = targets.browser_config.RELEASE,

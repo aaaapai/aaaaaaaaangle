@@ -3976,7 +3976,8 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     stateOut->viewportState.scissorCount  = 1;
     stateOut->viewportState.pScissors     = nullptr;
 
-    if (context->getFeatures().supportsDepthClipControl.enabled)
+    if (context->getFeatures().supportsDepthClipControl.enabled &&
+        !context->getFeatures().supportsDepthClipNegativeOneToOneDynamicState.enabled)
     {
         stateOut->depthClipControl.sType =
             VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLIP_CONTROL_CREATE_INFO_EXT;
@@ -4141,6 +4142,18 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     {
         dynamicStateListOut->push_back(VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT);
     }
+    if (context->getFeatures().supportsDepthClampEnableDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT);
+    }
+    if (context->getFeatures().supportsDepthClipNegativeOneToOneDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT);
+    }
+    if (context->getFeatures().supportsPolygonModeDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_POLYGON_MODE_EXT);
+    }
 }
 
 void GraphicsPipelineDesc::initializePipelineSharedNonVertexInputState(
@@ -4171,6 +4184,14 @@ void GraphicsPipelineDesc::initializePipelineSharedNonVertexInputState(
     if (context->getFeatures().supportsAlphaToCoverageEnableDynamicState.enabled)
     {
         dynamicStateListOut->push_back(VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT);
+    }
+    if (context->getFeatures().supportsAlphaToOneEnableDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT);
+    }
+    if (context->getFeatures().supportsSampleMaskDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_SAMPLE_MASK_EXT);
     }
 }
 
@@ -4279,6 +4300,10 @@ void GraphicsPipelineDesc::initializePipelineFragmentOutputState(
     if (context->getFeatures().supportsLogicOpDynamicState.enabled)
     {
         dynamicStateListOut->push_back(VK_DYNAMIC_STATE_LOGIC_OP_EXT);
+    }
+    if (context->getFeatures().supportsLogicOpEnableDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT);
     }
 }
 
@@ -6523,7 +6548,8 @@ void DescriptorSetDescBuilder::updateOneUniformBuffer(
 
     // Insert necessary barriers
     commandBufferHelper->bufferRead(context, VK_ACCESS_UNIFORM_READ_BIT, block.activeShaders(),
-                                    &vk::GetImpl(bufferBinding.get())->getBuffer());
+                                    &vk::GetImpl(bufferBinding.get())->getBuffer(),
+                                    kNoMemoryBarrierBits);
 }
 
 void DescriptorSetDescBuilder::updateOneUniformBufferOffset(
@@ -6584,7 +6610,7 @@ void DescriptorSetDescBuilder::updateOneStorageBuffer(
         // buffer data uploads and copies by knowing that the buffers are not actually
         // being written to.
         commandBufferHelper->bufferRead(context, VK_ACCESS_SHADER_READ_BIT, block.activeShaders(),
-                                        &bufferHelper);
+                                        &bufferHelper, memoryBarrierBits);
     }
     else if (bufferHelper.canShaderWriteBarrierSkipped(block.activeShaders()) &&
              (memoryBarrierBits & kBufferMemoryBarrierBits) == 0)
@@ -6604,8 +6630,8 @@ void DescriptorSetDescBuilder::updateOneStorageBuffer(
     {
         // We set the SHADER_READ_BIT to be conservative.
         VkAccessFlags accessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-        commandBufferHelper->bufferWrite(context, accessFlags, block.activeShaders(),
-                                         &bufferHelper);
+        commandBufferHelper->bufferWrite(context, accessFlags, block.activeShaders(), &bufferHelper,
+                                         memoryBarrierBits);
     }
 }
 
@@ -6683,7 +6709,7 @@ void DescriptorSetDescBuilder::updateAtomicCounters(
 
         VkAccessFlags accessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
         commandBufferHelper->bufferWrite(context, accessFlags, atomicCounterBuffer.activeShaders(),
-                                         &bufferHelper);
+                                         &bufferHelper, kNoMemoryBarrierBits);
 
         VkDeviceSize offset = bufferBinding.getOffset() + bufferHelper.getOffset();
 
@@ -7223,7 +7249,7 @@ VkResult PipelineCacheAccess::createGraphicsPipeline(vk::ErrorContext *context,
 {
     std::unique_lock<angle::SimpleMutex> lock = getLock();
 
-    return pipelineOut->initGraphics(context->getDevice(), createInfo, *mPipelineCache);
+    return pipelineOut->initGraphics(context->getDevice(), createInfo, mPipelineCache);
 }
 
 VkResult PipelineCacheAccess::createComputePipeline(vk::ErrorContext *context,
@@ -7232,7 +7258,7 @@ VkResult PipelineCacheAccess::createComputePipeline(vk::ErrorContext *context,
 {
     std::unique_lock<angle::SimpleMutex> lock = getLock();
 
-    return pipelineOut->initCompute(context->getDevice(), createInfo, *mPipelineCache);
+    return pipelineOut->initCompute(context->getDevice(), createInfo, mPipelineCache);
 }
 
 VkResult PipelineCacheAccess::getCacheData(vk::ErrorContext *context,

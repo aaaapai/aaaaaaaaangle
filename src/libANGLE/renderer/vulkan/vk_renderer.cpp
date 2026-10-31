@@ -298,6 +298,11 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-VkDescriptorImageInfo-descriptorType-06713",
     // http://crbug.com/1412096
     "VUID-VkImageCreateInfo-pNext-00990",
+    // VVL bug: https://gitlab.khronos.org/vulkan/Vulkan-ValidationLayers/-/merge_requests/582
+    "VUID-VkGraphicsPipelineCreateInfo-externalFormatResolve-09309",
+    // Spec bug: https://gitlab.khronos.org/vulkan/vulkan/-/merge_requests/8706
+    "VUID-vkCmdDraw-None-09363",
+    "VUID-vkCmdDrawIndexed-None-09363",
     // http://anglebug.com/42266565
     "VUID-VkGraphicsPipelineCreateInfo-Input-07904",
     "VUID-VkGraphicsPipelineCreateInfo-Input-07905",
@@ -2088,6 +2093,45 @@ VkResult RetrieveDeviceLostInfoFromDevice(VkDevice device,
     WARN() << faultString.str();
     return VK_SUCCESS;
 }
+
+#if defined(ANGLE_SHARED_LIBVULKAN)
+// Guards Volk's process-wide state, which is shared by every Renderer: the loadedModule,
+// loadedInstance and loadedDevice statics in volk.c, and all of Volk's vk* function pointer
+// globals, including the promoted *KHR/*EXT aliases assigned by the Init*FromCore() helpers.  That
+// state is defined by Volk, so it cannot live in this class.  Instead, the Volk calls that write it
+// are only reachable through an instance of this class, i.e. while its mutex is held.  The
+// Init*FromCore() aliases must likewise only be assigned while an instance is alive.
+//
+// Renderer initialization and Renderer::reloadVolkIfNeeded() may run concurrently for different
+// Renderers (e.g. eglInitialize on one display and eglMakeCurrent on another) without any other
+// lock in common.  Note that this only serializes writers; Vulkan calls made through the function
+// pointers are not synchronized with it.
+class [[nodiscard]] ScopedVolkLock final : angle::NonCopyable
+{
+  public:
+    ScopedVolkLock() : mLock(GetMutex()) {}
+
+    void initializeLoader(PFN_vkGetInstanceProcAddr getInstanceProcAddr)
+    {
+        VK_CALL(volkInitializeCustom, getInstanceProcAddr);
+    }
+
+    bool isInstanceLoaded(VkInstance instance) const { return volkGetLoadedInstance() == instance; }
+    void loadInstance(VkInstance instance) { VK_CALL(volkLoadInstanceOnly, instance); }
+
+    bool isDeviceLoaded(VkDevice device) const { return volkGetLoadedDevice() == device; }
+    void loadDevice(VkDevice device) { VK_CALL(volkLoadDevice, device); }
+
+  private:
+    static angle::SimpleMutex &GetMutex()
+    {
+        static angle::base::NoDestructor<angle::SimpleMutex> sMutex;
+        return *sMutex;
+    }
+
+    std::lock_guard<angle::SimpleMutex> mLock;
+};
+#endif  // defined(ANGLE_SHARED_LIBVULKAN)
 }  // namespace
 
 // OneOffCommandPool implementation.
@@ -2552,7 +2596,10 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
                 angle::GetLibrarySymbol(mLibVulkanLibrary, "vkGetInstanceProcAddr"));
 
         // Set all vk* function ptrs
-        VK_CALL(volkInitializeCustom, vulkanLoaderGetInstanceProcAddr);
+        {
+            ScopedVolkLock volk;
+            volk.initializeLoader(vulkanLoaderGetInstanceProcAddr);
+        }
 
         uint32_t ver = VK_CALL(volkGetInstanceVersion);
         if (!IsAndroid() && ver < VK_MAKE_API_VERSION(0, 1, 1, 91))
@@ -2715,8 +2762,10 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
         ANGLE_SCOPED_DISABLE_MSAN();
         ANGLE_VK_TRY(context, VK_CALL(vkCreateInstance, &instanceInfo, nullptr, &mInstance));
 #if defined(ANGLE_SHARED_LIBVULKAN)
-        // Load volk if we are linking dynamically
-        VK_CALL(volkLoadInstance, mInstance);
+        // Load volk if we are linking dynamically.  Keep the lock while the promoted extension
+        // entry points are initialized below, as they are Volk globals too.
+        ScopedVolkLock volk;
+        volk.loadInstance(mInstance);
 #endif  // defined(ANGLE_SHARED_LIBVULKAN)
 
         // For promoted extensions, initialize their entry points from the core version.
@@ -3059,58 +3108,68 @@ angle::Result Renderer::initializeMemoryAllocator(vk::ErrorContext *context)
 // The following features and properties are not promoted to any core Vulkan versions (up to Vulkan
 // 1.4):
 //
-// - VK_EXT_provoking_vertex:                          provokingVertexLast (feature)
-// - VK_EXT_transform_feedback:                        transformFeedback (feature),
-//                                                     geometryStreams (feature)
-// - VK_EXT_device_memory_report:                      deviceMemoryReport (feature)
-// - VK_EXT_multisampled_render_to_single_sampled:     multisampledRenderToSingleSampled (feature)
-// - VK_EXT_image_2d_view_of_3d:                       image2DViewOf3D (feature)
-//                                                     sampler2DViewOf3D (feature)
-// - VK_EXT_custom_border_color:                       customBorderColors (feature)
-//                                                     customBorderColorWithoutFormat (feature)
+// - VK_EXT_provoking_vertex:                         provokingVertexLast (feature)
+// - VK_EXT_transform_feedback:                       transformFeedback (feature),
+//                                                    geometryStreams (feature)
+// - VK_EXT_device_memory_report:                     deviceMemoryReport (feature)
+// - VK_EXT_multisampled_render_to_single_sampled:    multisampledRenderToSingleSampled (feature)
+// - VK_EXT_image_2d_view_of_3d:                      image2DViewOf3D (feature)
+//                                                    sampler2DViewOf3D (feature)
+// - VK_EXT_custom_border_color:                      customBorderColors (feature)
+//                                                    customBorderColorWithoutFormat (feature)
 // - VK_KHR_depth_clamp_zero_one or
-//   VK_EXT_depth_clamp_zero_one:                      depthClampZeroOne (feature)
-// - VK_EXT_depth_clip_control:                        depthClipControl (feature)
-// - VK_EXT_primitives_generated_query:                primitivesGeneratedQuery (feature),
-//                                                     primitivesGeneratedQueryWithRasterizerDiscard
-//                                                                                        (property)
-// - VK_EXT_primitive_topology_list_restart:           primitiveTopologyListRestart (feature)
-// - VK_EXT_extended_dynamic_state3:                   extendedDynamicState3AlphaToCoverageEnable
-//                                                                                        (feature)
-//                                                     dynamicPrimitiveTopologyUnrestricted
-//                                                                                        (property)
-// - VK_EXT_graphics_pipeline_library:                 graphicsPipelineLibrary (feature),
-//                                                     graphicsPipelineLibraryFastLinking (property)
-// - VK_KHR_fragment_shading_rate:                     pipelineFragmentShadingRate (feature)
-// - VK_EXT_fragment_shader_interlock:                 fragmentShaderPixelInterlock (feature)
-// - VK_EXT_pipeline_robustness:                       pipelineRobustness (feature)
-// - VK_EXT_pipeline_protected_access:                 pipelineProtectedAccess (feature)
+//   VK_EXT_depth_clamp_zero_one:                     depthClampZeroOne (feature)
+// - VK_EXT_depth_clip_control:                       depthClipControl (feature)
+// - VK_EXT_primitives_generated_query:               primitivesGeneratedQuery (feature),
+//                                                    primitivesGeneratedQueryWithRasterizerDiscard
+//                                                                                       (property)
+// - VK_EXT_primitive_topology_list_restart:          primitiveTopologyListRestart (feature)
+// - VK_EXT_extended_dynamic_state3:                  extendedDynamicState3AlphaToCoverageEnable
+//                                                                                       (feature)
+//                                                    extendedDynamicState3AlphaToOneEnable
+//                                                                                       (feature)
+//                                                    extendedDynamicState3DepthClampEnable
+//                                                                                       (feature)
+//                                                    extendedDynamicState3DepthClipNegativeOneToOne
+//                                                                                       (feature)
+//                                                    extendedDynamicState3LogicOpEnable (feature)
+//                                                    extendedDynamicState3PolygonMode (feature)
+//                                                    extendedDynamicState3SampleMask (feature)
+//                                                    dynamicPrimitiveTopologyUnrestricted
+//                                                                                       (property)
+// - VK_EXT_graphics_pipeline_library:                graphicsPipelineLibrary (feature),
+//                                                    graphicsPipelineLibraryFastLinking (property)
+// - VK_KHR_fragment_shading_rate:                    pipelineFragmentShadingRate (feature)
+// - VK_EXT_fragment_shader_interlock:                fragmentShaderPixelInterlock (feature)
+// - VK_EXT_pipeline_robustness:                      pipelineRobustness (feature)
+// - VK_EXT_pipeline_protected_access:                pipelineProtectedAccess (feature)
 // - VK_EXT_rasterization_order_attachment_access or
-//   VK_ARM_rasterization_order_attachment_access:     rasterizationOrderColorAttachmentAccess
-//                                                                                   (feature)
-//                                                     rasterizationOrderDepthAttachmentAccess
-//                                                                                   (feature)
-//                                                     rasterizationOrderStencilAttachmentAccess
-//                                                                                   (feature)
+//   VK_ARM_rasterization_order_attachment_access:    rasterizationOrderColorAttachmentAccess
+//                                                                                  (feature)
+//                                                    rasterizationOrderDepthAttachmentAccess
+//                                                                                  (feature)
+//                                                    rasterizationOrderStencilAttachmentAccess
+//                                                                                  (feature)
 // - VK_KHR_swapchain_maintenance1 or
-//   VK_EXT_swapchain_maintenance1:                    swapchainMaintenance1 (feature)
-// - VK_EXT_legacy_dithering:                          supportsLegacyDithering (feature)
-// - VK_EXT_physical_device_drm:                       hasPrimary (property),
-//                                                     hasRender (property)
-// - VK_ANDROID_external_format_resolve:               externalFormatResolve (feature)
-// - VK_EXT_vertex_input_dynamic_state:                vertexInputDynamicState (feature)
-// - VK_EXT_shader_atomic_float:                       shaderImageFloat32Atomics (feature)
-// - VK_EXT_image_compression_control:                 imageCompressionControl (feature)
-// - VK_EXT_image_compression_control_swapchain:       imageCompressionControlSwapchain (feature)
-// - VK_EXT_device_fault:                              deviceFault (feature),
-//                                                     deviceFaultVendorBinary (feature)
-// - VK_EXT_astc_decode_mode:                          decodeModeSharedExponent (feature)
-// - VK_KHR_unified_image_layouts:                     unifiedImageLayouts (feature)
-// - VK_EXT_external_memory_host:                      minImportedHostPointerAlignment (property)
-// - VK_QCOM_tile_memory_heap:                         tileMemoryHeapFeatures (feature)
-//                                                     tileMemoryHeapProperties (property)
-// - VK_EXT_texture_compression_astc_3d:               textureCompressionASTC_3D (feature)
-// - VK_AMD_shader_core_properties:                    (properties)
+//   VK_EXT_swapchain_maintenance1:                   swapchainMaintenance1 (feature)
+// - VK_EXT_legacy_dithering:                         supportsLegacyDithering (feature)
+// - VK_EXT_physical_device_drm:                      hasPrimary (property),
+//                                                    hasRender (property)
+// - VK_ANDROID_external_format_resolve:              externalFormatResolve (feature)
+// - VK_EXT_vertex_input_dynamic_state:               vertexInputDynamicState (feature)
+// - VK_EXT_shader_atomic_float:                      shaderImageFloat32Atomics (feature)
+// - VK_EXT_image_compression_control:                imageCompressionControl (feature)
+// - VK_EXT_image_compression_control_swapchain:      imageCompressionControlSwapchain (feature)
+// - VK_EXT_device_fault:                             deviceFault (feature),
+//                                                    deviceFaultVendorBinary (feature)
+// - VK_EXT_astc_decode_mode:                         decodeModeSharedExponent (feature)
+// - VK_KHR_unified_image_layouts:                    unifiedImageLayouts (feature)
+// - VK_EXT_external_memory_host:                     minImportedHostPointerAlignment (property)
+// - VK_QCOM_tile_memory_heap:                        tileMemoryHeapFeatures (feature)
+//                                                    tileMemoryHeapProperties (property)
+// - VK_EXT_texture_compression_astc_3d:              textureCompressionASTC_3D (feature)
+// - VK_AMD_shader_core_properties:                   (properties)
+// - VK_KHR_pipeline_binary:                          pipelineBinaries (feature)
 //
 void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     const vk::ExtensionNameList &deviceExtensionNames,
@@ -3293,6 +3352,11 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     if (ExtensionFound(VK_AMD_SHADER_CORE_PROPERTIES_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceProperties, &mShaderCorePropertiesAMD);
+    }
+
+    if (ExtensionFound(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mPipelineBinaryFeatures);
     }
 }
 
@@ -3877,6 +3941,9 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mShaderCorePropertiesAMD       = {};
     mShaderCorePropertiesAMD.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD;
 
+    mPipelineBinaryFeatures       = {};
+    mPipelineBinaryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_BINARY_FEATURES_KHR;
+
     // Query features and properties.
     VkPhysicalDeviceFeatures2KHR deviceFeatures = {};
     deviceFeatures.sType                        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -3979,6 +4046,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mTileMemoryHeapFeatures.pNext   = nullptr;
     mTileMemoryHeapProperties.pNext = nullptr;
     mShaderCorePropertiesAMD.pNext  = nullptr;
+    mPipelineBinaryFeatures.pNext   = nullptr;
 }
 
 // See comment above appendDeviceExtensionFeaturesNotPromoted.  Additional extensions are enabled
@@ -4310,6 +4378,12 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
     if (getFeatures().supportsAmdShaderCoreProperties.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_AMD_SHADER_CORE_PROPERTIES_EXTENSION_NAME);
+    }
+
+    if (getFeatures().preferPipelineBinaries.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mPipelineBinaryFeatures);
     }
 }
 
@@ -4807,6 +4881,11 @@ void Renderer::initDeviceExtensionEntryPoints()
             InitDynamicRenderingFunctions(mDevice);
         }
     }
+
+    if (mFeatures.preferPipelineBinaries.enabled)
+    {
+        InitPipelineBinaryKHRFunctions(mDevice);
+    }
 #endif  // !defined(ANGLE_SHARED_LIBVULKAN)
 
     // For promoted extensions, initialize their entry points from the core version.
@@ -5032,12 +5111,17 @@ angle::Result Renderer::createDeviceAndQueue(vk::ErrorContext *context,
     initializeValidationMessageSuppressions();
 
     ANGLE_VK_TRY(context, VK_CALL(vkCreateDevice, mPhysicalDevice, &createInfo, nullptr, &mDevice));
+    {
 #if defined(ANGLE_SHARED_LIBVULKAN)
-    // Load volk if we are loading dynamically
-    VK_CALL(volkLoadDevice, mDevice);
+        // Load volk if we are loading dynamically.  Keep the lock while
+        // initDeviceExtensionEntryPoints() aliases the promoted extension entry points, as they are
+        // Volk globals too.
+        ScopedVolkLock volk;
+        volk.loadDevice(mDevice);
 #endif  // defined(ANGLE_SHARED_LIBVULKAN)
 
-    initDeviceExtensionEntryPoints();
+        initDeviceExtensionEntryPoints();
+    }
 
     ANGLE_TRY(mCommandQueue.init(context, queueFamily, enableProtectedContent, queueCount));
     ANGLE_TRY(mCleanUpThread.init());
@@ -5717,6 +5801,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         (IsQualcommOpenSource(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
                              mPhysicalDeviceProperties.deviceName) || (std::getenv("ANGLE_isQualcommOpenSource")));
     const bool isQualcommProprietary = isQualcomm && !isQualcommOpenSource;
+    bool isAdreno622 = mPhysicalDeviceProperties.deviceID == angle::kDeviceID_Adreno622;
+    bool isAdreno702 = mPhysicalDeviceProperties.deviceID == angle::kDeviceID_Adreno702;
 
     // Distinguish between the ARM proprietary driver and the Mesa open source driver
     const bool isMesaPanVK      = IsMesaPanVK(mDriverProperties.driverID);
@@ -6003,9 +6089,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, supportsPrimitiveTopologyListRestart,
         mPrimitiveTopologyListRestartFeatures.primitiveTopologyListRestart == VK_TRUE);
 
+    // Adreno 702 applies advanced blend twice to some samples of multisampled pixels covered by two
+    // primitives sharing an edge; the framebuffer fetch emulation renders them correctly.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsBlendOperationAdvanced,
-        ExtensionFound(VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME, deviceExtensionNames));
+        ExtensionFound(VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME, deviceExtensionNames) &&
+            !(isQualcommProprietary && isAdreno702));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsFormatFeatureFlags2,
@@ -6234,9 +6323,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, forceMaxUniformBufferSize16KB,
                             isQualcommProprietary && isAdreno540);
 
-    bool isAdreno702 = mPhysicalDeviceProperties.deviceID == angle::kDeviceID_Adreno702;
     ANGLE_FEATURE_CONDITION(&mFeatures, splitCrossFormatLayeredImageCopy,
-                            isQualcommProprietary && isAdreno702);
+                            isQualcommProprietary && (isAdreno622 || isAdreno702));
+    ANGLE_FEATURE_CONDITION(&mFeatures, mutableFormatForIntColorImages,
+                            isQualcommProprietary && (isAdreno622 || isAdreno702));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsImageFormatList,
@@ -6638,6 +6728,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, supportsLogicOpDynamicState,
         mFeatures.supportsExtendedDynamicState2.enabled &&
             mExtendedDynamicState2Features.extendedDynamicState2LogicOp == VK_TRUE &&
+            mPhysicalDeviceFeatures.logicOp &&
             !(IsLinux() && isIntel && driverVersion < angle::VersionTriple(22, 2, 0)) &&
             !(IsAndroid() && isGalaxyS23));
 
@@ -6648,9 +6739,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // VK_EXT_extended_dynamic_state3 has lots of features, all of which are optional.  So
     // supportsExtendedDynamicState3 only checks for the presence of the extension.
+    // Disabled on Samsung due to driver bugs (https://issues.angleproject.org/issues/579500670)
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsExtendedDynamicState3,
-        ExtensionFound(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME, deviceExtensionNames));
+        ExtensionFound(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME, deviceExtensionNames) &&
+            !isSamsung);
 
     // Static state for rasterizer discard is tricky in Vulkan.  The spec says that
     // post-rasterization state is "ignored" when rasterizer discard is enabled.  Unfortunately,
@@ -6672,11 +6765,56 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // SimpleStateChangeTestES31.FragWriteSSBOThenChangeDrawbuffersThenWriteSSBO*,
     // VulkanPerformanceCounterTest_ES31.ColorMaskedFramebufferFetchDraw*, and
     // VulkanPerformanceCounterTest_ES31.FramebufferFetchRenderPassThenColorMaskedDraw* tests.
+    //
+    // Disabled on Intel/mesa drivers, due to driver bugs.  http://crbug.com/577864200
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsAlphaToCoverageEnableDynamicState,
         mFeatures.supportsExtendedDynamicState3.enabled &&
             mExtendedDynamicState3Features.extendedDynamicState3AlphaToCoverageEnable == VK_TRUE &&
-            isRasterizerDiscardDynamicState && !(isIntel && IsWindows()));
+            isRasterizerDiscardDynamicState && !(isIntel && IsWindows()) &&
+            !(isIntel && IsLinux()));
+
+    // Disabled on Imagination drivers due to test failures and device loss.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsAlphaToOneEnableDynamicState,
+        mFeatures.supportsExtendedDynamicState3.enabled &&
+            mExtendedDynamicState3Features.extendedDynamicState3AlphaToOneEnable == VK_TRUE &&
+            isRasterizerDiscardDynamicState && !isPowerVR);
+
+    // Disabled on Imagination drivers due to failure of a few dEQP tests.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsDepthClampEnableDynamicState,
+        mFeatures.supportsExtendedDynamicState3.enabled &&
+            mExtendedDynamicState3Features.extendedDynamicState3DepthClampEnable == VK_TRUE &&
+            mPhysicalDeviceFeatures.depthClamp && isRasterizerDiscardDynamicState && !isPowerVR);
+
+    // Disabled on Intel/Windows drivers due to rendering corruption across many tests.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsDepthClipNegativeOneToOneDynamicState,
+        mFeatures.supportsExtendedDynamicState3.enabled &&
+            mExtendedDynamicState3Features.extendedDynamicState3DepthClipNegativeOneToOne ==
+                VK_TRUE &&
+            mFeatures.supportsDepthClipControl.enabled && isRasterizerDiscardDynamicState &&
+            !(isIntel && IsWindows()));
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsLogicOpEnableDynamicState,
+        mFeatures.supportsExtendedDynamicState3.enabled &&
+            mExtendedDynamicState3Features.extendedDynamicState3LogicOpEnable == VK_TRUE &&
+            mFeatures.supportsLogicOpDynamicState.enabled && isRasterizerDiscardDynamicState);
+
+    // Disabled on Imagination drivers due to failure of the StateChangeTestES3.PolygonMode test
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsPolygonModeDynamicState,
+        mFeatures.supportsExtendedDynamicState3.enabled &&
+            mExtendedDynamicState3Features.extendedDynamicState3PolygonMode == VK_TRUE &&
+            !isPowerVR);
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsSampleMaskDynamicState,
+        mFeatures.supportsExtendedDynamicState3.enabled &&
+            mExtendedDynamicState3Features.extendedDynamicState3SampleMask == VK_TRUE &&
+            isRasterizerDiscardDynamicState);
 
     // Older Samsung drivers with version < 24.0.0 have a bug in imageless framebuffer support.
     const bool isSamsungDriverWithImagelessFramebufferBug =
@@ -6816,6 +6954,40 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, preferMonolithicPipelinesOverLibraries,
                             mFeatures.supportsGraphicsPipelineLibrary.enabled && false);
 
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsDynamicRendering,
+                            mDynamicRenderingFeatures.dynamicRendering == VK_TRUE);
+
+    // Don't enable VK_KHR_maintenance5 without VK_KHR_dynamic_rendering
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsMaintenance5,
+                            mFeatures.supportsDynamicRendering.enabled &&
+                                mMaintenance5Features.maintenance5 == VK_TRUE);
+
+    // VK_KHR_pipeline_binary requires the pipelineBinaries feature to be enabled at device
+    // creation; simply enabling the extension is not sufficient.
+    //
+    // The extension also depends on any of Vulkan 1.4, VK_KHR_extended_flags or
+    // VK_KHR_maintenance5, each of which provides VkPipelineCreateFlags2CreateInfo.  That is the
+    // only way to pass VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR, which a pipeline needs before
+    // its binaries can be captured.  ANGLE requires maintenance5, which it already enables and
+    // which every Vulkan 1.4 device supports; VK_KHR_extended_flags is not plumbed.
+    //
+    // Note that supportsMaintenance5 above is gated on supportsDynamicRendering, which is a pure
+    // device capability (dynamicRendering == VK_TRUE).  It is deliberately *not* gated on
+    // preferDynamicRendering, which is the separate policy decision about whether ANGLE actually
+    // renders with dynamic rendering and which is disabled on several vendors for performance or
+    // driver-bug reasons.  Pipeline binaries have no interaction with render pass handling, so
+    // they remain available on devices where ANGLE chooses to keep using render pass objects.
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsPipelineBinary,
+                            mPipelineBinaryFeatures.pipelineBinaries == VK_TRUE &&
+                                mFeatures.supportsMaintenance5.enabled);
+
+    // Off by default while pipeline binaries are tested.  Tests turn them on with
+    // allowPipelineBinariesForTesting, which only takes effect where the extension is supported.
+    ANGLE_FEATURE_CONDITION(&mFeatures, allowPipelineBinariesForTesting, false);
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferPipelineBinaries,
+                            mFeatures.supportsPipelineBinary.enabled &&
+                                mFeatures.allowPipelineBinariesForTesting.enabled);
+
     // To avoid memory bloating due to using pipeline caches per program, the pipeline cache in the
     // renderer can be used.
     ANGLE_FEATURE_CONDITION(&mFeatures, preferGlobalPipelineCache,
@@ -6839,11 +7011,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // be enabled on platforms if:
     //
     // - mergeProgramPipelineCachesToGlobalCache is enabled
-    // - preferMonolithicPipelinesOverLibraries is enabled
     // - stale nvidia drivers
     ANGLE_FEATURE_CONDITION(&mFeatures, externallySynchronizePipelineCacheAccess,
                             mFeatures.mergeProgramPipelineCachesToGlobalCache.enabled ||
-                                mFeatures.preferMonolithicPipelinesOverLibraries.enabled ||
                                 (isNvidia && driverVersion < angle::VersionTriple(441, 0, 0)));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, enableAsyncPipelineCacheCompression, true);
@@ -6853,8 +7023,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // after it.
     ANGLE_FEATURE_CONDITION(&mFeatures, enableExtraSubmitFence, false);
 
-    // Sync monolithic pipelines to the blob cache occasionally on platforms that would benefit from
-    // it:
+    // Sync global pipeline cache to the blob cache occasionally on platforms that would benefit
+    // from it:
     //
     // - VK_EXT_graphics_pipeline_library is not supported, and the program cache is not warmed up:
     //   If the pipeline cache is being warmed up at link time, the blobs corresponding to each
@@ -6862,14 +7032,14 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // - VK_EXT_graphics_pipeline_library is supported, but monolithic pipelines are still
     //   preferred, and the cost of syncing the large cache is acceptable.
     //
-    // Otherwise monolithic pipelines are recreated on every run.
+    // Otherwise global pipeline cache is recreated on every run.
     const bool hasNoPipelineWarmUp = !mFeatures.supportsGraphicsPipelineLibrary.enabled &&
                                      !mFeatures.warmUpPipelineCacheAtLink.enabled;
     const bool canSyncLargeMonolithicCache =
         mFeatures.supportsGraphicsPipelineLibrary.enabled &&
         mFeatures.preferMonolithicPipelinesOverLibraries.enabled &&
         (!IsAndroid() || mFeatures.enableAsyncPipelineCacheCompression.enabled);
-    ANGLE_FEATURE_CONDITION(&mFeatures, syncMonolithicPipelinesToBlobCache,
+    ANGLE_FEATURE_CONDITION(&mFeatures, syncGlobalPipelineCacheToBlobCache,
                             !mFeatures.skipPipelineCacheSerialization.enabled &&
                                 (hasNoPipelineWarmUp || canSyncLargeMonolithicCache));
 
@@ -7029,14 +7199,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // VkEvent instead of GPU overhead associated with vkCmdResetEvent.
     ANGLE_FEATURE_CONDITION(&mFeatures, recycleVkEvent, isSwiftShader);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsDynamicRendering,
-                            mDynamicRenderingFeatures.dynamicRendering == VK_TRUE);
-
-    // Don't enable VK_KHR_maintenance5 without VK_KHR_dynamic_rendering
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsMaintenance5,
-                            mFeatures.supportsDynamicRendering.enabled &&
-                                mMaintenance5Features.maintenance5 == VK_TRUE);
-
     // Disabled on older Nvidia drivers due to a bug with attachment location mapping, resulting in
     // incorrect rendering in the presence of gaps in locations.  http://anglebug.com/372883691.
     ANGLE_FEATURE_CONDITION(
@@ -7056,8 +7218,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // supported. Except for SwiftShader, which crashes when binding non-attachment textures as
     // input attachments.
     //
-    // Use of dynamic rendering is disabled on older ARM proprietary drivers due to driver bugs
-    // (http://issuetracker.google.com/356051947).
+    // Use of dynamic rendering is disabled on ARM due to driver bugs
+    // (http://issuetracker.google.com/356051947, http://issuetracker.google.com/575550012).
     //
     // Use of dynamic rendering is disabled on older Qualcomm drivers due to driver bugs
     // (http://crbug.com/415738891).
@@ -7071,8 +7233,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, preferDynamicRendering,
         mFeatures.supportsDynamicRendering.enabled &&
             mFeatures.supportsDynamicRenderingLocalRead.enabled && !hasLegacyDitheringV1 &&
-            !isSwiftShader &&
-            !(isARMProprietary && driverVersion < angle::VersionTriple(52, 0, 0)) &&
+            !isSwiftShader && !isARM &&
             !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 801, 0)) &&
             !isPowerVR);
 
@@ -7614,7 +7775,7 @@ angle::Result Renderer::syncPipelineCacheVk(const gl::Context *contextGL)
     }
     ASSERT(mPipelineCache.valid());
 
-    if (!mFeatures.syncMonolithicPipelinesToBlobCache.enabled)
+    if (!mFeatures.syncGlobalPipelineCacheToBlobCache.enabled)
     {
         return angle::Result::Continue;
     }
@@ -7954,22 +8115,19 @@ void Renderer::setGlobalDebugAnnotator(bool *installedAnnotatorOut)
 void Renderer::reloadVolkIfNeeded() const
 {
 #if defined(ANGLE_SHARED_LIBVULKAN)
-    // Volk tracks the currently loaded VkInstance/VkDevice and function pointers in unprotected
-    // global variables, and sets loadedInstance/loadedDevice before populating the function
-    // pointers. Protect the check and reload with a static mutex so concurrent threads (e.g. during
-    // eglMakeCurrent) do not race on Volk globals or observe partially loaded entry points.
-    static angle::base::NoDestructor<angle::SimpleMutex> sVolkMutex;
-    std::unique_lock<angle::SimpleMutex> lock(*sVolkMutex);
+    // Volk sets loadedInstance/loadedDevice before populating the function pointers, so the check
+    // and the reload must be done under the same lock.
+    ScopedVolkLock volk;
 
-    if ((mInstance != VK_NULL_HANDLE) && (volkGetLoadedInstance() != mInstance))
+    if ((mInstance != VK_NULL_HANDLE) && !volk.isInstanceLoaded(mInstance))
     {
-        VK_CALL(volkLoadInstance, mInstance);
+        volk.loadInstance(mInstance);
         initializeInstanceExtensionEntryPointsFromCore();
     }
 
-    if ((mDevice != VK_NULL_HANDLE) && (volkGetLoadedDevice() != mDevice))
+    if ((mDevice != VK_NULL_HANDLE) && !volk.isDeviceLoaded(mDevice))
     {
-        VK_CALL(volkLoadDevice, mDevice);
+        volk.loadDevice(mDevice);
         initializeDeviceExtensionEntryPointsFromCore();
     }
 #endif  // defined(ANGLE_SHARED_LIBVULKAN)
