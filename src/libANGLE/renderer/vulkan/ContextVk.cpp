@@ -59,7 +59,7 @@ static constexpr VkDeviceSize kMaxBufferToImageCopySize = 21 * 1024 * 1024;
 static constexpr VkDeviceSize kMaxRenderPassCountPerCommandBuffer = 32;
 // The number of queueSerials we will reserve for outsideRenderPassCommands when we generate one for
 // RenderPassCommands.
-static constexpr size_t kMaxReservedOutsideRenderPassQueueSerials = 10;
+static constexpr size_t kMaxReservedOutsideRenderPassQueueSerials = 20;
 
 // Dumping the command stream is disabled by default.
 static constexpr bool kEnableCommandStreamDiagnostics = false;
@@ -72,7 +72,7 @@ static constexpr GLbitfield kWriteAfterAccessMemoryBarriers =
 
 // The number of minimum commands in the command buffer to prefer submit at FBO boundary or
 // immediately submit when the device is idle after calling to flush.
-static constexpr size_t kMinCommandCountToSubmit = 64;
+static constexpr size_t kMinCommandCountToSubmit = 80;
 
 constexpr bool useVulkanSecondaryCommandBuffer()
 {
